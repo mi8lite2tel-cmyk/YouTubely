@@ -1,14 +1,19 @@
 name: Release
 
-# Push a tag like v0.1.0 (or create a release with a new tag in the GitHub UI):
-# signed APKs for both flavors are built and attached to the GitHub Release.
-# Setup and the step-by-step process: docs/releasing.md
+# Publish a release in the GitHub UI (tag v0.1.0, 0.1.0 or 0.1): signed APKs for both
+# flavors are built and attached to it. For an existing release, run this workflow
+# manually from the Actions tab with its tag. Setup and process: docs/releasing.md
 on:
-  push:
-    tags: ['v*']
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of the release to build (e.g. v0.1.0)
+        required: true
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag || github.event.release.tag_name }}
   cancel-in-progress: false
 
 permissions:
@@ -20,15 +25,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      TAG: ${{ github.ref_name }}
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ env.TAG }}
 
       - name: Check that the tag matches versionName
         run: |
           VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
-          if [ "$TAG" != "v$VERSION" ]; then
-            echo "::error::Tag $TAG does not match versionName $VERSION in app/build.gradle.kts. Bump the version first, then tag v$VERSION."
+          # Accept v0.1.0, 0.1.0 and the short form 0.1 (= 0.1.0).
+          wanted="${TAG#v}"
+          while [[ "$wanted" =~ ^[0-9]+(\.[0-9]+)?$ ]]; do wanted="$wanted.0"; done
+          if [ "$wanted" != "$VERSION" ]; then
+            echo "::error::Tag $TAG does not match versionName $VERSION in app/build.gradle.kts. Bump the version first, then release v$VERSION."
             exit 1
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
@@ -110,8 +120,11 @@ jobs:
         run: |
           assets=(dist/*.apk dist/SHA256SUMS.txt)
           if gh release view "$TAG" > /dev/null 2>&1; then
-            # Release was created in the UI together with the tag: just attach the files.
             gh release upload "$TAG" "${assets[@]}" --clobber
+            # Fill in the download notes unless the author already wrote a description.
+            if [ -z "$(gh release view "$TAG" --json body --jq .body)" ]; then
+              gh release edit "$TAG" --notes-file dist/notes.md
+            fi
           else
             prerelease=()
             [[ "$VERSION" == *-* ]] && prerelease=(--prerelease)
