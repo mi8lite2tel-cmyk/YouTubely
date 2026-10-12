@@ -28,12 +28,29 @@ android {
         }
     }
 
+    // The release key comes from GitHub Secrets in the release workflow (docs/releasing.md)
+    // and never lives in the repository. Without it, release APKs are built unsigned.
+    val keystoreFile = providers.environmentVariable("YOUTUBELY_KEYSTORE_FILE").orNull
+    signingConfigs {
+        if (keystoreFile != null) {
+            create("release") {
+                storeFile = file(keystoreFile)
+                storePassword = providers.environmentVariable("YOUTUBELY_KEYSTORE_PASSWORD").get()
+                keyAlias = providers.environmentVariable("YOUTUBELY_KEY_ALIAS").get()
+                keyPassword = providers.environmentVariable("YOUTUBELY_KEY_PASSWORD").get()
+                // v3 allows rotating the key later without breaking updates.
+                enableV3Signing = true
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
         }
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
