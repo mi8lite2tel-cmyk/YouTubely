@@ -3,6 +3,7 @@
 package app.youtubely.core.designsystem.theme
 
 import android.os.Build
+import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialExpressiveTheme
@@ -13,6 +14,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import app.youtubely.core.model.DarkMode
+import app.youtubely.core.model.ThemeSettings
 
 /**
  * Root theme of the app: Material 3 Expressive with the expressive motion scheme.
@@ -49,11 +52,39 @@ fun YouTubelyTheme(
         }
 
     MaterialExpressiveTheme(
-        colorScheme = colorScheme,
+        colorScheme = animateColorScheme(colorScheme),
         motionScheme = MotionScheme.expressive(),
+        typography = YouTubelyTypography,
         content = content,
     )
 }
+
+/** Theme driven by the user's [ThemeSettings]; every change animates (see [animateColorScheme]). */
+@Composable
+fun YouTubelyTheme(
+    settings: ThemeSettings,
+    content: @Composable () -> Unit,
+) {
+    YouTubelyTheme(
+        darkTheme = settings.darkMode.isDark(),
+        dynamicColor = settings.dynamicColor,
+        pureBlack = settings.pureBlack,
+        highContrast = settings.highContrast,
+        content = content,
+    )
+}
+
+@Composable
+fun DarkMode.isDark(): Boolean =
+    when (this) {
+        DarkMode.System -> isSystemInDarkTheme()
+        DarkMode.Light -> false
+        DarkMode.Dark -> true
+    }
+
+/** Whether Dynamic Color can be offered on this device (Android 12+). */
+@get:ChecksSdkIntAtLeast(api = Build.VERSION_CODES.S)
+val isDynamicColorSupported: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
 /**
  * AMOLED variant: the lowest surfaces become black, the container hierarchy is kept

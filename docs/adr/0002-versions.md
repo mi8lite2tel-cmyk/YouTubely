@@ -43,6 +43,17 @@
 | Detekt | 1.23.8 | работает с Kotlin 2.4 (проверено на этом проекте). Detekt 2.0 пока alpha |
 | Spotless / ktlint | 8.10.4 / 1.8.0 | |
 | JUnit 4 | 4.13.2 | для Android-модулей; JVM-модули используют `kotlin-test` на JUnit Platform |
+| Navigation 3 | 1.2.0 | `lifecycle-viewmodel-navigation3` 2.11.0 |
+| material3-adaptive-navigation-suite | 1.5.0-beta01 | та же версия, что и material3 |
+| Media3 | 1.11.1 | exoplayer, dash, hls, datasource-okhttp, session, ui-compose, ui-compose-material3 |
+| NewPipeExtractor | v0.26.5 | JitPack, только группа `com.github.TeamNewPipe` |
+| OkHttp | 5.5.0 | |
+| jsoup | 1.23.2 | |
+| Coil 3 | 3.6.3 | |
+| DataStore | 1.2.1 | Preferences |
+| hilt-lifecycle-viewmodel-compose | 1.4.0 | |
+| core-splashscreen | 1.2.0 | |
+| Robolectric | 4.17 | тест разбора DASH-манифеста парсером Media3 |
 
 ## Проверено, добавляется вместе с модулем-потребителем
 
@@ -50,13 +61,8 @@
 
 | Компонент | Версия |
 |---|---|
-| Navigation 3 (`navigation3-runtime`, `-ui`) | 1.2.0 |
-| `lifecycle-viewmodel-navigation3` | 2.11.0 |
 | `material3-adaptive` | 1.3.0 (1.4.0 — alpha03) |
-| `material3-adaptive-navigation-suite` | 1.4.0 stable / 1.5.0-beta01 вместе с material3 |
-| Media3 | 1.11.1 |
 | Room 3 (`androidx.room3`) | 3.0.3 (запасной вариант — Room 2.8.5) |
-| DataStore | 1.2.1 |
 | WorkManager | 2.12.0 |
 | Paging | 3.5.2 |
 | Glance | 1.2.0 |
@@ -64,14 +70,9 @@
 | `palette-ktx` | 1.0.0 |
 | Benchmark / Baseline Profile | 1.5.0 |
 | profileinstaller | 1.4.1 |
-| hilt-navigation-compose / hilt-lifecycle-viewmodel-compose | 1.4.0 |
-| OkHttp | 5.5.0 |
-| Coil 3 | 3.6.3 |
-| NewPipeExtractor (JitPack) | v0.26.5 |
 | protobuf (kotlin-lite) / plugin | 4.36.2 / 0.10.0 |
 | MockK | 1.14.11 |
 | Turbine | 1.2.1 |
-| Robolectric | 4.17 |
 | Roborazzi | 1.76.0 |
 | LeakCanary | 2.14 (3.0 — alpha) |
 | AndroidX Test: ext-junit / espresso / uiautomator | 1.3.0 / 3.7.0 / 2.4.0 |
@@ -80,5 +81,5 @@
 
 1. Перед изменением версии сверяйтесь с первоисточником и обновляйте этот файл (дату и таблицу).
 2. Обновления приходят через Renovate (`renovate.json`). Kotlin+KSP, Compose и Media3 обновляются группами.
-3. Pre-release допускается только там, где это прямо записано здесь. Сейчас это только material3.
+3. Pre-release допускается только там, где это прямо записано здесь. Сейчас это material3 и navigation-suite той же версии.
 4. Если BOM отстаёт от нужной версии артефакта, артефакт переопределяется явно с комментарием в каталоге.

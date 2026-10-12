@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notice_title">Неофіційний клієнт</string>
+    <string name="notice_body">YouTubely — незалежний застосунок з відкритим кодом. Він не повʼязаний з Google і YouTube і не схвалений ними. Використання може порушувати Умови використання YouTube — відповідальність лежить на вас. Завантажуйте лише те, на що маєте права.</string>
+    <string name="notice_accept">Зрозуміло</string>
+    <string name="nav_home">Головна</string>
+    <string name="nav_search">Пошук</string>
+    <string name="nav_settings">Налаштування</string>
+</resources>

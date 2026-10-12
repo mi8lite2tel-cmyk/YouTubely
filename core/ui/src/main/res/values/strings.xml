@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="live">LIVE</string>
+    <string name="verified">Verified</string>
+    <string name="loading">Loading</string>
+    <string name="retry">Try again</string>
+    <plurals name="views">
+        <item quantity="one">%s view</item>
+        <item quantity="other">%s views</item>
+    </plurals>
+    <plurals name="subscribers">
+        <item quantity="one">%s subscriber</item>
+        <item quantity="other">%s subscribers</item>
+    </plurals>
+
+    <string name="error_network_title">No connection</string>
+    <string name="error_network_body">Check your internet connection and try again.</string>
+    <string name="error_rate_title">Too many requests</string>
+    <string name="error_rate_body">YouTube is limiting requests right now. Wait a minute and try again.</string>
+    <string name="error_geo_title">Not available in your region</string>
+    <string name="error_geo_body">The uploader has restricted this content in your country.</string>
+    <string name="error_age_title">Age-restricted</string>
+    <string name="error_age_body">YouTube requires signing in to watch this. YouTubely does not sign in to Google accounts.</string>
+    <string name="error_paid_title">Paid content</string>
+    <string name="error_paid_body">This video is only available to paying viewers or members.</string>
+    <string name="error_removed_title">Unavailable</string>
+    <string name="error_removed_body">This content was removed or made private.</string>
+    <string name="error_outdated_title">YouTube has changed</string>
+    <string name="error_outdated_body">The app needs an update to read this page. Check for a new version.</string>
+    <string name="error_unknown_title">Something went wrong</string>
+    <string name="error_unknown_body">An unexpected error occurred. Try again.</string>
+</resources>

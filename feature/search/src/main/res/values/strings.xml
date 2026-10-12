@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="search_hint">Search YouTube</string>
+    <string name="search_close">Close search</string>
+    <string name="search_clear">Clear</string>
+    <string name="search_fill_suggestion">Edit “%s”</string>
+    <string name="search_idle">Find videos, channels and playlists</string>
+    <string name="search_empty">Nothing found for “%s”</string>
+    <string name="filter_all">All</string>
+    <string name="filter_videos">Videos</string>
+    <string name="filter_channels">Channels</string>
+    <string name="filter_playlists">Playlists</string>
+    <string name="filter_short">Under 4 min</string>
+    <string name="filter_medium">4–20 min</string>
+    <string name="filter_long">Over 20 min</string>
+    <plurals name="search_playlist_videos">
+        <item quantity="one">%d video</item>
+        <item quantity="other">%d videos</item>
+    </plurals>
+</resources>

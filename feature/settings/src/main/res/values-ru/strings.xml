@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Настройки</string>
+    <string name="settings_appearance">Оформление</string>
+    <string name="settings_theme_system">Как в системе</string>
+    <string name="settings_theme_light">Светлая</string>
+    <string name="settings_theme_dark">Тёмная</string>
+    <string name="settings_dynamic_color">Динамические цвета</string>
+    <string name="settings_dynamic_color_summary">Цвета из ваших обоев</string>
+    <string name="settings_dynamic_color_unsupported">Нужен Android 12 или новее</string>
+    <string name="settings_pure_black">Чёрная тема</string>
+    <string name="settings_pure_black_summary">Настоящий чёрный фон для OLED-экранов</string>
+    <string name="settings_high_contrast">Высокий контраст</string>
+    <string name="settings_high_contrast_summary">Более контрастные собственные цвета приложения</string>
+    <string name="settings_playback">Воспроизведение</string>
+    <string name="settings_background">Фоновое воспроизведение</string>
+    <string name="settings_background_summary">Слушайте с выключенным экраном и в других приложениях</string>
+    <string name="settings_pip">Картинка в картинке</string>
+    <string name="settings_pip_summary">Видео продолжится в маленьком окне, когда вы выйдете из приложения</string>
+    <string name="settings_max_quality_wifi">Максимальное качество по Wi-Fi</string>
+    <string name="settings_max_quality_mobile">Максимальное качество в мобильной сети</string>
+    <string name="settings_quality_no_limit">Без ограничений</string>
+    <string name="settings_about">О приложении</string>
+    <string name="settings_source">Исходный код</string>
+    <string name="settings_version">Версия %s</string>
+    <string name="settings_license">Лицензия</string>
+    <string name="settings_license_summary">GNU GPL v3.0 или новее. Неофициальное приложение, не связано с Google и YouTube.</string>
+</resources>

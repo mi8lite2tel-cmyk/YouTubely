@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="search_hint">Пошук на YouTube</string>
+    <string name="search_close">Закрити пошук</string>
+    <string name="search_clear">Очистити</string>
+    <string name="search_fill_suggestion">Змінити «%s»</string>
+    <string name="search_idle">Шукайте відео, канали й плейлисти</string>
+    <string name="search_empty">За запитом «%s» нічого не знайдено</string>
+    <string name="filter_all">Усі</string>
+    <string name="filter_videos">Відео</string>
+    <string name="filter_channels">Канали</string>
+    <string name="filter_playlists">Плейлисти</string>
+    <string name="filter_short">До 4 хв</string>
+    <string name="filter_medium">4–20 хв</string>
+    <string name="filter_long">Понад 20 хв</string>
+    <plurals name="search_playlist_videos">
+        <item quantity="one">%d відео</item>
+        <item quantity="few">%d відео</item>
+        <item quantity="many">%d відео</item>
+        <item quantity="other">%d відео</item>
+    </plurals>
+</resources>

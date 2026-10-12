@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.youtubely.android.application)
     alias(libs.plugins.youtubely.android.compose)
     alias(libs.plugins.youtubely.android.hilt)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -11,8 +12,8 @@ android {
 
     defaultConfig {
         applicationId = "app.youtubely"
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
     }
 
     flavorDimensions += "distribution"
@@ -71,11 +72,29 @@ android {
 
 dependencies {
     implementation(projects.core.common)
+    implementation(projects.core.datastore)
     implementation(projects.core.designsystem)
     implementation(projects.core.model)
+    implementation(projects.core.network)
+    implementation(projects.core.player)
     implementation(projects.core.provider)
+    implementation(projects.core.ui)
+    implementation(projects.feature.home)
+    implementation(projects.feature.search)
+    implementation(projects.feature.settings)
+    implementation(projects.feature.watch)
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+    implementation(libs.kotlinx.serialization.json)
 }

@@ -27,6 +27,9 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        maven("https://jitpack.io") {
+            content { includeGroup("com.github.TeamNewPipe") }
+        }
     }
 }
 
@@ -36,6 +39,14 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 include(":app")
 include(":core:common")
+include(":core:datastore")
 include(":core:designsystem")
 include(":core:model")
+include(":core:network")
+include(":core:player")
 include(":core:provider")
+include(":core:ui")
+include(":feature:home")
+include(":feature:search")
+include(":feature:settings")
+include(":feature:watch")

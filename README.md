@@ -20,8 +20,8 @@
 </div>
 
 > [!WARNING]
-> **Проект в ранней разработке.** Сейчас готов каркас приложения: сборка, тема и CI.
-> Воспроизведения видео пока нет. Ниже описано, к чему мы идём.
+> **Проект в ранней разработке.** Уже работают главная, поиск и просмотр видео с фоновым
+> воспроизведением и «картинкой в картинке». Загрузок, подписок и истории пока нет.
 
 > [!NOTE]
 > YouTubely — независимое приложение с открытым кодом. Оно не связано с Google и YouTube
@@ -100,12 +100,16 @@
 - [x] Каркас проекта: модули, convention-плагины, version catalog
 - [x] Тема Material 3 Expressive, Dynamic Color, AMOLED и высокий контраст
 - [x] CI и автоматические релизы с подписанными APK
-- [ ] Получение потоков через NewPipeExtractor
-- [ ] Навигация, адаптивная оболочка, поиск
-- [ ] Плеер: фон, PiP, аудио-режим
+- [x] Получение потоков через NewPipeExtractor
+- [x] Главная с разделами (музыка, игры, трансляции, подкасты)
+- [x] Поиск с подсказками и фильтрами
+- [x] Адаптивная навигация: нижняя панель на телефоне, боковая на планшете
+- [x] Плеер: адаптивное качество до 4K, скорость 0.25–4×, фон, PiP, экран блокировки
+- [x] Настройки темы и лимиты качества для Wi-Fi и мобильной сети
+- [ ] Аудио-режим
+- [ ] Загрузки и вкладка «Скачанные»
 - [ ] Каналы, плейлисты, комментарии
 - [ ] Локальные подписки и лента
-- [ ] Загрузки
 - [ ] SponsorBlock, DeArrow, Return YouTube Dislike
 - [ ] F-Droid и IzzyOnDroid
 
@@ -148,8 +152,14 @@ build-logic/         convention-плагины Gradle
 core/
 ├─ common/           Outcome, DispatcherProvider
 ├─ model/            доменные модели: VideoId, StreamItem, StreamInfo, …
-├─ provider/         StreamProvider — единственный путь к источнику видео
-└─ designsystem/     тема Material 3 Expressive
+├─ network/          OkHttp и загрузчик для NewPipeExtractor
+├─ provider/         StreamProvider + реализация на NewPipeExtractor
+├─ player/           Media3: DASH-манифест на устройстве, фоновый сервис, медиа-сессия
+├─ datastore/        настройки (DataStore)
+├─ designsystem/     тема Material 3 Expressive, Roboto Flex, Material Symbols
+└─ ui/               карточки видео, состояния загрузки и ошибок
+feature/
+├─ home/ search/ watch/ settings/
 config/              Detekt, Compose stability
 docs/adr/            архитектурные решения
 tools/color/         генератор палитры (Material Color Utilities)
@@ -165,7 +175,10 @@ tools/color/         генератор палитры (Material Color Utilities
 | DI | Hilt + KSP |
 | Сборка | Gradle 9.8, AGP 9.4, version catalog, convention-плагины |
 | Качество | Detekt, Spotless (ktlint), Android Lint, Renovate |
-| Планируется | Navigation 3, Media3, NewPipeExtractor, Room 3, DataStore, Coil 3, WorkManager |
+| Навигация | Navigation 3, адаптивный NavigationSuiteScaffold |
+| Плеер | Media3 (ExoPlayer, DASH/HLS, MediaSession) |
+| Данные | NewPipeExtractor, OkHttp, Coil 3, DataStore |
+| Планируется | Room 3, WorkManager, Media3 Transformer (загрузки) |
 
 Версии и откуда они взяты — в [ADR 0002](docs/adr/0002-versions.md).
 

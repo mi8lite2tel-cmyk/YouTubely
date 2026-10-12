@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Window theme only; all UI theming is done in Compose (core/designsystem). -->
-    <style name="Theme.YouTubely" parent="android:Theme.Material.Light.NoActionBar">
+    <!-- Splash: own mark on the brand color. All UI theming is done in Compose (core/designsystem). -->
+    <style name="Theme.YouTubely" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/window_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground_tinted</item>
+        <item name="postSplashScreenTheme">@style/Theme.YouTubely.Main</item>
+    </style>
+
+    <style name="Theme.YouTubely.Main" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/window_background</item>
     </style>
 </resources>
