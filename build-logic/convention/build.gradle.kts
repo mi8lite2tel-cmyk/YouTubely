@@ -44,6 +44,10 @@ gradlePlugin {
             id = libs.plugins.youtubely.android.hilt.get().pluginId
             implementationClass = "AndroidHiltConventionPlugin"
         }
+        register("androidFeature") {
+            id = libs.plugins.youtubely.android.feature.get().pluginId
+            implementationClass = "AndroidFeatureConventionPlugin"
+        }
         register("jvmLibrary") {
             id = libs.plugins.youtubely.jvm.library.get().pluginId
             implementationClass = "JvmLibraryConventionPlugin"

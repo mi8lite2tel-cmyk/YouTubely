@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="live">НАЖИВО</string>
+    <string name="verified">Підтверджений канал</string>
+    <string name="loading">Завантаження</string>
+    <string name="retry">Повторити</string>
+    <plurals name="views">
+        <item quantity="one">%s перегляд</item>
+        <item quantity="few">%s перегляди</item>
+        <item quantity="many">%s переглядів</item>
+        <item quantity="other">%s перегляду</item>
+    </plurals>
+    <plurals name="subscribers">
+        <item quantity="one">%s підписник</item>
+        <item quantity="few">%s підписники</item>
+        <item quantity="many">%s підписників</item>
+        <item quantity="other">%s підписника</item>
+    </plurals>
+
+    <string name="error_network_title">Немає зʼєднання</string>
+    <string name="error_network_body">Перевірте інтернет і спробуйте ще раз.</string>
+    <string name="error_rate_title">Забагато запитів</string>
+    <string name="error_rate_body">YouTube зараз обмежує запити. Зачекайте хвилину й повторіть.</string>
+    <string name="error_geo_title">Недоступно у вашому регіоні</string>
+    <string name="error_geo_body">Автор обмежив показ у вашій країні.</string>
+    <string name="error_age_title">Вікове обмеження</string>
+    <string name="error_age_body">YouTube вимагає увійти в акаунт. YouTubely не входить в акаунти Google.</string>
+    <string name="error_paid_title">Платний контент</string>
+    <string name="error_paid_body">Відео доступне лише за підпискою або спонсорам каналу.</string>
+    <string name="error_removed_title">Недоступно</string>
+    <string name="error_removed_body">Контент видалено або приховано.</string>
+    <string name="error_outdated_title">YouTube змінився</string>
+    <string name="error_outdated_body">Застосунку потрібне оновлення, щоб прочитати цю сторінку. Перевірте нову версію.</string>
+    <string name="error_unknown_title">Щось пішло не так</string>
+    <string name="error_unknown_body">Сталася непередбачена помилка. Спробуйте ще раз.</string>
+</resources>
