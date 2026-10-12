@@ -70,6 +70,9 @@ internal fun VideoPlayer(
     onToggleFullscreen: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    showFullscreen: Boolean = true,
+    /** Audio-only playback shows artwork behind the controls instead of a black frame. */
+    transparentBackground: Boolean = false,
 ) {
     var controlsVisible by remember { mutableStateOf(true) }
     val playPause = rememberPlayPauseButtonState(player)
@@ -101,7 +104,7 @@ internal fun VideoPlayer(
                     controlsVisible = !controlsVisible
                 },
     ) {
-        ContentFrame(player = player, modifier = Modifier.fillMaxSize())
+        if (!transparentBackground) ContentFrame(player = player, modifier = Modifier.fillMaxSize())
 
         if (buffering) {
             LoadingIndicator(color = Color.White, modifier = Modifier.align(Alignment.Center).size(64.dp))
@@ -118,6 +121,7 @@ internal fun VideoPlayer(
                 BottomControls(
                     player = player,
                     fullscreen = fullscreen,
+                    showFullscreen = showFullscreen,
                     onToggleFullscreen = onToggleFullscreen,
                     onOpenSettings = onOpenSettings,
                     modifier = Modifier.align(Alignment.BottomCenter),
@@ -193,6 +197,7 @@ private fun CenterControls(
 private fun BottomControls(
     player: Player,
     fullscreen: Boolean,
+    showFullscreen: Boolean,
     onToggleFullscreen: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier,
@@ -205,12 +210,14 @@ private fun BottomControls(
             IconButton(onClick = onOpenSettings) {
                 Icon(painterResource(YouTubelyIcons.Tune), stringResource(R.string.watch_settings), tint = Color.White)
             }
-            IconButton(onClick = onToggleFullscreen) {
-                Icon(
-                    painterResource(if (fullscreen) YouTubelyIcons.FullscreenExit else YouTubelyIcons.Fullscreen),
-                    stringResource(if (fullscreen) R.string.watch_exit_fullscreen else R.string.watch_fullscreen),
-                    tint = Color.White,
-                )
+            if (showFullscreen) {
+                IconButton(onClick = onToggleFullscreen) {
+                    Icon(
+                        painterResource(if (fullscreen) YouTubelyIcons.FullscreenExit else YouTubelyIcons.Fullscreen),
+                        stringResource(if (fullscreen) R.string.watch_exit_fullscreen else R.string.watch_fullscreen),
+                        tint = Color.White,
+                    )
+                }
             }
         }
         ProgressSlider(

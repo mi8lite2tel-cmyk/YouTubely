@@ -42,11 +42,15 @@ import app.youtubely.R
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.ui.LocalSharedTransitionScope
+import app.youtubely.feature.downloads.DownloadsScreen
 import app.youtubely.feature.home.HomeScreen
 import app.youtubely.feature.search.SearchScreen
 import app.youtubely.feature.settings.SettingsScreen
+import app.youtubely.feature.watch.OfflineWatchScreen
 import app.youtubely.feature.watch.WatchScreen
+import app.youtubely.navigation.DownloadsRoute
 import app.youtubely.navigation.HomeRoute
+import app.youtubely.navigation.OfflineWatchRoute
 import app.youtubely.navigation.SearchRoute
 import app.youtubely.navigation.SettingsRoute
 import app.youtubely.navigation.TopLevelRoute
@@ -62,6 +66,7 @@ private val TopLevelItems =
     listOf(
         TopLevelItem(HomeRoute, R.string.nav_home, YouTubelyIcons.Home),
         TopLevelItem(SearchRoute, R.string.nav_search, YouTubelyIcons.Search),
+        TopLevelItem(DownloadsRoute, R.string.nav_downloads, YouTubelyIcons.Downloads),
         TopLevelItem(SettingsRoute, R.string.nav_settings, YouTubelyIcons.Settings),
     )
 
@@ -79,12 +84,13 @@ fun YouTubelyApp(
         mapOf(
             HomeRoute to rememberNavBackStack(HomeRoute),
             SearchRoute to rememberNavBackStack(SearchRoute),
+            DownloadsRoute to rememberNavBackStack(DownloadsRoute),
             SettingsRoute to rememberNavBackStack(SettingsRoute),
         )
     var currentName by rememberSaveable { mutableStateOf(HomeRoute.toString()) }
     val current = TopLevelItems.first { it.route.toString() == currentName }.route
     val backStack = stacks.getValue(current)
-    val watching = backStack.lastOrNull() is WatchRoute
+    val watching = backStack.lastOrNull().let { it is WatchRoute || it is OfflineWatchRoute }
 
     val motion = MaterialTheme.motionScheme
     val suiteState = rememberNavigationSuiteScaffoldState()
@@ -170,6 +176,10 @@ fun YouTubelyApp(
                             entryProvider {
                                 entry<HomeRoute> { HomeScreen(onOpenVideo = ::openVideo) }
                                 entry<SearchRoute> { SearchScreen(onOpenVideo = ::openVideo) }
+                                entry<DownloadsRoute> {
+                                    DownloadsScreen(onPlay = { stack.add(OfflineWatchRoute(it)) })
+                                }
+                                entry<OfflineWatchRoute> { route -> OfflineWatchScreen(downloadId = route.downloadId) }
                                 entry<SettingsRoute> { SettingsScreen(versionName = versionName) }
                                 entry<WatchRoute> { route ->
                                     WatchScreen(

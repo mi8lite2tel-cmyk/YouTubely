@@ -163,6 +163,20 @@ fun SettingsScreen(
                 }
             }
 
+            header(R.string.settings_downloads)
+            switches(
+                listOf(
+                    SwitchRow(
+                        title = R.string.settings_download_wifi_only,
+                        summary = R.string.settings_download_wifi_only_summary,
+                        icon = YouTubelyIcons.Wifi,
+                        checked = playback.downloadOnWifiOnly,
+                        enabled = true,
+                        onChange = viewModel::setDownloadOnWifiOnly,
+                    ),
+                ),
+            )
+
             header(R.string.settings_about)
             item {
                 SegmentedListItem(

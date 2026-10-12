@@ -20,8 +20,8 @@
 </div>
 
 > [!WARNING]
-> **Проект в ранней разработке.** Уже работают главная, поиск и просмотр видео с фоновым
-> воспроизведением и «картинкой в картинке». Загрузок, подписок и истории пока нет.
+> **Проект в ранней разработке.** Уже работают главная, поиск, просмотр видео с фоновым
+> воспроизведением и «картинкой в картинке», загрузки для офлайн-просмотра. Подписок и истории пока нет.
 
 > [!NOTE]
 > YouTubely — независимое приложение с открытым кодом. Оно не связано с Google и YouTube
@@ -107,7 +107,7 @@
 - [x] Плеер: адаптивное качество до 4K, скорость 0.25–4×, фон, PiP, экран блокировки
 - [x] Настройки темы и лимиты качества для Wi-Fi и мобильной сети
 - [ ] Аудио-режим
-- [ ] Загрузки и вкладка «Скачанные»
+- [x] Загрузки: выбор качества или только аудио, докачка, вкладка «Скачанные», просмотр без интернета
 - [ ] Каналы, плейлисты, комментарии
 - [ ] Локальные подписки и лента
 - [ ] SponsorBlock, DeArrow, Return YouTube Dislike
@@ -156,10 +156,11 @@ core/
 ├─ provider/         StreamProvider + реализация на NewPipeExtractor
 ├─ player/           Media3: DASH-манифест на устройстве, фоновый сервис, медиа-сессия
 ├─ datastore/        настройки (DataStore)
+├─ download/         загрузки: WorkManager, докачка, склейка видео и аудио в MP4 через Media3
 ├─ designsystem/     тема Material 3 Expressive, Roboto Flex, Material Symbols
 └─ ui/               карточки видео, состояния загрузки и ошибок
 feature/
-├─ home/ search/ watch/ settings/
+├─ home/ search/ watch/ downloads/ settings/
 config/              Detekt, Compose stability
 docs/adr/            архитектурные решения
 tools/color/         генератор палитры (Material Color Utilities)
@@ -178,7 +179,8 @@ tools/color/         генератор палитры (Material Color Utilities
 | Навигация | Navigation 3, адаптивный NavigationSuiteScaffold |
 | Плеер | Media3 (ExoPlayer, DASH/HLS, MediaSession) |
 | Данные | NewPipeExtractor, OkHttp, Coil 3, DataStore |
-| Планируется | Room 3, WorkManager, Media3 Transformer (загрузки) |
+| Загрузки | WorkManager, Media3 Transformer (без FFmpeg) |
+| Планируется | Room 3 (подписки, история) |
 
 Версии и откуда они взяты — в [ADR 0002](docs/adr/0002-versions.md).
 

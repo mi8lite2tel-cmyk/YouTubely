@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,11 +22,13 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -39,7 +39,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
@@ -71,13 +70,18 @@ internal fun PlayerSettingsSheet(
     var selected by remember { mutableStateOf(pinnedHeight) }
     var speed by remember { mutableFloatStateOf(player.playbackParameters.speed) }
     var repeat by remember { mutableIntStateOf(player.repeatMode) }
+    val sliderState = remember { SliderState(value = speed, steps = SPEED_STEPS, trackRange = MIN_SPEED..MAX_SPEED) }
 
     fun setSpeed(value: Float) {
         speed = value
+        sliderState.value = value
         player.playbackParameters = PlaybackParameters(value)
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState()) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden),
+    ) {
         Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 16.dp)) {
             SectionTitle(stringResource(R.string.watch_speed))
             Row(
@@ -102,10 +106,8 @@ internal fun PlayerSettingsSheet(
             }
             Row(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
                 Slider(
-                    value = speed,
+                    state = sliderState,
                     onValueChange = { setSpeed((it / SPEED_STEP).roundToInt() * SPEED_STEP) },
-                    valueRange = MIN_SPEED..MAX_SPEED,
-                    steps = SPEED_STEPS,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
@@ -117,16 +119,15 @@ internal fun PlayerSettingsSheet(
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             ListItem(
-                headlineContent = { Text(stringResource(R.string.watch_repeat)) },
+                checked = repeat == Player.REPEAT_MODE_ONE,
+                onCheckedChange = {
+                    repeat = if (it) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+                    player.repeatMode = repeat
+                },
                 leadingContent = { Icon(painterResource(YouTubelyIcons.Refresh), contentDescription = null) },
                 trailingContent = { Switch(checked = repeat == Player.REPEAT_MODE_ONE, onCheckedChange = null) },
                 colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-                modifier =
-                    Modifier.toggleable(value = repeat == Player.REPEAT_MODE_ONE, role = Role.Switch) {
-                        repeat = if (it) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
-                        player.repeatMode = repeat
-                    },
-            )
+            ) { Text(stringResource(R.string.watch_repeat)) }
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             SectionTitle(stringResource(R.string.watch_quality))
@@ -171,17 +172,14 @@ private fun QualityRow(
     onClick: () -> Unit,
 ) {
     ListItem(
-        headlineContent = {
-            Text(
-                title,
-                style = MaterialTheme.typography.run { if (selected) bodyLargeEmphasized else bodyLarge },
-            )
-        },
+        selected = selected,
+        onClick = onClick,
         supportingContent = subtitle?.let { { Text(it) } },
         leadingContent = { RadioButton(selected = selected, onClick = null) },
         colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        modifier = Modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
-    )
+    ) {
+        Text(title, style = MaterialTheme.typography.run { if (selected) bodyLargeEmphasized else bodyLarge })
+    }
 }
 
 private fun QualityOption.label(): String =

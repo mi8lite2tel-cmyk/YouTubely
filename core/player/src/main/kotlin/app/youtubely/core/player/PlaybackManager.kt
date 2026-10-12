@@ -10,7 +10,10 @@ import android.net.NetworkCapabilities
 import androidx.annotation.MainThread
 import androidx.annotation.OptIn
 import androidx.core.content.getSystemService
+import androidx.core.net.toUri
 import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
@@ -30,6 +33,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -89,6 +93,36 @@ class PlaybackManager
             _currentVideo.value = info.item.id
             connectSession()
             return true
+        }
+
+        /** Plays a downloaded file; works offline. [id] identifies it like a video id does online. */
+        @MainThread
+        fun playLocal(
+            id: VideoId,
+            path: String,
+            title: String,
+            artist: String?,
+            positionMs: Long = 0,
+        ) {
+            pinnedHeight = null
+            applyLimits(_settings.value, unmetered.value)
+            val item =
+                MediaItem
+                    .Builder()
+                    .setMediaId(id.value)
+                    .setUri(File(path).toUri())
+                    .setMediaMetadata(
+                        MediaMetadata
+                            .Builder()
+                            .setTitle(title)
+                            .setArtist(artist)
+                            .build(),
+                    ).build()
+            player.setMediaItem(item, positionMs)
+            player.prepare()
+            player.playWhenReady = true
+            _currentVideo.value = id
+            connectSession()
         }
 
         /** `null` returns to automatic quality within the network limit. */

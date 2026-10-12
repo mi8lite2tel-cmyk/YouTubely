@@ -18,4 +18,9 @@
     <string name="watch_repeat">Повтор відео</string>
     <string name="watch_bitrate">%s Мбіт/с</string>
     <string name="watch_quality_auto_limited">Під швидкість мережі, не вище %dp у цій мережі</string>
+    <string name="watch_download">Завантажити</string>
+    <string name="watch_downloaded">Завантажено</string>
+    <string name="watch_download_progress">%d%%</string>
+    <string name="watch_download_options">Варіанти завантаження</string>
+    <string name="watch_download_audio">Лише аудіо</string>
 </resources>

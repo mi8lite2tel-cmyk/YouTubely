@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="downloads_title">Downloads</string>
+    <string name="downloads_swipe_hint">Swipe left to delete</string>
+    <string name="downloads_empty_title">Nothing downloaded yet</string>
+    <string name="downloads_empty_body">Tap Download under a video to watch it offline. Only download what you have the rights to.</string>
+    <string name="downloads_delete">Delete</string>
+    <string name="downloads_pause">Pause</string>
+    <string name="downloads_resume">Resume</string>
+    <string name="downloads_audio">Audio</string>
+    <string name="downloads_state_queued">Waiting for network…</string>
+    <string name="downloads_state_downloading">%1$d%% · %2$s</string>
+    <string name="downloads_state_merging">Combining video and audio…</string>
+    <string name="downloads_state_paused">Paused</string>
+    <string name="downloads_state_failed">Failed. Tap retry to continue.</string>
+</resources>

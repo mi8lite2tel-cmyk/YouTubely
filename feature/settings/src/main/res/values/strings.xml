@@ -20,6 +20,9 @@
     <string name="settings_max_quality_wifi">Maximum quality on Wi-Fi</string>
     <string name="settings_max_quality_mobile">Maximum quality on mobile data</string>
     <string name="settings_quality_no_limit">No limit</string>
+    <string name="settings_downloads">Downloads</string>
+    <string name="settings_download_wifi_only">Download on Wi-Fi only</string>
+    <string name="settings_download_wifi_only_summary">New downloads wait for Wi-Fi to save mobile data</string>
     <string name="settings_about">About</string>
     <string name="settings_source">Source code</string>
     <string name="settings_version">Version %s</string>

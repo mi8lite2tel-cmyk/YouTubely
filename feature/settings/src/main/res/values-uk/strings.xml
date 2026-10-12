@@ -20,6 +20,9 @@
     <string name="settings_max_quality_wifi">Максимальна якість через Wi-Fi</string>
     <string name="settings_max_quality_mobile">Максимальна якість у мобільній мережі</string>
     <string name="settings_quality_no_limit">Без обмежень</string>
+    <string name="settings_downloads">Завантаження</string>
+    <string name="settings_download_wifi_only">Завантажувати лише через Wi-Fi</string>
+    <string name="settings_download_wifi_only_summary">Нові завантаження чекають на Wi-Fi, щоб не витрачати мобільний трафік</string>
     <string name="settings_about">Про застосунок</string>
     <string name="settings_source">Вихідний код</string>
     <string name="settings_version">Версія %s</string>

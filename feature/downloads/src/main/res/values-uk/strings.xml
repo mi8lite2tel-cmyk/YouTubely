@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="downloads_title">Завантажені</string>
+    <string name="downloads_swipe_hint">Проведіть ліворуч, щоб видалити</string>
+    <string name="downloads_empty_title">Поки нічого не завантажено</string>
+    <string name="downloads_empty_body">Натисніть «Завантажити» під відео, щоб дивитися його без інтернету. Завантажуйте лише те, на що маєте права.</string>
+    <string name="downloads_delete">Видалити</string>
+    <string name="downloads_pause">Пауза</string>
+    <string name="downloads_resume">Продовжити</string>
+    <string name="downloads_audio">Аудіо</string>
+    <string name="downloads_state_queued">Очікування мережі…</string>
+    <string name="downloads_state_downloading">%1$d%% · %2$s</string>
+    <string name="downloads_state_merging">Обʼєднання відео та звуку…</string>
+    <string name="downloads_state_paused">Пауза</string>
+    <string name="downloads_state_failed">Помилка. Натисніть «Повторити», щоб продовжити.</string>
+</resources>

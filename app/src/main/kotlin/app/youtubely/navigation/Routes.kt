@@ -19,6 +19,9 @@ data object HomeRoute : TopLevelRoute
 data object SearchRoute : TopLevelRoute
 
 @Serializable
+data object DownloadsRoute : TopLevelRoute
+
+@Serializable
 data object SettingsRoute : TopLevelRoute
 
 /** [sharedKey] identifies the thumbnail that was tapped, for the shared-element transition. */
@@ -26,4 +29,10 @@ data object SettingsRoute : TopLevelRoute
 data class WatchRoute(
     val videoId: String,
     val sharedKey: String,
+) : Route
+
+/** A finished download played from disk. */
+@Serializable
+data class OfflineWatchRoute(
+    val downloadId: String,
 ) : Route
