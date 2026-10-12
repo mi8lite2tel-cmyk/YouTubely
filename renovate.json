@@ -1,0 +1,28 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 5,
+  "packageRules": [
+    {
+      "description": "Compose BOM and explicitly pinned Compose artifacts move together",
+      "matchPackageNames": ["androidx.compose{/,}**"],
+      "groupName": "Compose"
+    },
+    {
+      "description": "Kotlin, its compiler plugins and KSP move together",
+      "matchPackageNames": ["org.jetbrains.kotlin{/,}**", "com.google.devtools.ksp{/,}**"],
+      "groupName": "Kotlin"
+    },
+    {
+      "description": "Media3 artifacts share one version",
+      "matchPackageNames": ["androidx.media3{/,}**"],
+      "groupName": "Media3"
+    },
+    {
+      "description": "Pre-releases only where docs/adr/0002-versions.md explicitly allows them",
+      "matchPackageNames": ["androidx.compose.material3:material3"],
+      "ignoreUnstable": false
+    }
+  ]
+}
