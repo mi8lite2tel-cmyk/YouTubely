@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="downloads_title">Скачанные</string>
+    <string name="downloads_swipe_hint">Смахните влево, чтобы удалить</string>
+    <string name="downloads_empty_title">Пока ничего не скачано</string>
+    <string name="downloads_empty_body">Нажмите «Скачать» под видео, чтобы смотреть его без интернета. Скачивайте только то, на что у вас есть права.</string>
+    <string name="downloads_delete">Удалить</string>
+    <string name="downloads_pause">Пауза</string>
+    <string name="downloads_resume">Продолжить</string>
+    <string name="downloads_audio">Аудио</string>
+    <string name="downloads_state_queued">Ожидание сети…</string>
+    <string name="downloads_state_downloading">%1$d%% · %2$s</string>
+    <string name="downloads_state_merging">Объединение видео и звука…</string>
+    <string name="downloads_state_paused">Пауза</string>
+    <string name="downloads_state_failed">Ошибка. Нажмите «Повторить», чтобы продолжить.</string>
+</resources>

@@ -7,6 +7,7 @@ plugins {
 dependencies {
     implementation(projects.core.provider)
     implementation(projects.core.player)
+    implementation(projects.core.download)
     implementation(libs.androidx.media3.ui.compose)
     implementation(libs.androidx.media3.ui.compose.material3)
     implementation(libs.androidx.activity.compose)

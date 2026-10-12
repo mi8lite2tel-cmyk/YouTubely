@@ -67,6 +67,8 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.ContentFrame
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
+import app.youtubely.core.model.Download
+import app.youtubely.core.model.DownloadFormat
 import app.youtubely.core.model.PlaybackSettings
 import app.youtubely.core.model.StreamInfo
 import app.youtubely.core.model.VideoId
@@ -100,6 +102,7 @@ fun WatchScreen(
         }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val downloads by viewModel.downloads.collectAsStateWithLifecycle()
     val player = viewModel.player
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -159,7 +162,16 @@ fun WatchScreen(
                 Row(Modifier.fillMaxSize().statusBarsPadding()) {
                     Column(Modifier.weight(1.6f)) {
                         playerView(Modifier.fillMaxWidth().aspectRatio(VIDEO_ASPECT).sharedVideoFrame(sharedKey))
-                        WatchBody(state, viewModel::retry, player, onOpenVideo, includeRelated = false)
+                        WatchBody(
+                            state = state,
+                            onRetry = viewModel::retry,
+                            player = player,
+                            onOpenVideo = onOpenVideo,
+                            includeRelated = false,
+                            downloads = downloads,
+                            formatsFor = viewModel::downloadFormats,
+                            onDownload = viewModel::download,
+                        )
                     }
                     Column(Modifier.weight(1f)) {
                         (state as? WatchUiState.Content)?.let { RelatedList(it.info, onOpenVideo) }
@@ -170,7 +182,16 @@ fun WatchScreen(
                     Box(Modifier.background(Color.Black).statusBarsPadding()) {
                         playerView(Modifier.fillMaxWidth().aspectRatio(VIDEO_ASPECT).sharedVideoFrame(sharedKey))
                     }
-                    WatchBody(state, viewModel::retry, player, onOpenVideo, includeRelated = true)
+                    WatchBody(
+                        state = state,
+                        onRetry = viewModel::retry,
+                        player = player,
+                        onOpenVideo = onOpenVideo,
+                        includeRelated = true,
+                        downloads = downloads,
+                        formatsFor = viewModel::downloadFormats,
+                        onDownload = viewModel::download,
+                    )
                 }
             }
         }
@@ -194,6 +215,9 @@ private fun WatchBody(
     player: Player,
     onOpenVideo: (VideoId, String) -> Unit,
     includeRelated: Boolean,
+    downloads: List<Download>,
+    formatsFor: (StreamInfo) -> List<DownloadFormat>,
+    onDownload: (DownloadFormat) -> Unit,
 ) {
     when (state) {
         WatchUiState.Loading -> {
@@ -209,7 +233,15 @@ private fun WatchBody(
                 contentPadding = PaddingValues(bottom = 24.dp),
                 modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
             ) {
-                item(key = "details") { Details(state.info, onSeek = { player.seekTo(it) }) }
+                item(key = "details") {
+                    Details(
+                        info = state.info,
+                        onSeek = { player.seekTo(it) },
+                        downloadFormats = remember(state.info) { formatsFor(state.info) },
+                        downloads = downloads,
+                        onDownload = onDownload,
+                    )
+                }
                 if (includeRelated) related(state.info, onOpenVideo)
             }
         }
@@ -251,6 +283,9 @@ private fun LazyListScope.related(
 private fun Details(
     info: StreamInfo,
     onSeek: (Long) -> Unit,
+    downloadFormats: List<DownloadFormat>,
+    downloads: List<Download>,
+    onDownload: (DownloadFormat) -> Unit,
 ) {
     val context = LocalContext.current
     val item = info.item
@@ -289,6 +324,7 @@ private fun Details(
                 Text(stringResource(R.string.watch_share), Modifier.padding(start = 8.dp))
             }
         }
+        DownloadButton(formats = downloadFormats, downloads = downloads, onDownload = onDownload)
         if (info.chapters.isNotEmpty()) {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(info.chapters) { chapter ->

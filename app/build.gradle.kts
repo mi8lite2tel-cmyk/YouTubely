@@ -12,8 +12,8 @@ android {
 
     defaultConfig {
         applicationId = "app.youtubely"
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
     }
 
     flavorDimensions += "distribution"
@@ -74,11 +74,13 @@ dependencies {
     implementation(projects.core.common)
     implementation(projects.core.datastore)
     implementation(projects.core.designsystem)
+    implementation(projects.core.download)
     implementation(projects.core.model)
     implementation(projects.core.network)
     implementation(projects.core.player)
     implementation(projects.core.provider)
     implementation(projects.core.ui)
+    implementation(projects.feature.downloads)
     implementation(projects.feature.home)
     implementation(projects.feature.search)
     implementation(projects.feature.settings)
@@ -91,6 +93,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.hilt.work)
+    implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)

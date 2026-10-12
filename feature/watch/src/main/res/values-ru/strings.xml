@@ -18,4 +18,9 @@
     <string name="watch_repeat">Повтор видео</string>
     <string name="watch_bitrate">%s Мбит/с</string>
     <string name="watch_quality_auto_limited">Под скорость сети, не выше %dp в этой сети</string>
+    <string name="watch_download">Скачать</string>
+    <string name="watch_downloaded">Скачано</string>
+    <string name="watch_download_progress">%d%%</string>
+    <string name="watch_download_options">Варианты загрузки</string>
+    <string name="watch_download_audio">Только аудио</string>
 </resources>

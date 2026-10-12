@@ -4,7 +4,6 @@
 
 package app.youtubely.feature.search
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -171,7 +170,7 @@ private fun SuggestionList(
     LazyColumn {
         items(suggestions) { suggestion ->
             ListItem(
-                headlineContent = { Text(suggestion, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                onClick = { onPick(suggestion) },
                 leadingContent = { Icon(painterResource(YouTubelyIcons.Search.outlined), contentDescription = null) },
                 trailingContent = {
                     IconButton(onClick = { onFill(suggestion) }) {
@@ -182,8 +181,8 @@ private fun SuggestionList(
                     }
                 },
                 colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                modifier = Modifier.fillMaxWidth().clickable { onPick(suggestion) },
-            )
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(suggestion, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
     }
 }
@@ -276,16 +275,15 @@ private fun ChannelResultRow(
     modifier: Modifier = Modifier,
 ) {
     ListItem(
-        headlineContent = {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(item.channel.name, style = MaterialTheme.typography.titleMediumEmphasized, maxLines = 1)
-                if (item.channel.isVerified) VerifiedBadge()
-            }
-        },
         supportingContent = item.subscriberCount?.let { { Text(subscriberCountText(it)) } },
         leadingContent = { ChannelAvatar(item.channel.avatars, contentDescription = null, size = 56.dp) },
         modifier = modifier,
-    )
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(item.channel.name, style = MaterialTheme.typography.titleMediumEmphasized, maxLines = 1)
+            if (item.channel.isVerified) VerifiedBadge()
+        }
+    }
 }
 
 @Composable
@@ -294,9 +292,6 @@ private fun PlaylistResultRow(
     modifier: Modifier = Modifier,
 ) {
     ListItem(
-        headlineContent = {
-            Text(item.playlist.name, style = MaterialTheme.typography.titleSmallEmphasized, maxLines = 2)
-        },
         supportingContent = {
             Text(
                 listOfNotNull(
@@ -318,7 +313,9 @@ private fun PlaylistResultRow(
             )
         },
         modifier = modifier,
-    )
+    ) {
+        Text(item.playlist.name, style = MaterialTheme.typography.titleSmallEmphasized, maxLines = 2)
+    }
 }
 
 @Composable

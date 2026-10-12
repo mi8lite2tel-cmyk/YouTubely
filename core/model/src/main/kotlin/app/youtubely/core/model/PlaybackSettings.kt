@@ -11,6 +11,8 @@ data class PlaybackSettings(
     val backgroundPlayback: Boolean = true,
     /** Shrink into a picture-in-picture window when leaving the app during a video. */
     val pictureInPicture: Boolean = true,
+    /** Downloads wait for an unmetered network (Wi-Fi). */
+    val downloadOnWifiOnly: Boolean = true,
 ) {
     companion object {
         const val DEFAULT_METERED_LIMIT = 720

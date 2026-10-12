@@ -18,4 +18,9 @@
     <string name="watch_repeat">Repeat video</string>
     <string name="watch_bitrate">%s Mbit/s</string>
     <string name="watch_quality_auto_limited">Adapts to your connection, up to %dp on this network</string>
+    <string name="watch_download">Download</string>
+    <string name="watch_downloaded">Downloaded</string>
+    <string name="watch_download_progress">%d%%</string>
+    <string name="watch_download_options">Download options</string>
+    <string name="watch_download_audio">Audio only</string>
 </resources>

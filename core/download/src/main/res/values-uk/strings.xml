@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="download_channel_name">Завантаження</string>
+    <string name="download_downloading">Завантаження</string>
+    <string name="download_merging">Обʼєднання відео та звуку</string>
+</resources>

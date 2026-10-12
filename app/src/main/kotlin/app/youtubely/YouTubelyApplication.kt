@@ -3,6 +3,8 @@
 package app.youtubely
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -15,9 +17,17 @@ import javax.inject.Inject
 @HiltAndroidApp
 class YouTubelyApplication :
     Application(),
-    SingletonImageLoader.Factory {
+    SingletonImageLoader.Factory,
+    Configuration.Provider {
     @Inject
     lateinit var client: OkHttpClient
+
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
+
+    /** Lets WorkManager create Hilt-injected workers (downloads). */
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
     /** Thumbnails share the app's HTTP client (connection pool, proxy settings later on). */
     override fun newImageLoader(context: PlatformContext): ImageLoader =

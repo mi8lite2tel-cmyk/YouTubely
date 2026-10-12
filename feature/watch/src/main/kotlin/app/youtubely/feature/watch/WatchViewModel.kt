@@ -8,6 +8,9 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import app.youtubely.core.common.Outcome
 import app.youtubely.core.common.outcomeOf
+import app.youtubely.core.download.DownloadManager
+import app.youtubely.core.model.Download
+import app.youtubely.core.model.DownloadFormat
 import app.youtubely.core.model.PlaybackSettings
 import app.youtubely.core.model.StreamInfo
 import app.youtubely.core.model.VideoId
@@ -19,8 +22,11 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 sealed interface WatchUiState {
@@ -46,6 +52,7 @@ class WatchViewModel
         @Assisted videoId: String,
         private val provider: StreamProvider,
         private val playback: PlaybackManager,
+        private val downloadManager: DownloadManager,
     ) : ViewModel() {
         private val id = VideoId(videoId)
         val player: Player get() = playback.player
@@ -55,6 +62,19 @@ class WatchViewModel
         val state: StateFlow<WatchUiState> = _state.asStateFlow()
 
         private var savedPositionMs = 0L
+
+        /** This video's downloads, any quality. */
+        val downloads: StateFlow<List<Download>> =
+            downloadManager.downloads
+                .map { all -> all.filter { it.videoId == id } }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
+
+        fun downloadFormats(info: StreamInfo): List<DownloadFormat> = downloadManager.formats(info)
+
+        fun download(format: DownloadFormat) {
+            val content = _state.value as? WatchUiState.Content ?: return
+            viewModelScope.launch { downloadManager.start(content.info, format) }
+        }
 
         /** Media URLs are signed for a few hours; one expired-URL error triggers a silent reload. */
         private var reloadedAfterHttpError = false
@@ -132,6 +152,10 @@ class WatchViewModel
         override fun onCleared() {
             player.removeListener(listener)
             if (isCurrent) playback.stop()
+        }
+
+        private companion object {
+            const val STOP_TIMEOUT_MS = 5_000L
         }
 
         @AssistedFactory

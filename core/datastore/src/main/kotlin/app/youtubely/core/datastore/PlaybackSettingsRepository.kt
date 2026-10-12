@@ -25,6 +25,7 @@ class PlaybackSettingsRepository(
                     maxHeightMetered = prefs[MAX_METERED].limitOr(defaults.maxHeightMetered),
                     backgroundPlayback = prefs[BACKGROUND] ?: defaults.backgroundPlayback,
                     pictureInPicture = prefs[PIP] ?: defaults.pictureInPicture,
+                    downloadOnWifiOnly = prefs[DOWNLOAD_WIFI_ONLY] ?: defaults.downloadOnWifiOnly,
                 )
             }.distinctUntilChanged()
 
@@ -44,6 +45,10 @@ class PlaybackSettingsRepository(
         store.edit { it[PIP] = enabled }
     }
 
+    suspend fun setDownloadOnWifiOnly(enabled: Boolean) {
+        store.edit { it[DOWNLOAD_WIFI_ONLY] = enabled }
+    }
+
     private fun Int?.limitOr(default: Int?): Int? =
         when (this) {
             null -> default
@@ -57,5 +62,6 @@ class PlaybackSettingsRepository(
         val MAX_METERED = intPreferencesKey("playback_max_height_metered")
         val BACKGROUND = booleanPreferencesKey("playback_background")
         val PIP = booleanPreferencesKey("playback_pip")
+        val DOWNLOAD_WIFI_ONLY = booleanPreferencesKey("download_wifi_only")
     }
 }

@@ -46,6 +46,8 @@ class SettingsViewModel
 
         fun setMaxHeightMetered(height: Int?) = launch { playback.setMaxHeightMetered(height) }
 
+        fun setDownloadOnWifiOnly(enabled: Boolean) = launch { playback.setDownloadOnWifiOnly(enabled) }
+
         private fun launch(block: suspend () -> Unit) {
             viewModelScope.launch { block() }
         }

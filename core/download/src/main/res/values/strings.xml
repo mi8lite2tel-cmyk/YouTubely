@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="download_channel_name">Downloads</string>
+    <string name="download_downloading">Downloading</string>
+    <string name="download_merging">Combining video and audio</string>
+</resources>
