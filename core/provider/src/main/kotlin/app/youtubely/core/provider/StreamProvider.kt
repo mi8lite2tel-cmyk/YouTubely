@@ -7,6 +7,7 @@ import app.youtubely.core.model.ChannelPage
 import app.youtubely.core.model.ChannelTab
 import app.youtubely.core.model.Comment
 import app.youtubely.core.model.CommentSort
+import app.youtubely.core.model.ExploreSection
 import app.youtubely.core.model.Page
 import app.youtubely.core.model.Paged
 import app.youtubely.core.model.PlaylistId
@@ -55,6 +56,12 @@ interface StreamProvider {
     ): Paged<Comment>
 
     suspend fun trending(region: Region): List<StreamItem>
+
+    /**
+     * Public charts for the home screen, fetched live for [region]. Sections the source cannot
+     * deliver right now are left out; fails only when none could be loaded.
+     */
+    suspend fun explore(region: Region): List<ExploreSection>
 
     /** Latest uploads of a channel through its public RSS feed — the cheap path for subscriptions. */
     suspend fun channelFeed(id: ChannelId): List<StreamItem>

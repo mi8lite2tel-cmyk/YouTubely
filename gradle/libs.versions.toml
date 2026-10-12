@@ -27,6 +27,12 @@ material3 = "1.5.0-beta01"
 # DI
 hilt = "2.60.1"
 
+# Network / extraction
+okhttp = "5.5.0"
+newpipeExtractor = "v0.26.5"
+# Same version NewPipeExtractor depends on; used to turn description HTML into text.
+jsoup = "1.22.2"
+
 # Quality
 detekt = "1.23.8"
 spotless = "8.10.4"
@@ -61,6 +67,12 @@ kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collec
 # DI
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
+
+# Network / extraction
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver3", version.ref = "okhttp" }
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+newpipe-extractor = { module = "com.github.TeamNewPipe:NewPipeExtractor", version.ref = "newpipeExtractor" }
 
 # Desugaring
 android-desugarJdkLibs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugarJdkLibs" }

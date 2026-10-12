@@ -2,10 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package app.youtubely.core.model
 
+import java.time.Duration
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class ModelTest {
     @Test
@@ -34,5 +37,29 @@ class ModelTest {
         assertEquals("l", listOf(Image("s", 120, 90), Image("l", 1280, 720)).bestFor(4000)?.url)
         assertEquals("u", listOf(Image("u", null, null)).bestFor(100)?.url)
         assertNull(emptyList<Image>().bestFor(100))
+    }
+
+    @Test
+    fun `duration filter keeps only matching videos`() {
+        fun video(minutes: Long?) =
+            SearchItem.Stream(
+                StreamItem(
+                    id = VideoId("id"),
+                    title = "t",
+                    channel = null,
+                    thumbnails = emptyList(),
+                    type = StreamType.Video,
+                    duration = minutes?.let(Duration::ofMinutes),
+                    viewCount = null,
+                    uploadedAt = null,
+                    uploadedAtText = null,
+                ),
+            )
+        val short = SearchFilter.DurationFilter.Short
+        assertTrue(short.matches(video(3)))
+        assertFalse(short.matches(video(10)))
+        assertFalse(short.matches(video(null)))
+        assertTrue(SearchFilter.DurationFilter.Long.matches(video(45)))
+        assertTrue(SearchFilter.DurationFilter.Any.matches(video(null)))
     }
 }

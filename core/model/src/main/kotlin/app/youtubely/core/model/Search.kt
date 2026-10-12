@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package app.youtubely.core.model
 
+import java.time.Duration
+
 sealed interface SearchItem {
     data class Stream(
         val item: StreamItem,
@@ -19,17 +21,35 @@ sealed interface SearchItem {
     ) : SearchItem
 }
 
+/**
+ * Search filters. YouTube's public search only lets clients pick the result type, so
+ * [duration] is applied to the returned page by the provider.
+ */
 data class SearchFilter(
     val type: Type = Type.All,
     val duration: DurationFilter = DurationFilter.Any,
-    val uploadDate: UploadDate = UploadDate.Any,
-    val sort: Sort = Sort.Relevance,
 ) {
     enum class Type { All, Videos, Channels, Playlists }
 
-    enum class DurationFilter { Any, Short, Medium, Long }
+    /** Same buckets as YouTube: under 4 minutes, 4–20 minutes, over 20 minutes. */
+    enum class DurationFilter(
+        private val range: ClosedRange<Duration>?,
+    ) {
+        Any(null),
+        Short(Duration.ZERO..SHORT_LIMIT),
+        Medium(SHORT_LIMIT..LONG_LIMIT),
+        Long(LONG_LIMIT..Duration.ofDays(1)),
+        ;
 
-    enum class UploadDate { Any, LastHour, Today, ThisWeek, ThisMonth, ThisYear }
+        /** Items without a known duration (channels, playlists, live) are kept only for [Any]. */
+        fun matches(item: SearchItem): Boolean {
+            val duration = (item as? SearchItem.Stream)?.item?.duration
+            return range == null || (duration != null && duration in range)
+        }
+    }
 
-    enum class Sort { Relevance, UploadDate, ViewCount, Rating }
+    private companion object {
+        val SHORT_LIMIT: Duration = Duration.ofMinutes(4)
+        val LONG_LIMIT: Duration = Duration.ofMinutes(20)
+    }
 }

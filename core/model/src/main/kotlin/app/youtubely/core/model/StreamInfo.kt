@@ -23,6 +23,16 @@ data class StreamInfo(
     val publishedAt: Instant?,
 )
 
+/**
+ * Byte ranges of the initialization and index (`sidx`) boxes of a fragmented MP4/WebM file.
+ * With them the player can build a DASH manifest and fetch the file in small chunks,
+ * which makes seeking fast and avoids long single downloads that servers throttle.
+ */
+data class SegmentIndex(
+    val initRange: LongRange,
+    val indexRange: LongRange,
+)
+
 data class VideoStream(
     val url: String,
     val mimeType: String,
@@ -35,6 +45,10 @@ data class VideoStream(
     val isHdr: Boolean,
     /** `true` for DASH video-only streams that must be merged with an [AudioStream]. */
     val isVideoOnly: Boolean,
+    val segmentIndex: SegmentIndex? = null,
+    val contentLength: Long? = null,
+    /** Headers the server expects when the media is downloaded, e.g. a client-specific User-Agent. */
+    val httpHeaders: Map<String, String> = emptyMap(),
 )
 
 data class AudioStream(
@@ -46,6 +60,11 @@ data class AudioStream(
     val languageTag: String?,
     val trackName: String?,
     val isOriginal: Boolean,
+    val sampleRate: Int? = null,
+    val channels: Int? = null,
+    val segmentIndex: SegmentIndex? = null,
+    val contentLength: Long? = null,
+    val httpHeaders: Map<String, String> = emptyMap(),
 )
 
 data class Subtitle(
