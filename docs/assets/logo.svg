@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 108 108" role="img" aria-label="YouTubely">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9575FF"/>
+      <stop offset="1" stop-color="#5E35D6"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="100" height="100" rx="30" fill="url(#bg)"/>
+  <path d="M40,36 L54,55 L68,36 M54,55 L54,73" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

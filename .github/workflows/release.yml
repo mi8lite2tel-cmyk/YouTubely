@@ -1,0 +1,123 @@
+name: Release
+
+# Push a tag like v0.1.0 (or create a release with a new tag in the GitHub UI):
+# signed APKs for both flavors are built and attached to the GitHub Release.
+# Setup and the step-by-step process: docs/releasing.md
+on:
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & publish APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check that the tag matches versionName
+        run: |
+          VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "::error::Tag $TAG does not match versionName $VERSION in app/build.gradle.kts. Bump the version first, then tag v$VERSION."
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Check signing secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.YOUTUBELY_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.YOUTUBELY_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.YOUTUBELY_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.YOUTUBELY_KEY_PASSWORD }}
+        run: |
+          missing=""
+          [ -n "$KEYSTORE_BASE64" ] || missing="$missing YOUTUBELY_KEYSTORE_BASE64"
+          [ -n "$KEYSTORE_PASSWORD" ] || missing="$missing YOUTUBELY_KEYSTORE_PASSWORD"
+          [ -n "$KEY_ALIAS" ] || missing="$missing YOUTUBELY_KEY_ALIAS"
+          [ -n "$KEY_PASSWORD" ] || missing="$missing YOUTUBELY_KEY_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing. See docs/releasing.md."
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: true
+
+      - name: Unit tests
+        run: ./gradlew test
+
+      - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.YOUTUBELY_KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+
+      - name: Build signed release APKs
+        env:
+          YOUTUBELY_KEYSTORE_FILE: ${{ runner.temp }}/release.jks
+          YOUTUBELY_KEYSTORE_PASSWORD: ${{ secrets.YOUTUBELY_KEYSTORE_PASSWORD }}
+          YOUTUBELY_KEY_ALIAS: ${{ secrets.YOUTUBELY_KEY_ALIAS }}
+          YOUTUBELY_KEY_PASSWORD: ${{ secrets.YOUTUBELY_KEY_PASSWORD }}
+        run: ./gradlew assembleFossRelease assembleFullRelease
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+
+      - name: Verify signatures and collect APKs
+        run: |
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner"
+          mkdir dist
+          for flavor in foss full; do
+            src="app/build/outputs/apk/$flavor/release/app-$flavor-release.apk"
+            "$APKSIGNER" verify "$src"
+            cp "$src" "dist/YouTubely-$VERSION-$flavor.apk"
+          done
+          (cd dist && sha256sum *.apk > SHA256SUMS.txt)
+          CERT=$("$APKSIGNER" verify --print-certs "dist/YouTubely-$VERSION-foss.apk" | grep -m1 'SHA-256 digest' | awk '{print $NF}')
+          {
+            echo "## Скачать"
+            echo
+            echo "| APK | Для кого |"
+            echo "|---|---|"
+            echo "| \`YouTubely-$VERSION-foss.apk\` | **Рекомендуется.** Без Google Play Services |"
+            echo "| \`YouTubely-$VERSION-full.apk\` | То же + (в будущем) Google Cast |"
+            echo
+            echo "Сертификат подписи (SHA-256): \`$CERT\`"
+            echo
+            echo "Контрольные суммы — в \`SHA256SUMS.txt\`."
+          } > dist/notes.md
+          cat dist/notes.md
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          assets=(dist/*.apk dist/SHA256SUMS.txt)
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            # Release was created in the UI together with the tag: just attach the files.
+            gh release upload "$TAG" "${assets[@]}" --clobber
+          else
+            prerelease=()
+            [[ "$VERSION" == *-* ]] && prerelease=(--prerelease)
+            gh release create "$TAG" "${assets[@]}" \
+              --title "YouTubely $VERSION" \
+              --notes-file dist/notes.md \
+              --generate-notes \
+              "${prerelease[@]}"
+          fi
