@@ -1,0 +1,22 @@
+# Gradle / build
+.gradle/
+.kotlin/
+build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Signing — release keys live in GitHub Secrets only
+*.jks
+*.keystore
+keystore.properties
+
+# Tools
+node_modules/

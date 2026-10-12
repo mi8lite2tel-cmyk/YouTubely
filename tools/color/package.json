@@ -1,0 +1,12 @@
+{
+  "name": "youtubely-color-tools",
+  "private": true,
+  "type": "module",
+  "description": "Generates the fallback Material 3 color schemes for core/designsystem",
+  "scripts": {
+    "generate": "node generate-schemes.mjs"
+  },
+  "dependencies": {
+    "@material/material-color-utilities": "0.4.0"
+  }
+}
