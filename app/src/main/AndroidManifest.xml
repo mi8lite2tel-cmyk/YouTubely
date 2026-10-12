@@ -12,9 +12,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.YouTubely">
 
+        <!-- configChanges: rotation, fullscreen and PiP resizes keep the activity (and the player UI). -->
         <activity
             android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden"
             android:exported="true"
+            android:launchMode="singleTask"
+            android:resizeableActivity="true"
+            android:supportsPictureInPicture="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

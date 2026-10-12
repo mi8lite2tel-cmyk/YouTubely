@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_refresh_failed">Не удалось обновить. Показаны прежние результаты.</string>
+    <string name="explore_trending">В тренде</string>
+    <string name="explore_music">Музыка</string>
+    <string name="explore_gaming">Игры</string>
+    <string name="explore_live">Трансляции</string>
+    <string name="explore_podcasts">Подкасты</string>
+    <string name="explore_movies">Фильмы и шоу</string>
+</resources>

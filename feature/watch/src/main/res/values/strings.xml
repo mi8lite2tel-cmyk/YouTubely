@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="watch_play">Play</string>
+    <string name="watch_pause">Pause</string>
+    <string name="watch_seek_back">Back 10 seconds</string>
+    <string name="watch_seek_forward">Forward 10 seconds</string>
+    <string name="watch_quality">Quality</string>
+    <string name="watch_quality_auto">Auto</string>
+    <string name="watch_quality_auto_hint">Adapts to your connection</string>
+    <string name="watch_fullscreen">Fullscreen</string>
+    <string name="watch_exit_fullscreen">Exit fullscreen</string>
+    <string name="watch_share">Share</string>
+    <string name="watch_related">Related videos</string>
+    <string name="watch_show_more">Show more</string>
+    <string name="watch_show_less">Show less</string>
+    <string name="watch_settings">Playback settings</string>
+    <string name="watch_speed">Speed</string>
+    <string name="watch_repeat">Repeat video</string>
+    <string name="watch_bitrate">%s Mbit/s</string>
+    <string name="watch_quality_auto_limited">Adapts to your connection, up to %dp on this network</string>
+</resources>

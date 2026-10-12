@@ -21,6 +21,8 @@ naming:
 
 style:
   MagicNumber:
+    # Layout values inside composables (alpha, weights, fractions) are idiomatic inline.
+    ignoreAnnotated: ['Composable']
     ignorePropertyDeclaration: true
     ignoreCompanionObjectPropertyDeclaration: true
     excludes:

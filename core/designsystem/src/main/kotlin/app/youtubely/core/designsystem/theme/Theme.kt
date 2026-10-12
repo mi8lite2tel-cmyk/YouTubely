@@ -3,6 +3,7 @@
 package app.youtubely.core.designsystem.theme
 
 import android.os.Build
+import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialExpressiveTheme
@@ -82,6 +83,7 @@ fun DarkMode.isDark(): Boolean =
     }
 
 /** Whether Dynamic Color can be offered on this device (Android 12+). */
+@get:ChecksSdkIntAtLeast(api = Build.VERSION_CODES.S)
 val isDynamicColorSupported: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
 /**

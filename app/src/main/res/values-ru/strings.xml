@@ -2,4 +2,8 @@
 <resources>
     <string name="notice_title">Неофициальный клиент</string>
     <string name="notice_body">YouTubely — независимое приложение с открытым исходным кодом. Оно не связано с Google и YouTube и не одобрено ими. Использование может нарушать Условия использования YouTube — ответственность лежит на вас. Скачивайте только то, на что у вас есть права.</string>
+    <string name="notice_accept">Понятно</string>
+    <string name="nav_home">Главная</string>
+    <string name="nav_search">Поиск</string>
+    <string name="nav_settings">Настройки</string>
 </resources>

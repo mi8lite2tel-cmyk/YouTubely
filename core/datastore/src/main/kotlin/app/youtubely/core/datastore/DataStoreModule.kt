@@ -26,4 +26,12 @@ object DataStoreModule {
     @Provides
     @Singleton
     fun provideThemeSettings(store: DataStore<Preferences>) = ThemeSettingsRepository(store)
+
+    @Provides
+    @Singleton
+    fun providePlaybackSettings(store: DataStore<Preferences>) = PlaybackSettingsRepository(store)
+
+    @Provides
+    @Singleton
+    fun provideAppPreferences(store: DataStore<Preferences>) = AppPreferences(store)
 }

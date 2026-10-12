@@ -31,13 +31,21 @@ class ThemeSettingsRepository(
                 )
             }.distinctUntilChanged()
 
-    suspend fun setDarkMode(mode: DarkMode) = store.edit { it[DARK_MODE] = mode.name }
+    suspend fun setDarkMode(mode: DarkMode) {
+        store.edit { it[DARK_MODE] = mode.name }
+    }
 
-    suspend fun setDynamicColor(enabled: Boolean) = store.edit { it[DYNAMIC_COLOR] = enabled }
+    suspend fun setDynamicColor(enabled: Boolean) {
+        store.edit { it[DYNAMIC_COLOR] = enabled }
+    }
 
-    suspend fun setPureBlack(enabled: Boolean) = store.edit { it[PURE_BLACK] = enabled }
+    suspend fun setPureBlack(enabled: Boolean) {
+        store.edit { it[PURE_BLACK] = enabled }
+    }
 
-    suspend fun setHighContrast(enabled: Boolean) = store.edit { it[HIGH_CONTRAST] = enabled }
+    suspend fun setHighContrast(enabled: Boolean) {
+        store.edit { it[HIGH_CONTRAST] = enabled }
+    }
 
     private companion object {
         val DARK_MODE = stringPreferencesKey("theme_dark_mode")

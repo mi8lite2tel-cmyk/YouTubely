@@ -3,4 +3,8 @@
     <string name="app_name" translatable="false">YouTubely</string>
     <string name="notice_title">Unofficial client</string>
     <string name="notice_body">YouTubely is an independent open-source app. It is not affiliated with, endorsed by or connected to Google or YouTube. Using it may violate YouTube\'s Terms of Service — you use it at your own risk. Only download content you have the rights to.</string>
+    <string name="notice_accept">I understand</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_settings">Settings</string>
 </resources>

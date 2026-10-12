@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="watch_play">Відтворити</string>
+    <string name="watch_pause">Пауза</string>
+    <string name="watch_seek_back">Назад на 10 секунд</string>
+    <string name="watch_seek_forward">Уперед на 10 секунд</string>
+    <string name="watch_quality">Якість</string>
+    <string name="watch_quality_auto">Авто</string>
+    <string name="watch_quality_auto_hint">Підлаштовується під швидкість мережі</string>
+    <string name="watch_fullscreen">На весь екран</string>
+    <string name="watch_exit_fullscreen">Вийти з повноекранного режиму</string>
+    <string name="watch_share">Поділитися</string>
+    <string name="watch_related">Схожі відео</string>
+    <string name="watch_show_more">Більше</string>
+    <string name="watch_show_less">Згорнути</string>
+    <string name="watch_settings">Налаштування відтворення</string>
+    <string name="watch_speed">Швидкість</string>
+    <string name="watch_repeat">Повтор відео</string>
+    <string name="watch_bitrate">%s Мбіт/с</string>
+    <string name="watch_quality_auto_limited">Під швидкість мережі, не вище %dp у цій мережі</string>
+</resources>
