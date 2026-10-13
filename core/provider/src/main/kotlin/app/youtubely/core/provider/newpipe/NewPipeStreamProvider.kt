@@ -28,6 +28,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import org.schabi.newpipe.extractor.InfoItem
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.channel.ChannelInfo
@@ -135,11 +136,14 @@ class NewPipeStreamProvider(
         page: Page?,
     ): ChannelPage =
         extract {
-            val info = ChannelInfo.getInfo(youtube, id.toUrl())
+            val info = channelInfo(id)
             val tabs = info.tabs.associateBy { it.contentFilters.firstOrNull() }
-            val handler = tabs[tab.tabId()] ?: throw ProviderError.Removed()
+            val handler = tabs[tab.tabId()]
             val (items, next) =
-                if (page == null) {
+                if (handler == null) {
+                    // The channel has no such tab (e.g. no shorts): an empty list, not an error.
+                    emptyList<InfoItem>() to null
+                } else if (page == null) {
                     val tabInfo = ChannelTabInfo.getInfo(youtube, handler)
                     tabInfo.relatedItems to tabInfo.nextPage
                 } else {
@@ -164,6 +168,23 @@ class NewPipeStreamProvider(
             )
         }
 
+    /** Channel pages are fetched once per tab and page; the header and tab list are reused. */
+    private val channelCache =
+        object : LinkedHashMap<ChannelId, Pair<Long, ChannelInfo>>(CHANNEL_CACHE_SIZE, LOAD_FACTOR, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<ChannelId, Pair<Long, ChannelInfo>>) =
+                size > CHANNEL_CACHE_SIZE
+        }
+
+    private fun channelInfo(id: ChannelId): ChannelInfo {
+        val now = System.currentTimeMillis()
+        synchronized(channelCache) {
+            channelCache[id]?.takeIf { now - it.first < CHANNEL_CACHE_MS }?.let { return it.second }
+        }
+        val info = ChannelInfo.getInfo(youtube, id.toUrl())
+        synchronized(channelCache) { channelCache[id] = now to info }
+        return info
+    }
+
     override suspend fun playlist(
         id: PlaylistId,
         page: Page?,
@@ -182,7 +203,7 @@ class NewPipeStreamProvider(
                     app.youtubely.core.model.Playlist(
                         id = id,
                         name = info.name,
-                        uploader = null,
+                        uploader = channelRef(info.uploaderUrl, info.uploaderName, info.uploaderAvatars, false),
                         thumbnails = info.thumbnails.toImages(),
                         streamCount = info.streamCount.takeIf { it >= 0 },
                     ),
@@ -250,6 +271,10 @@ class NewPipeStreamProvider(
         }
 
     private companion object {
+        const val CHANNEL_CACHE_SIZE = 8
+        const val CHANNEL_CACHE_MS = 10 * 60 * 1_000L
+        const val LOAD_FACTOR = 0.75f
+
         /** Kiosk ids of NewPipeExtractor, in the order they appear on the home screen. */
         val KIOSKS =
             listOf(

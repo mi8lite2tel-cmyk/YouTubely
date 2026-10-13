@@ -22,7 +22,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -32,14 +31,17 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.ContentFrame
+import app.youtubely.core.data.HistoryRepository
 import app.youtubely.core.download.DownloadManager
 import app.youtubely.core.model.Download
 import app.youtubely.core.model.DownloadFormat
 import app.youtubely.core.model.DownloadState
+import app.youtubely.core.model.Image
 import app.youtubely.core.model.PlaybackSettings
+import app.youtubely.core.model.StreamItem
+import app.youtubely.core.model.StreamType
 import app.youtubely.core.player.PlaybackManager
 import app.youtubely.core.ui.LoadingState
-import coil3.compose.AsyncImage
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -47,7 +49,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import java.io.File
+import kotlinx.coroutines.launch
 
 private const val VIDEO_ASPECT = 16f / 9f
 
@@ -59,6 +61,7 @@ class OfflineWatchViewModel
         @Assisted downloadId: String,
         downloadManager: DownloadManager,
         private val playback: PlaybackManager,
+        private val history: HistoryRepository,
     ) : ViewModel() {
         val player: Player get() = playback.player
         val settings: StateFlow<PlaybackSettings> get() = playback.settings
@@ -68,7 +71,7 @@ class OfflineWatchViewModel
                 .download(downloadId)
                 .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-        private var savedPositionMs = 0L
+        private var savedPositionMs: Long? = null
 
         private val isCurrent: Boolean
             get() = download.value?.let { playback.currentVideo.value == it.videoId } == true
@@ -77,7 +80,10 @@ class OfflineWatchViewModel
             val item = download.value?.takeIf { it.state == DownloadState.Completed }
             val path = item?.filePath
             if (path != null && !isCurrent) {
-                playback.playLocal(item.videoId, path, item.title, item.channelName, savedPositionMs)
+                viewModelScope.launch {
+                    val position = savedPositionMs ?: history.resumePosition(item.videoId)
+                    if (!isCurrent) playback.playLocal(item.toStreamItem(), path, position)
+                }
             }
         }
 
@@ -86,6 +92,8 @@ class OfflineWatchViewModel
         }
 
         fun setQuality(height: Int?) = playback.setQuality(height)
+
+        fun setAudioOnly(enabled: Boolean) = playback.setAudioOnly(enabled)
 
         override fun onCleared() {
             if (isCurrent) playback.stop()
@@ -96,6 +104,19 @@ class OfflineWatchViewModel
             fun create(downloadId: String): OfflineWatchViewModel
         }
     }
+
+private fun Download.toStreamItem() =
+    StreamItem(
+        id = videoId,
+        title = title,
+        channel = null,
+        thumbnails = listOfNotNull(thumbnailPath?.let { Image("file://$it", null, null) }),
+        type = StreamType.Video,
+        duration = duration,
+        viewCount = null,
+        uploadedAt = null,
+        uploadedAtText = null,
+    )
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -140,14 +161,7 @@ fun OfflineWatchScreen(
                 .fillMaxWidth()
                 .aspectRatio(VIDEO_ASPECT),
         ) {
-            if (item.format == DownloadFormat.Audio) {
-                AsyncImage(
-                    model = item.thumbnailPath?.let(::File),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+            val audioFile = item.format == DownloadFormat.Audio
             VideoPlayer(
                 player = player,
                 fullscreen = false,
@@ -155,7 +169,10 @@ fun OfflineWatchScreen(
                 onOpenSettings = { showSettings = true },
                 modifier = Modifier.fillMaxSize().pictureInPicture(settings.pictureInPicture),
                 showFullscreen = false,
-                transparentBackground = item.format == DownloadFormat.Audio,
+                seekStepSeconds = settings.seekStepSeconds,
+                audioOnly = audioFile || settings.audioOnly,
+                onToggleAudioOnly = if (audioFile) null else ({ viewModel.setAudioOnly(!settings.audioOnly) }),
+                artworkUrl = item.thumbnailPath?.let { "file://$it" },
             )
         }
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

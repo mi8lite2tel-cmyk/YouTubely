@@ -53,7 +53,9 @@
 | DataStore | 1.2.1 | Preferences |
 | hilt-lifecycle-viewmodel-compose | 1.4.0 | |
 | core-splashscreen | 1.2.0 | |
-| Robolectric | 4.17 | тест разбора DASH-манифеста парсером Media3 |
+| Robolectric | 4.17 | тест разбора DASH-манифеста парсером Media3, тесты Room |
+| WorkManager | 2.12.0 | загрузки |
+| Room 3 (`androidx.room3`) | 3.0.3 | история и подписки; драйвер `AndroidSQLiteDriver` из `sqlite-framework` 2.7.1 (системный SQLite, APK не растёт). Плагин `androidx.room3` экспортирует схемы в `core/database/schemas` |
 
 ## Проверено, добавляется вместе с модулем-потребителем
 
@@ -62,8 +64,6 @@
 | Компонент | Версия |
 |---|---|
 | `material3-adaptive` | 1.3.0 (1.4.0 — alpha03) |
-| Room 3 (`androidx.room3`) | 3.0.3 (запасной вариант — Room 2.8.5) |
-| WorkManager | 2.12.0 |
 | Paging | 3.5.2 |
 | Glance | 1.2.0 |
 | `androidx.window` | 1.5.1 |

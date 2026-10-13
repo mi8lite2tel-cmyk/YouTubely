@@ -6,6 +6,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.youtubely.core.common.Outcome
 import app.youtubely.core.common.outcomeOf
+import app.youtubely.core.data.FeedState
+import app.youtubely.core.data.SubscriptionFeed
+import app.youtubely.core.data.SubscriptionRepository
 import app.youtubely.core.model.ExploreKind
 import app.youtubely.core.model.ExploreSection
 import app.youtubely.core.model.Region
@@ -14,8 +17,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -44,9 +52,22 @@ class HomeViewModel
     @Inject
     constructor(
         private val provider: StreamProvider,
+        private val feed: SubscriptionFeed,
+        subscriptions: SubscriptionRepository,
     ) : ViewModel() {
         private val _state = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
         val state: StateFlow<HomeUiState> = _state.asStateFlow()
+
+        /** New videos of subscribed channels; the home screen opens on them when there are any. */
+        val feedState: StateFlow<FeedState> = feed.state
+
+        val hasSubscriptions: StateFlow<Boolean> =
+            subscriptions.subscriptions
+                .map { it.isNotEmpty() }
+                .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+        private val _showFeed = MutableStateFlow(true)
+        val showFeed: StateFlow<Boolean> = _showFeed.asStateFlow()
 
         private val region =
             Locale
@@ -57,6 +78,23 @@ class HomeViewModel
 
         init {
             load()
+            // A new or removed subscription changes the feed right away.
+            viewModelScope.launch {
+                subscriptions.subscriptions
+                    .map { list -> list.map { it.id } }
+                    .distinctUntilChanged()
+                    .drop(1)
+                    .collect { feed.refresh() }
+            }
+            viewModelScope.launch { feed.refreshIfStale() }
+        }
+
+        fun refreshFeed() {
+            viewModelScope.launch { feed.refresh() }
+        }
+
+        fun showFeed() {
+            _showFeed.value = true
         }
 
         /** Charts are fetched live each time: they change through the day. */
@@ -90,6 +128,7 @@ class HomeViewModel
         }
 
         fun select(kind: ExploreKind) {
+            _showFeed.value = false
             _state.update { (it as? HomeUiState.Content)?.copy(selected = kind) ?: it }
         }
     }

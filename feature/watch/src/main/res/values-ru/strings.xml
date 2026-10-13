@@ -23,4 +23,12 @@
     <string name="watch_download_progress">%d%%</string>
     <string name="watch_download_options">Варианты загрузки</string>
     <string name="watch_download_audio">Только аудио</string>
+    <string name="watch_seconds">%d с</string>
+    <string name="watch_zoom_fill">Заполнить экран</string>
+    <string name="watch_zoom_fit">По размеру экрана</string>
+    <string name="watch_audio_only">Только звук</string>
+    <string name="watch_audio_only_on">Слушать без видео</string>
+    <string name="watch_audio_only_off">Показать видео</string>
+    <string name="watch_queue_position">%1$d из %2$d</string>
+    <string name="watch_next">Следующее видео</string>
 </resources>

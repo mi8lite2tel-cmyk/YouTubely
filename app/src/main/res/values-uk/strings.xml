@@ -7,4 +7,5 @@
     <string name="nav_search">Пошук</string>
     <string name="nav_downloads">Завантажені</string>
     <string name="nav_settings">Налаштування</string>
+    <string name="nav_library">Бібліотека</string>
 </resources>

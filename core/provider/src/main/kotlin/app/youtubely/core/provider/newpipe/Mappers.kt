@@ -33,7 +33,7 @@ internal fun List<NpImage>.toImages(): List<Image> =
         Image(url = it.url, width = it.width.knownOrNull(), height = it.height.knownOrNull())
     }
 
-private fun channelRef(
+internal fun channelRef(
     url: String?,
     name: String?,
     avatars: List<NpImage>,

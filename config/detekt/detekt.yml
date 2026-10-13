@@ -7,7 +7,8 @@ complexity:
   LongParameterList:
     # Composables routinely take many optional parameters (modifier, colors, callbacks).
     ignoreDefaultParameters: true
-    ignoreAnnotated: ['Composable']
+    # Dependency-injected constructors grow with their collaborators; that is not a smell here.
+    ignoreAnnotated: ['Composable', 'Inject', 'AssistedInject']
   LongMethod:
     ignoreAnnotated: ['Composable']
   TooManyFunctions:

@@ -33,4 +33,12 @@
     <string name="error_outdated_body">Застосунку потрібне оновлення, щоб прочитати цю сторінку. Перевірте нову версію.</string>
     <string name="error_unknown_title">Щось пішло не так</string>
     <string name="error_unknown_body">Сталася непередбачена помилка. Спробуйте ще раз.</string>
+    <string name="subscribe">Підписатися</string>
+    <string name="subscribed">Ви підписані</string>
+    <plurals name="playlist_videos">
+        <item quantity="one">%d відео</item>
+        <item quantity="few">%d відео</item>
+        <item quantity="many">%d відео</item>
+        <item quantity="other">%d відео</item>
+    </plurals>
 </resources>

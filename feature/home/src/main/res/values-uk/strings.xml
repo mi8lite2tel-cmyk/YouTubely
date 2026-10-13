@@ -7,4 +7,6 @@
     <string name="explore_live">Трансляції</string>
     <string name="explore_podcasts">Подкасти</string>
     <string name="explore_movies">Фільми та шоу</string>
+    <string name="home_subscriptions">Підписки</string>
+    <string name="home_feed_empty">Нових відео з підписок поки немає</string>
 </resources>

@@ -23,4 +23,12 @@
     <string name="watch_download_progress">%d%%</string>
     <string name="watch_download_options">Download options</string>
     <string name="watch_download_audio">Audio only</string>
+    <string name="watch_seconds">%d s</string>
+    <string name="watch_zoom_fill">Fill screen</string>
+    <string name="watch_zoom_fit">Fit to screen</string>
+    <string name="watch_audio_only">Audio only</string>
+    <string name="watch_audio_only_on">Listen without video</string>
+    <string name="watch_audio_only_off">Show video</string>
+    <string name="watch_queue_position">%1$d of %2$d</string>
+    <string name="watch_next">Next video</string>
 </resources>

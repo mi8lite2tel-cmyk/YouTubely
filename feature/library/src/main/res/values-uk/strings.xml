@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="library_title">Бібліотека</string>
+    <string name="library_subtitle">Зберігається лише на цьому пристрої</string>
+    <string name="library_history">Історія</string>
+    <string name="library_subscriptions">Підписки</string>
+    <string name="library_today">Сьогодні</string>
+    <string name="library_yesterday">Учора</string>
+    <string name="library_history_empty">Тут з’являться переглянуті відео. Їх можна продовжити з того місця, де ви зупинилися.</string>
+    <string name="library_subscriptions_empty">Підписуйтеся на канали на їхній сторінці або під відео. Нові відео з’являться на головній. До YouTube нічого не надсилається.</string>
+    <string name="library_history_paused">Історію призупинено. Нові відео не записуються.</string>
+    <string name="library_pause_history">Призупинити історію</string>
+    <string name="library_resume_history">Увімкнути</string>
+    <string name="library_clear_title">Очистити історію</string>
+    <string name="library_clear_body">З пристрою буде видалено всі переглянуті відео та збережені позиції.</string>
+    <string name="library_clear_confirm">Очистити</string>
+    <string name="library_cancel">Скасувати</string>
+    <string name="library_more">Більше</string>
+    <string name="library_remove">Видалити</string>
+    <string name="library_removed">«%s» видалено з історії</string>
+    <string name="library_unsubscribed">Ви відписалися від «%s»</string>
+    <string name="library_unsubscribe">Відписатися від «%s»</string>
+    <string name="library_undo">Скасувати</string>
+</resources>

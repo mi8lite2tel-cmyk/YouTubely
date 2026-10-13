@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="library_title">Library</string>
+    <string name="library_subtitle">Stored only on this device</string>
+    <string name="library_history">History</string>
+    <string name="library_subscriptions">Subscriptions</string>
+    <string name="library_today">Today</string>
+    <string name="library_yesterday">Yesterday</string>
+    <string name="library_history_empty">Videos you watch appear here, and you can continue them where you stopped.</string>
+    <string name="library_subscriptions_empty">Subscribe to channels on their page or under a video. New videos appear on the home screen. Nothing is sent to YouTube.</string>
+    <string name="library_history_paused">History is paused. New videos are not recorded.</string>
+    <string name="library_pause_history">Pause history</string>
+    <string name="library_resume_history">Turn on</string>
+    <string name="library_clear_title">Clear history</string>
+    <string name="library_clear_body">All watched videos and saved positions will be removed from this device.</string>
+    <string name="library_clear_confirm">Clear</string>
+    <string name="library_cancel">Cancel</string>
+    <string name="library_more">More options</string>
+    <string name="library_remove">Remove</string>
+    <string name="library_removed">Removed “%s”</string>
+    <string name="library_unsubscribed">Unsubscribed from %s</string>
+    <string name="library_unsubscribe">Unsubscribe from %s</string>
+    <string name="library_undo">Undo</string>
+</resources>

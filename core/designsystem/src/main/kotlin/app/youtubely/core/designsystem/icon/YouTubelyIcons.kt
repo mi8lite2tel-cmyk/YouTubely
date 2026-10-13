@@ -20,6 +20,8 @@ object YouTubelyIcons {
     val Settings = Toggle(R.drawable.ic_settings, R.drawable.ic_settings_fill1)
     val ThumbUp = Toggle(R.drawable.ic_thumb_up, R.drawable.ic_thumb_up_fill1)
     val Downloads = Toggle(R.drawable.ic_download, R.drawable.ic_download_fill1)
+    val Library = Toggle(R.drawable.ic_video_library, R.drawable.ic_video_library_fill1)
+    val Subscriptions = Toggle(R.drawable.ic_subscriptions, R.drawable.ic_subscriptions_fill1)
 
     val ArrowBack = R.drawable.ic_arrow_back
     val Close = R.drawable.ic_close
@@ -62,4 +64,18 @@ object YouTubelyIcons {
     val PauseOutline = R.drawable.ic_pause
     val Headphones = R.drawable.ic_headphones
     val Wifi = R.drawable.ic_wifi
+    val PlaylistPlay = R.drawable.ic_playlist_play
+    val FastForward = R.drawable.ic_fast_forward
+    val FastRewind = R.drawable.ic_fast_rewind
+    val Brightness = R.drawable.ic_brightness_medium
+    val Volume = R.drawable.ic_volume_up
+    val Subscribe = R.drawable.ic_person_add
+    val Subscribed = R.drawable.ic_how_to_reg
+    val SkipNext = R.drawable.ic_skip_next
+    val MoreVert = R.drawable.ic_more_vert
+    val DeleteSweep = R.drawable.ic_delete_sweep
+    val HistoryOff = R.drawable.ic_history_toggle_off
+    val Storage = R.drawable.ic_hard_drive
+    val AspectRatio = R.drawable.ic_aspect_ratio
+    val VideoFilled = R.drawable.ic_smart_display_fill1
 }

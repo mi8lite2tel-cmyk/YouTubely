@@ -13,8 +13,4 @@
     <string name="filter_short">Under 4 min</string>
     <string name="filter_medium">4–20 min</string>
     <string name="filter_long">Over 20 min</string>
-    <plurals name="search_playlist_videos">
-        <item quantity="one">%d video</item>
-        <item quantity="other">%d videos</item>
-    </plurals>
 </resources>

@@ -40,17 +40,25 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import app.youtubely.R
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
+import app.youtubely.core.model.ChannelId
+import app.youtubely.core.model.PlaylistId
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.ui.LocalSharedTransitionScope
+import app.youtubely.feature.channel.ChannelScreen
 import app.youtubely.feature.downloads.DownloadsScreen
 import app.youtubely.feature.home.HomeScreen
+import app.youtubely.feature.library.LibraryScreen
+import app.youtubely.feature.playlist.PlaylistScreen
 import app.youtubely.feature.search.SearchScreen
 import app.youtubely.feature.settings.SettingsScreen
 import app.youtubely.feature.watch.OfflineWatchScreen
 import app.youtubely.feature.watch.WatchScreen
+import app.youtubely.navigation.ChannelRoute
 import app.youtubely.navigation.DownloadsRoute
 import app.youtubely.navigation.HomeRoute
+import app.youtubely.navigation.LibraryRoute
 import app.youtubely.navigation.OfflineWatchRoute
+import app.youtubely.navigation.PlaylistRoute
 import app.youtubely.navigation.SearchRoute
 import app.youtubely.navigation.SettingsRoute
 import app.youtubely.navigation.TopLevelRoute
@@ -66,6 +74,7 @@ private val TopLevelItems =
     listOf(
         TopLevelItem(HomeRoute, R.string.nav_home, YouTubelyIcons.Home),
         TopLevelItem(SearchRoute, R.string.nav_search, YouTubelyIcons.Search),
+        TopLevelItem(LibraryRoute, R.string.nav_library, YouTubelyIcons.Library),
         TopLevelItem(DownloadsRoute, R.string.nav_downloads, YouTubelyIcons.Downloads),
         TopLevelItem(SettingsRoute, R.string.nav_settings, YouTubelyIcons.Settings),
     )
@@ -84,6 +93,7 @@ fun YouTubelyApp(
         mapOf(
             HomeRoute to rememberNavBackStack(HomeRoute),
             SearchRoute to rememberNavBackStack(SearchRoute),
+            LibraryRoute to rememberNavBackStack(LibraryRoute),
             DownloadsRoute to rememberNavBackStack(DownloadsRoute),
             SettingsRoute to rememberNavBackStack(SettingsRoute),
         )
@@ -104,6 +114,15 @@ fun YouTubelyApp(
         sharedKey: String,
     ) {
         backStack.add(WatchRoute(id.value, sharedKey))
+    }
+
+    fun openChannel(id: ChannelId) {
+        // Opening the channel that is already on top (e.g. from its own video) just goes back to it.
+        if (backStack.lastOrNull() != ChannelRoute(id.value)) backStack.add(ChannelRoute(id.value))
+    }
+
+    fun openPlaylist(id: PlaylistId) {
+        backStack.add(PlaylistRoute(id.value))
     }
 
     NavigationSuiteScaffold(
@@ -175,9 +194,44 @@ fun YouTubelyApp(
                         entryProvider =
                             entryProvider {
                                 entry<HomeRoute> { HomeScreen(onOpenVideo = ::openVideo) }
-                                entry<SearchRoute> { SearchScreen(onOpenVideo = ::openVideo) }
+                                entry<SearchRoute> {
+                                    SearchScreen(
+                                        onOpenVideo = ::openVideo,
+                                        onOpenChannel = ::openChannel,
+                                        onOpenPlaylist = ::openPlaylist,
+                                    )
+                                }
+                                entry<LibraryRoute> {
+                                    LibraryScreen(onOpenVideo = ::openVideo, onOpenChannel = ::openChannel)
+                                }
                                 entry<DownloadsRoute> {
-                                    DownloadsScreen(onPlay = { stack.add(OfflineWatchRoute(it)) })
+                                    DownloadsScreen(
+                                        onPlay = { stack.add(OfflineWatchRoute(it)) },
+                                        onOpenOnline = { openVideo(it, "downloads-${it.value}") },
+                                    )
+                                }
+                                entry<ChannelRoute> { route ->
+                                    ChannelScreen(
+                                        channelId = ChannelId(route.channelId),
+                                        onBack = { stack.removeLastOrNull() },
+                                        onOpenVideo = ::openVideo,
+                                        onOpenChannel = ::openChannel,
+                                        onOpenPlaylist = ::openPlaylist,
+                                    )
+                                }
+                                entry<PlaylistRoute> { route ->
+                                    PlaylistScreen(
+                                        playlistId = PlaylistId(route.playlistId),
+                                        onBack = { stack.removeLastOrNull() },
+                                        onPlay = {
+                                            id,
+                                            key,
+                                            playlist,
+                                            ->
+                                            stack.add(WatchRoute(id.value, key, playlist.value))
+                                        },
+                                        onOpenChannel = ::openChannel,
+                                    )
                                 }
                                 entry<OfflineWatchRoute> { route -> OfflineWatchScreen(downloadId = route.downloadId) }
                                 entry<SettingsRoute> { SettingsScreen(versionName = versionName) }
@@ -185,7 +239,9 @@ fun YouTubelyApp(
                                     WatchScreen(
                                         videoId = VideoId(route.videoId),
                                         sharedKey = route.sharedKey,
+                                        playlistId = route.playlistId?.let(::PlaylistId),
                                         onOpenVideo = ::openVideo,
+                                        onOpenChannel = ::openChannel,
                                     )
                                 }
                             },

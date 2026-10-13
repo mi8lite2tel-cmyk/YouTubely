@@ -4,9 +4,11 @@ package app.youtubely
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.youtubely.core.data.HistoryRepository
 import app.youtubely.core.datastore.AppPreferences
 import app.youtubely.core.datastore.ThemeSettingsRepository
 import app.youtubely.core.model.ThemeSettings
+import app.youtubely.core.model.VideoId
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +22,12 @@ class MainViewModel
     constructor(
         themeRepository: ThemeSettingsRepository,
         private val preferences: AppPreferences,
+        history: HistoryRepository,
     ) : ViewModel() {
+        /** Watched share per video, shown as a bar on every thumbnail. */
+        val watchProgress: StateFlow<Map<VideoId, Float>> =
+            history.progress.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyMap())
+
         /** `null` until loaded, so the first frame doesn't flash the default theme. */
         val theme: StateFlow<ThemeSettings?> =
             themeRepository.settings.stateIn(viewModelScope, SharingStarted.Eagerly, null)
@@ -30,5 +37,9 @@ class MainViewModel
 
         fun acceptNotice() {
             viewModelScope.launch { preferences.acceptNotice() }
+        }
+
+        private companion object {
+            const val STOP_TIMEOUT_MS = 5_000L
         }
     }

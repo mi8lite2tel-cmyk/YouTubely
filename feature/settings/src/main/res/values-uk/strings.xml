@@ -28,4 +28,14 @@
     <string name="settings_version">Версія %s</string>
     <string name="settings_license">Ліцензія</string>
     <string name="settings_license_summary">GNU GPL v3.0 або новіша. Неофіційний застосунок, не повʼязаний з Google і YouTube.</string>
+    <string name="settings_audio_only">Лише звук</string>
+    <string name="settings_audio_only_summary">Відтворювати звук без завантаження зображення. Економить трафік і заряд</string>
+    <string name="settings_resume">Продовжувати з місця зупинки</string>
+    <string name="settings_resume_summary">Повторно відкрите відео почнеться зі збереженої позиції</string>
+    <string name="settings_seek_step">Перемотування подвійним дотиком</string>
+    <string name="settings_seek_step_summary">Двічі торкніться лівої або правої частини плеєра. Утримуйте палець для швидкості 2×</string>
+    <string name="settings_seconds">%d с</string>
+    <string name="settings_privacy">Конфіденційність</string>
+    <string name="settings_history">Історія переглядів</string>
+    <string name="settings_history_summary">Зберігається лише на пристрої. Потрібна, щоб продовжувати відео</string>
 </resources>

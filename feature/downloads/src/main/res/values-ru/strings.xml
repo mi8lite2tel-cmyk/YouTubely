@@ -13,4 +13,14 @@
     <string name="downloads_state_merging">Объединение видео и звука…</string>
     <string name="downloads_state_paused">Пауза</string>
     <string name="downloads_state_failed">Ошибка. Нажмите «Повторить», чтобы продолжить.</string>
+    <string name="downloads_deleted">«%s» удалено</string>
+    <string name="downloads_undo">Отменить</string>
+    <string name="downloads_storage">Занято %1$s · свободно %2$s</string>
+    <string name="downloads_no_match">Здесь ничего нет</string>
+    <string name="downloads_filter_all">Все</string>
+    <string name="downloads_filter_video">Видео</string>
+    <string name="downloads_filter_audio">Аудио</string>
+    <string name="downloads_filter_in_progress">Загружаются</string>
+    <string name="downloads_more">Ещё</string>
+    <string name="downloads_open_online">Открыть страницу видео</string>
 </resources>

@@ -28,4 +28,14 @@
     <string name="settings_version">Version %s</string>
     <string name="settings_license">License</string>
     <string name="settings_license_summary">GNU GPL v3.0 or later. Unofficial app, not affiliated with Google or YouTube.</string>
+    <string name="settings_audio_only">Audio only</string>
+    <string name="settings_audio_only_summary">Play sound without downloading the picture. Saves data and battery</string>
+    <string name="settings_resume">Continue where you stopped</string>
+    <string name="settings_resume_summary">Reopened videos start from the saved position</string>
+    <string name="settings_seek_step">Double-tap seek</string>
+    <string name="settings_seek_step_summary">Double tap the left or right side of the player. Touch and hold for 2× speed</string>
+    <string name="settings_seconds">%d s</string>
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_history">Watch history</string>
+    <string name="settings_history_summary">Kept only on this device. Needed to continue videos</string>
 </resources>

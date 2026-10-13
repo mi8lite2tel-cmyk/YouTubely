@@ -8,4 +8,6 @@
     <string name="explore_live">Live</string>
     <string name="explore_podcasts">Podcasts</string>
     <string name="explore_movies">Movies &amp; shows</string>
+    <string name="home_subscriptions">Subscriptions</string>
+    <string name="home_feed_empty">No new videos from your subscriptions yet</string>
 </resources>

@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package app.youtubely.core.provider.newpipe
 
+import app.youtubely.core.model.ChannelId
+import app.youtubely.core.model.ChannelTab
+import app.youtubely.core.model.PlaylistId
 import app.youtubely.core.model.Region
 import app.youtubely.core.model.SearchFilter
 import app.youtubely.core.model.SearchItem
@@ -71,5 +74,41 @@ class LiveNewPipeStreamProviderTest {
             val sections = provider.explore(Region("US"))
             sections.forEach { println("explore ${it.kind}: ${it.items.size} items, e.g. ${it.items.first().title}") }
             assertTrue(sections.isNotEmpty())
+        }
+
+    @Test
+    fun channel() =
+        liveTest {
+            // Blender: has videos, shorts, live and playlists tabs.
+            val id = ChannelId("UCSMOQeBJ2RAnuFungnQOxLg")
+            val page = provider.channel(id, ChannelTab.Videos, null)
+            println("channel ${page.channel.name} tabs=${page.channel.tabs} subs=${page.channel.subscriberCount}")
+            println("  videos=${page.items.items.size} next=${page.items.nextPage != null}")
+            assertTrue(page.items.items.isNotEmpty())
+            val more = provider.channel(id, ChannelTab.Videos, page.items.nextPage)
+            println("  page 2: ${more.items.items.size}")
+            assertTrue(more.items.items.isNotEmpty())
+            val playlists = provider.channel(id, ChannelTab.Playlists, null)
+            println("  playlists=${playlists.items.items.size}")
+            val shorts = provider.channel(id, ChannelTab.Shorts, null)
+            println("  shorts=${shorts.items.items.size}")
+        }
+
+    @Test
+    fun playlist() =
+        liveTest {
+            val page = provider.playlist(PlaylistId("PLa1F2ddGya_-UvuAqHAksYnB0qL9yWDO6"), null)
+            println("playlist ${page.playlist.name} by ${page.playlist.uploader?.name}: ${page.items.items.size} items")
+            assertTrue(page.items.items.isNotEmpty())
+        }
+
+    @Test
+    fun channelFeed() =
+        liveTest {
+            val items = provider.channelFeed(ChannelId("UCSMOQeBJ2RAnuFungnQOxLg"))
+            println(
+                "feed: ${items.size} items, newest ${items.firstOrNull()?.title} at ${items.firstOrNull()?.uploadedAt}",
+            )
+            assertTrue(items.isNotEmpty())
         }
 }
