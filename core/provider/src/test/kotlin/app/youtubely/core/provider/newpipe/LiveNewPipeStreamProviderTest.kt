@@ -106,7 +106,9 @@ class LiveNewPipeStreamProviderTest {
     fun channelFeed() =
         liveTest {
             val items = provider.channelFeed(ChannelId("UCSMOQeBJ2RAnuFungnQOxLg"))
-            println("feed: ${items.size} items, newest ${items.firstOrNull()?.title} at ${items.firstOrNull()?.uploadedAt}")
+            println(
+                "feed: ${items.size} items, newest ${items.firstOrNull()?.title} at ${items.firstOrNull()?.uploadedAt}",
+            )
             assertTrue(items.isNotEmpty())
         }
 }
