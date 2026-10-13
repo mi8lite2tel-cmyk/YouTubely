@@ -48,7 +48,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,18 +56,18 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.youtubely.core.designsystem.component.ExpressiveFilterChip
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
+import app.youtubely.core.model.ChannelId
+import app.youtubely.core.model.PlaylistId
 import app.youtubely.core.model.SearchFilter
 import app.youtubely.core.model.SearchItem
 import app.youtubely.core.model.VideoId
-import app.youtubely.core.model.bestFor
-import app.youtubely.core.ui.ChannelAvatar
+import app.youtubely.core.ui.ChannelListItem
 import app.youtubely.core.ui.ErrorState
 import app.youtubely.core.ui.LoadingState
-import app.youtubely.core.ui.VerifiedBadge
+import app.youtubely.core.ui.PlaylistListItem
 import app.youtubely.core.ui.VideoRow
 import app.youtubely.core.ui.subscriberCountText
 import app.youtubely.core.ui.videoFrameKey
-import coil3.compose.AsyncImage
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -80,6 +79,8 @@ private const val LOAD_MORE_THRESHOLD = 5
 @Composable
 fun SearchScreen(
     onOpenVideo: (VideoId, sharedKey: String) -> Unit,
+    onOpenChannel: (ChannelId) -> Unit,
+    onOpenPlaylist: (PlaylistId) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
@@ -123,7 +124,7 @@ fun SearchScreen(
                 results.loading -> LoadingState()
                 results.error != null -> ErrorState(results.error!!, onRetry = viewModel::retry)
                 results.items.isEmpty() -> EmptyState(results.query)
-                else -> ResultList(results, onOpenVideo, onLoadMore = viewModel::loadMore)
+                else -> ResultList(results, onOpenVideo, onOpenChannel, onOpenPlaylist, viewModel::loadMore)
             }
         }
     }
@@ -221,6 +222,8 @@ private fun FilterRow(
 private fun ResultList(
     results: SearchResults,
     onOpenVideo: (VideoId, String) -> Unit,
+    onOpenChannel: (ChannelId) -> Unit,
+    onOpenPlaylist: (PlaylistId) -> Unit,
     onLoadMore: () -> Unit,
 ) {
     val listState = rememberLazyListState()
@@ -251,11 +254,20 @@ private fun ResultList(
                 }
 
                 is SearchItem.ChannelResult -> {
-                    ChannelResultRow(item, Modifier.animateItem())
+                    ChannelListItem(
+                        channel = item.channel,
+                        onClick = { onOpenChannel(item.channel.id) },
+                        supporting = item.subscriberCount?.let { subscriberCountText(it) },
+                        modifier = Modifier.animateItem(),
+                    )
                 }
 
                 is SearchItem.PlaylistResult -> {
-                    PlaylistResultRow(item, Modifier.animateItem())
+                    PlaylistListItem(
+                        playlist = item.playlist,
+                        onClick = { onOpenPlaylist(item.playlist.id) },
+                        modifier = Modifier.animateItem(),
+                    )
                 }
             }
         }
@@ -266,55 +278,6 @@ private fun ResultList(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun ChannelResultRow(
-    item: SearchItem.ChannelResult,
-    modifier: Modifier = Modifier,
-) {
-    ListItem(
-        supportingContent = item.subscriberCount?.let { { Text(subscriberCountText(it)) } },
-        leadingContent = { ChannelAvatar(item.channel.avatars, contentDescription = null, size = 56.dp) },
-        modifier = modifier,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(item.channel.name, style = MaterialTheme.typography.titleMediumEmphasized, maxLines = 1)
-            if (item.channel.isVerified) VerifiedBadge()
-        }
-    }
-}
-
-@Composable
-private fun PlaylistResultRow(
-    item: SearchItem.PlaylistResult,
-    modifier: Modifier = Modifier,
-) {
-    ListItem(
-        supportingContent = {
-            Text(
-                listOfNotNull(
-                    item.playlist.uploader?.name,
-                    item.playlist.streamCount?.let {
-                        pluralStringResource(R.plurals.search_playlist_videos, it.toInt(), it)
-                    },
-                ).joinToString(" · "),
-            )
-        },
-        leadingContent = {
-            AsyncImage(
-                model =
-                    item.playlist.thumbnails
-                        .bestFor(336)
-                        ?.url,
-                contentDescription = null,
-                modifier = Modifier.size(width = 120.dp, height = 68.dp),
-            )
-        },
-        modifier = modifier,
-    ) {
-        Text(item.playlist.name, style = MaterialTheme.typography.titleSmallEmphasized, maxLines = 2)
     }
 }
 

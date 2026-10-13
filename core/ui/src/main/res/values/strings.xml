@@ -29,4 +29,10 @@
     <string name="error_outdated_body">The app needs an update to read this page. Check for a new version.</string>
     <string name="error_unknown_title">Something went wrong</string>
     <string name="error_unknown_body">An unexpected error occurred. Try again.</string>
+    <string name="subscribe">Subscribe</string>
+    <string name="subscribed">Subscribed</string>
+    <plurals name="playlist_videos">
+        <item quantity="one">%d video</item>
+        <item quantity="other">%d videos</item>
+    </plurals>
 </resources>

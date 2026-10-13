@@ -13,10 +13,4 @@
     <string name="filter_short">До 4 хв</string>
     <string name="filter_medium">4–20 хв</string>
     <string name="filter_long">Понад 20 хв</string>
-    <plurals name="search_playlist_videos">
-        <item quantity="one">%d відео</item>
-        <item quantity="few">%d відео</item>
-        <item quantity="many">%d відео</item>
-        <item quantity="other">%d відео</item>
-    </plurals>
 </resources>

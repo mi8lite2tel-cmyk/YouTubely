@@ -8,13 +8,13 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -26,9 +26,12 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -40,7 +43,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -54,13 +62,17 @@ import androidx.media3.ui.compose.state.rememberPlayPauseButtonState
 import androidx.media3.ui.compose.state.rememberSeekBackButtonState
 import androidx.media3.ui.compose.state.rememberSeekForwardButtonState
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
+import app.youtubely.core.model.PlaybackSettings
+import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 
 private const val CONTROLS_TIMEOUT_MS = 3_000L
 
 /**
  * Video surface with expressive controls: tap to show/hide, auto-hide while playing, shape-
- * morphing play button, ±10 s, a Material 3 progress slider and quality / fullscreen actions.
+ * morphing play button, ±10 s, a Material 3 progress slider and audio / quality / fullscreen
+ * actions, plus the gestures from [playerGestures]. In audio-only mode the artwork
+ * replaces the picture.
  */
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
@@ -71,10 +83,13 @@ internal fun VideoPlayer(
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     showFullscreen: Boolean = true,
-    /** Audio-only playback shows artwork behind the controls instead of a black frame. */
-    transparentBackground: Boolean = false,
+    seekStepSeconds: Int = PlaybackSettings.DEFAULT_SEEK_STEP,
+    audioOnly: Boolean = false,
+    onToggleAudioOnly: (() -> Unit)? = null,
+    artworkUrl: String? = null,
 ) {
     var controlsVisible by remember { mutableStateOf(true) }
+    val gestures = rememberPlayerGestureState()
     val playPause = rememberPlayPauseButtonState(player)
     var buffering by remember { mutableStateOf(player.playbackState == Player.STATE_BUFFERING) }
     var interactions by remember { mutableIntStateOf(0) }
@@ -100,15 +115,30 @@ internal fun VideoPlayer(
         modifier =
             modifier
                 .background(Color.Black)
-                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                    controlsVisible = !controlsVisible
-                },
+                .clipToBounds()
+                .playerGestures(
+                    player = player,
+                    state = gestures,
+                    seekStepSeconds = seekStepSeconds,
+                    fullscreen = fullscreen,
+                    environment =
+                        rememberGestureEnvironment(gestures, fullscreen) { controlsVisible = !controlsVisible },
+                ),
     ) {
-        if (!transparentBackground) ContentFrame(player = player, modifier = Modifier.fillMaxSize())
+        if (audioOnly) {
+            AudioArtwork(artworkUrl, Modifier.fillMaxSize())
+        } else {
+            ContentFrame(
+                player = player,
+                contentScale = if (gestures.zoomed) ContentScale.Crop else ContentScale.Fit,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
 
         if (buffering) {
             LoadingIndicator(color = Color.White, modifier = Modifier.align(Alignment.Center).size(64.dp))
         }
+        GestureFeedbackOverlay(gestures)
 
         AnimatedVisibility(
             visible = controlsVisible,
@@ -124,6 +154,8 @@ internal fun VideoPlayer(
                     showFullscreen = showFullscreen,
                     onToggleFullscreen = onToggleFullscreen,
                     onOpenSettings = onOpenSettings,
+                    audioOnly = audioOnly,
+                    onToggleAudioOnly = onToggleAudioOnly,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
@@ -200,6 +232,8 @@ private fun BottomControls(
     showFullscreen: Boolean,
     onToggleFullscreen: () -> Unit,
     onOpenSettings: () -> Unit,
+    audioOnly: Boolean,
+    onToggleAudioOnly: (() -> Unit)?,
     modifier: Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -207,6 +241,23 @@ private fun BottomControls(
         Row(verticalAlignment = Alignment.CenterVertically) {
             PositionAndDurationText(player, color = Color.White, scope = scope)
             Spacer(Modifier.weight(1f))
+            if (onToggleAudioOnly != null) {
+                IconToggleButton(
+                    checked = audioOnly,
+                    onCheckedChange = { onToggleAudioOnly() },
+                    shapes = IconButtonDefaults.toggleableShapes(),
+                    colors =
+                        IconButtonDefaults.iconToggleButtonColors(
+                            contentColor = Color.White,
+                            checkedContentColor = MaterialTheme.colorScheme.primary,
+                        ),
+                ) {
+                    Icon(
+                        painterResource(YouTubelyIcons.Headphones),
+                        stringResource(if (audioOnly) R.string.watch_audio_only_off else R.string.watch_audio_only_on),
+                    )
+                }
+            }
             IconButton(onClick = onOpenSettings) {
                 Icon(painterResource(YouTubelyIcons.Tune), stringResource(R.string.watch_settings), tint = Color.White)
             }
@@ -233,5 +284,54 @@ private fun BottomControls(
                 ),
             interactionSource = remember { MutableInteractionSource() },
         )
+    }
+}
+
+/** Audio-only mode: the blurred thumbnail fills the frame and a sharp copy sits in the middle. */
+@Composable
+private fun AudioArtwork(
+    url: String?,
+    modifier: Modifier,
+) {
+    Box(modifier, contentAlignment = Alignment.Center) {
+        AsyncImage(
+            model = url,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize().blur(24.dp).alpha(0.6f),
+        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            AsyncImage(
+                model = url,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier =
+                    Modifier
+                        .fillMaxWidth(0.4f)
+                        .aspectRatio(16f / 9f)
+                        .clip(MaterialTheme.shapes.large),
+            )
+            Surface(
+                shape = MaterialTheme.shapes.extraLarge,
+                color = Color.Black.copy(alpha = 0.5f),
+                contentColor = Color.White,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                ) {
+                    Icon(
+                        painterResource(YouTubelyIcons.Headphones),
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Text(
+                        stringResource(R.string.watch_audio_only),
+                        style = MaterialTheme.typography.labelMediumEmphasized,
+                    )
+                }
+            }
+        }
     }
 }

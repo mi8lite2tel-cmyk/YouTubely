@@ -9,6 +9,7 @@ dependencies {
     api(projects.core.model)
     api(libs.androidx.media3.exoplayer)
     api(libs.androidx.media3.session)
+    implementation(projects.core.data)
     implementation(projects.core.datastore)
     implementation(libs.androidx.media3.exoplayer.dash)
     implementation(libs.androidx.media3.exoplayer.hls)

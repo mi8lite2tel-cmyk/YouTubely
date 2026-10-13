@@ -13,4 +13,14 @@
     <string name="downloads_state_merging">Обʼєднання відео та звуку…</string>
     <string name="downloads_state_paused">Пауза</string>
     <string name="downloads_state_failed">Помилка. Натисніть «Повторити», щоб продовжити.</string>
+    <string name="downloads_deleted">«%s» видалено</string>
+    <string name="downloads_undo">Скасувати</string>
+    <string name="downloads_storage">Зайнято %1$s · вільно %2$s</string>
+    <string name="downloads_no_match">Тут нічого немає</string>
+    <string name="downloads_filter_all">Усі</string>
+    <string name="downloads_filter_video">Відео</string>
+    <string name="downloads_filter_audio">Аудіо</string>
+    <string name="downloads_filter_in_progress">Завантажуються</string>
+    <string name="downloads_more">Більше</string>
+    <string name="downloads_open_online">Відкрити сторінку відео</string>
 </resources>

@@ -13,10 +13,4 @@
     <string name="filter_short">До 4 мин</string>
     <string name="filter_medium">4–20 мин</string>
     <string name="filter_long">Больше 20 мин</string>
-    <plurals name="search_playlist_videos">
-        <item quantity="one">%d видео</item>
-        <item quantity="few">%d видео</item>
-        <item quantity="many">%d видео</item>
-        <item quantity="other">%d видео</item>
-    </plurals>
 </resources>

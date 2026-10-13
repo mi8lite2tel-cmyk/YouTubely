@@ -51,3 +51,9 @@ data class Download(
             }
     }
 }
+
+/** Space taken by downloads and still free on the storage they are kept on. */
+data class StorageUsage(
+    val usedBytes: Long,
+    val freeBytes: Long,
+)

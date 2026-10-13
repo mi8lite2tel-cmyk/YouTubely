@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playlist_back">Назад</string>
+    <string name="playlist_play_all">Воспроизвести всё</string>
+    <plurals name="playlist_count">
+        <item quantity="one">%d видео</item>
+        <item quantity="few">%d видео</item>
+        <item quantity="many">%d видео</item>
+        <item quantity="other">%d видео</item>
+    </plurals>
+</resources>

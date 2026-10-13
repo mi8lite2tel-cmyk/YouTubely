@@ -3,6 +3,8 @@
 package app.youtubely.core.download
 
 import android.content.Context
+import android.os.storage.StorageManager
+import androidx.core.content.getSystemService
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
@@ -15,12 +17,16 @@ import app.youtubely.core.datastore.PlaybackSettingsRepository
 import app.youtubely.core.model.Download
 import app.youtubely.core.model.DownloadFormat
 import app.youtubely.core.model.DownloadState
+import app.youtubely.core.model.StorageUsage
 import app.youtubely.core.model.StreamInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -39,6 +45,26 @@ class DownloadManager
         val downloads: Flow<List<Download>> = store.downloads
 
         fun download(id: String): Flow<Download?> = store.downloads.map { all -> all.firstOrNull { it.id == id } }
+
+        /** Bytes used by all downloads (including unfinished parts) and free on their volume. */
+        suspend fun storage(): StorageUsage =
+            withContext(Dispatchers.IO) {
+                val root = DownloadWorker.downloadsRoot(context).apply { mkdirs() }
+                StorageUsage(
+                    usedBytes = root.walkTopDown().filter { it.isFile }.sumOf { it.length() },
+                    freeBytes = allocatableBytes(root),
+                )
+            }
+
+        /** Free space including cache the system would clear for us; plain free space if that is unknown. */
+        private fun allocatableBytes(dir: File): Long {
+            val storage = context.getSystemService<StorageManager>() ?: return dir.usableSpace
+            return try {
+                storage.getAllocatableBytes(storage.getUuidForPath(dir))
+            } catch (_: IOException) {
+                dir.usableSpace
+            }
+        }
 
         /** What can be saved for this video without re-encoding (see [StreamSelection]). */
         fun formats(info: StreamInfo): List<DownloadFormat> = StreamSelection.formats(info)

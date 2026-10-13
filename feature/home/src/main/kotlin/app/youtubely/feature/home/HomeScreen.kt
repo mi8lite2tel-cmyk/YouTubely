@@ -45,10 +45,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.youtubely.core.data.FeedState
 import app.youtubely.core.designsystem.component.ExpressiveFilterChip
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.model.ExploreKind
@@ -66,6 +68,7 @@ import coil3.compose.AsyncImage
 private const val HERO_COUNT = 6
 private const val HERO_ORIGIN = "home-hero"
 private const val LIST_ORIGIN = "home-list"
+private const val FEED_ORIGIN = "home-feed"
 
 @Composable
 fun HomeScreen(
@@ -74,6 +77,9 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val feed by viewModel.feedState.collectAsStateWithLifecycle()
+    val hasSubscriptions by viewModel.hasSubscriptions.collectAsStateWithLifecycle()
+    val showFeed by viewModel.showFeed.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val snackbar = remember { SnackbarHostState() }
     val refreshFailed = stringResource(R.string.home_refresh_failed)
@@ -113,9 +119,20 @@ fun HomeScreen(
             is HomeUiState.Content -> {
                 HomeContent(
                     state = s,
+                    feed = if (hasSubscriptions && showFeed) feed else null,
+                    hasSubscriptions = hasSubscriptions,
                     contentPadding = padding,
-                    onRefresh = { viewModel.load(refresh = true) },
+                    onRefresh = {
+                        if (hasSubscriptions &&
+                            showFeed
+                        ) {
+                            viewModel.refreshFeed()
+                        } else {
+                            viewModel.load(refresh = true)
+                        }
+                    },
                     onSelect = viewModel::select,
+                    onSelectFeed = viewModel::showFeed,
                     onOpenVideo = onOpenVideo,
                 )
             }
@@ -126,28 +143,33 @@ fun HomeScreen(
 @Composable
 private fun HomeContent(
     state: HomeUiState.Content,
+    feed: FeedState?,
+    hasSubscriptions: Boolean,
     contentPadding: PaddingValues,
     onRefresh: () -> Unit,
     onSelect: (ExploreKind) -> Unit,
+    onSelectFeed: () -> Unit,
     onOpenVideo: (VideoId, String) -> Unit,
 ) {
     val pullState = rememberPullToRefreshState()
+    val refreshing = if (feed != null) feed.loading && feed.items.isNotEmpty() else state.refreshing
     PullToRefreshBox(
-        isRefreshing = state.refreshing,
+        isRefreshing = refreshing,
         onRefresh = onRefresh,
         state = pullState,
         modifier = Modifier.fillMaxSize().padding(top = contentPadding.calculateTopPadding()),
         indicator = {
             PullToRefreshDefaults.LoadingIndicator(
                 state = pullState,
-                isRefreshing = state.refreshing,
+                isRefreshing = refreshing,
                 modifier = Modifier.align(Alignment.TopCenter),
             )
         },
     ) {
-        val items = state.current.items
-        val hero = items.take(HERO_COUNT)
-        val rest = items.drop(HERO_COUNT)
+        val items = feed?.items ?: state.current.items
+        val hero = if (feed != null) emptyList() else items.take(HERO_COUNT)
+        val rest = if (feed != null) items else items.drop(HERO_COUNT)
+        val origin = if (feed != null) FEED_ORIGIN else LIST_ORIGIN
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 340.dp),
             contentPadding =
@@ -160,17 +182,53 @@ private fun HomeContent(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             item(key = "chips", span = { GridItemSpan(maxLineSpan) }) {
-                SectionChips(state, onSelect)
+                SectionChips(state, feedSelected = feed != null, hasSubscriptions, onSelect, onSelectFeed)
             }
-            item(key = "hero-${state.selected}", span = { GridItemSpan(maxLineSpan) }) {
-                HeroCarousel(hero, onOpenVideo, Modifier.animateItem())
+            if (feed != null && feed.items.isEmpty()) {
+                item(key = "feed-status", span = { GridItemSpan(maxLineSpan) }) {
+                    FeedStatus(feed, onRetry = onRefresh)
+                }
             }
-            items(rest, key = { "${state.selected}-${it.id.value}" }) { item ->
+            if (hero.isNotEmpty()) {
+                item(key = "hero-${state.selected}", span = { GridItemSpan(maxLineSpan) }) {
+                    HeroCarousel(hero, onOpenVideo, Modifier.animateItem())
+                }
+            }
+            items(rest, key = { "$origin-${state.selected}-${it.id.value}" }) { item ->
                 VideoCard(
                     item = item,
-                    sharedKey = videoFrameKey(LIST_ORIGIN, item.id),
-                    onClick = { onOpenVideo(item.id, videoFrameKey(LIST_ORIGIN, item.id)) },
+                    sharedKey = videoFrameKey(origin, item.id),
+                    onClick = { onOpenVideo(item.id, videoFrameKey(origin, item.id)) },
                     modifier = Modifier.animateItem(),
+                )
+            }
+        }
+    }
+}
+
+/** Loading, error or "nothing new" for the subscription feed while it has no items. */
+@Composable
+private fun FeedStatus(
+    feed: FeedState,
+    onRetry: () -> Unit,
+) {
+    Box(Modifier.fillMaxWidth().height(320.dp), contentAlignment = Alignment.Center) {
+        when {
+            feed.loading || feed.updatedAt == null -> {
+                LoadingState()
+            }
+
+            feed.error != null -> {
+                ErrorState(feed.error!!, onRetry = onRetry)
+            }
+
+            else -> {
+                Text(
+                    stringResource(R.string.home_feed_empty),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(32.dp),
                 )
             }
         }
@@ -180,15 +238,28 @@ private fun HomeContent(
 @Composable
 private fun SectionChips(
     state: HomeUiState.Content,
+    feedSelected: Boolean,
+    hasSubscriptions: Boolean,
     onSelect: (ExploreKind) -> Unit,
+    onSelectFeed: () -> Unit,
 ) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
     ) {
+        if (hasSubscriptions) {
+            item(key = "subscriptions") {
+                ExpressiveFilterChip(
+                    selected = feedSelected,
+                    onClick = onSelectFeed,
+                    label = stringResource(R.string.home_subscriptions),
+                    icon = YouTubelyIcons.Subscriptions.outlined,
+                )
+            }
+        }
         items(state.sections, key = { it.kind }) { section ->
             ExpressiveFilterChip(
-                selected = section.kind == state.selected,
+                selected = !feedSelected && section.kind == state.selected,
                 onClick = { onSelect(section.kind) },
                 label = stringResource(section.kind.label),
                 icon = section.kind.icon,

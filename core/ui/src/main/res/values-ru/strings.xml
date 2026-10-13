@@ -33,4 +33,12 @@
     <string name="error_outdated_body">Приложению нужно обновление, чтобы прочитать эту страницу. Проверьте новую версию.</string>
     <string name="error_unknown_title">Что-то пошло не так</string>
     <string name="error_unknown_body">Произошла непредвиденная ошибка. Попробуйте ещё раз.</string>
+    <string name="subscribe">Подписаться</string>
+    <string name="subscribed">Вы подписаны</string>
+    <plurals name="playlist_videos">
+        <item quantity="one">%d видео</item>
+        <item quantity="few">%d видео</item>
+        <item quantity="many">%d видео</item>
+        <item quantity="other">%d видео</item>
+    </plurals>
 </resources>

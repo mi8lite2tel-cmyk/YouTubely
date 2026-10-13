@@ -19,6 +19,9 @@ data object HomeRoute : TopLevelRoute
 data object SearchRoute : TopLevelRoute
 
 @Serializable
+data object LibraryRoute : TopLevelRoute
+
+@Serializable
 data object DownloadsRoute : TopLevelRoute
 
 @Serializable
@@ -29,6 +32,18 @@ data object SettingsRoute : TopLevelRoute
 data class WatchRoute(
     val videoId: String,
     val sharedKey: String,
+    /** Set when the video was started from a playlist, which then plays on in order. */
+    val playlistId: String? = null,
+) : Route
+
+@Serializable
+data class ChannelRoute(
+    val channelId: String,
+) : Route
+
+@Serializable
+data class PlaylistRoute(
+    val playlistId: String,
 ) : Route
 
 /** A finished download played from disk. */

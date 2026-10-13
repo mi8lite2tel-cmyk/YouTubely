@@ -7,10 +7,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.youtubely.core.designsystem.theme.YouTubelyTheme
+import app.youtubely.core.ui.LocalWatchProgress
 import app.youtubely.ui.NoticeDialog
 import app.youtubely.ui.YouTubelyApp
 import dagger.hilt.android.AndroidEntryPoint
@@ -28,9 +30,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             val theme by viewModel.theme.collectAsStateWithLifecycle()
             val noticeAccepted by viewModel.noticeAccepted.collectAsStateWithLifecycle()
+            val watchProgress by viewModel.watchProgress.collectAsStateWithLifecycle()
             val settings = theme ?: return@setContent
             YouTubelyTheme(settings) {
-                YouTubelyApp(versionName = versionName)
+                CompositionLocalProvider(LocalWatchProgress provides watchProgress) {
+                    YouTubelyApp(versionName = versionName)
+                }
                 if (noticeAccepted == false) NoticeDialog(onAccept = viewModel::acceptNotice)
             }
         }

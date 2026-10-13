@@ -5,6 +5,7 @@ plugins {
 }
 
 dependencies {
+    implementation(projects.core.data)
     implementation(projects.core.provider)
     implementation(projects.core.player)
     implementation(projects.core.download)

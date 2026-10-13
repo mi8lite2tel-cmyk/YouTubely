@@ -26,6 +26,10 @@ class PlaybackSettingsRepository(
                     backgroundPlayback = prefs[BACKGROUND] ?: defaults.backgroundPlayback,
                     pictureInPicture = prefs[PIP] ?: defaults.pictureInPicture,
                     downloadOnWifiOnly = prefs[DOWNLOAD_WIFI_ONLY] ?: defaults.downloadOnWifiOnly,
+                    audioOnly = prefs[AUDIO_ONLY] ?: defaults.audioOnly,
+                    seekStepSeconds = prefs[SEEK_STEP] ?: defaults.seekStepSeconds,
+                    historyEnabled = prefs[HISTORY] ?: defaults.historyEnabled,
+                    resumePlayback = prefs[RESUME] ?: defaults.resumePlayback,
                 )
             }.distinctUntilChanged()
 
@@ -49,6 +53,22 @@ class PlaybackSettingsRepository(
         store.edit { it[DOWNLOAD_WIFI_ONLY] = enabled }
     }
 
+    suspend fun setAudioOnly(enabled: Boolean) {
+        store.edit { it[AUDIO_ONLY] = enabled }
+    }
+
+    suspend fun setSeekStepSeconds(seconds: Int) {
+        store.edit { it[SEEK_STEP] = seconds }
+    }
+
+    suspend fun setHistoryEnabled(enabled: Boolean) {
+        store.edit { it[HISTORY] = enabled }
+    }
+
+    suspend fun setResumePlayback(enabled: Boolean) {
+        store.edit { it[RESUME] = enabled }
+    }
+
     private fun Int?.limitOr(default: Int?): Int? =
         when (this) {
             null -> default
@@ -63,5 +83,9 @@ class PlaybackSettingsRepository(
         val BACKGROUND = booleanPreferencesKey("playback_background")
         val PIP = booleanPreferencesKey("playback_pip")
         val DOWNLOAD_WIFI_ONLY = booleanPreferencesKey("download_wifi_only")
+        val AUDIO_ONLY = booleanPreferencesKey("playback_audio_only")
+        val SEEK_STEP = intPreferencesKey("playback_seek_step_seconds")
+        val HISTORY = booleanPreferencesKey("history_enabled")
+        val RESUME = booleanPreferencesKey("playback_resume")
     }
 }

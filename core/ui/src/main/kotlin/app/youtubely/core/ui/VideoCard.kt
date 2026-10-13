@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -66,6 +69,17 @@ fun VideoThumbnail(
                 item.duration != null -> formatDuration(item.duration!!)
                 else -> null
             }
+        val progress = LocalWatchProgress.current[item.id]
+        if (progress != null && progress > 0f) {
+            // Plain (not wavy) progress: how much of the video was already watched.
+            LinearProgressIndicator(
+                progress = { progress },
+                drawStopIndicator = {},
+                gapSize = 0.dp,
+                trackColor = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.5f),
+                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(4.dp),
+            )
+        }
         if (badge != null) {
             Surface(
                 shape = MaterialTheme.shapes.small,
@@ -147,11 +161,13 @@ fun VideoRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     thumbnailWidth: Dp = 168.dp,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
+    trailing: @Composable (() -> Unit)? = null,
 ) {
     Surface(
         onClick = onClick,
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
+        color = containerColor,
         modifier = modifier,
     ) {
         Row(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -190,6 +206,7 @@ fun VideoRow(
                     )
                 }
             }
+            trailing?.invoke()
         }
     }
 }

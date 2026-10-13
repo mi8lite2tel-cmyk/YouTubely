@@ -134,7 +134,7 @@ fun SettingsScreen(
                         icon = YouTubelyIcons.Music,
                         checked = playback.backgroundPlayback,
                         enabled = true,
-                        onChange = viewModel::setBackgroundPlayback,
+                        onChange = { viewModel.playback { setBackgroundPlayback(it) } },
                     ),
                     SwitchRow(
                         title = R.string.settings_pip,
@@ -142,26 +142,59 @@ fun SettingsScreen(
                         icon = YouTubelyIcons.Video,
                         checked = playback.pictureInPicture,
                         enabled = true,
-                        onChange = viewModel::setPictureInPicture,
+                        onChange = { viewModel.playback { setPictureInPicture(it) } },
+                    ),
+                    SwitchRow(
+                        title = R.string.settings_audio_only,
+                        summary = R.string.settings_audio_only_summary,
+                        icon = YouTubelyIcons.Headphones,
+                        checked = playback.audioOnly,
+                        enabled = true,
+                        onChange = { viewModel.playback { setAudioOnly(it) } },
+                    ),
+                    SwitchRow(
+                        title = R.string.settings_resume,
+                        summary = R.string.settings_resume_summary,
+                        icon = YouTubelyIcons.History,
+                        checked = playback.resumePlayback,
+                        enabled = true,
+                        onChange = { viewModel.playback { setResumePlayback(it) } },
                     ),
                 ),
             )
+            item(key = "seek-step") {
+                SeekStepSelector(playback.seekStepSeconds) { viewModel.playback { setSeekStepSeconds(it) } }
+            }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
                     QualityLimitRow(
                         title = R.string.settings_max_quality_wifi,
                         value = playback.maxHeightUnmetered,
                         index = 0,
-                        onChange = viewModel::setMaxHeightUnmetered,
+                        onChange = { viewModel.playback { setMaxHeightUnmetered(it) } },
                     )
                     QualityLimitRow(
                         title = R.string.settings_max_quality_mobile,
                         value = playback.maxHeightMetered,
                         index = 1,
-                        onChange = viewModel::setMaxHeightMetered,
+                        onChange = { viewModel.playback { setMaxHeightMetered(it) } },
                     )
                 }
             }
+
+            header(R.string.settings_privacy)
+            switches(
+                listOf(
+                    SwitchRow(
+                        title = R.string.settings_history,
+                        summary = R.string.settings_history_summary,
+                        icon = YouTubelyIcons.History,
+                        checked = playback.historyEnabled,
+                        enabled = true,
+                        onChange = { viewModel.playback { setHistoryEnabled(it) } },
+                    ),
+                ),
+            )
 
             header(R.string.settings_downloads)
             switches(
@@ -172,7 +205,7 @@ fun SettingsScreen(
                         icon = YouTubelyIcons.Wifi,
                         checked = playback.downloadOnWifiOnly,
                         enabled = true,
-                        onChange = viewModel::setDownloadOnWifiOnly,
+                        onChange = { viewModel.playback { setDownloadOnWifiOnly(it) } },
                     ),
                 ),
             )
@@ -265,6 +298,48 @@ private fun DarkModeSelector(
             ) {
                 Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(18.dp))
                 Text(stringResource(label), Modifier.padding(start = 6.dp), maxLines = 1)
+            }
+        }
+    }
+}
+
+/** Double-tap seek step as a connected button group. */
+@Composable
+private fun SeekStepSelector(
+    selected: Int,
+    onSelect: (Int) -> Unit,
+) {
+    val choices = PlaybackSettings.SEEK_STEP_CHOICES
+    Column(Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(painterResource(YouTubelyIcons.FastForward), contentDescription = null)
+            Column {
+                Text(stringResource(R.string.settings_seek_step), style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    stringResource(R.string.settings_seek_step_summary),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+        ) {
+            choices.forEachIndexed { index, seconds ->
+                ToggleButton(
+                    checked = selected == seconds,
+                    onCheckedChange = { onSelect(seconds) },
+                    shapes =
+                        when (index) {
+                            0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                            choices.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                            else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                        },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.settings_seconds, seconds), maxLines = 1)
+                }
             }
         }
     }

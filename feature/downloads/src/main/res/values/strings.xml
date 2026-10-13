@@ -13,4 +13,14 @@
     <string name="downloads_state_merging">Combining video and audio…</string>
     <string name="downloads_state_paused">Paused</string>
     <string name="downloads_state_failed">Failed. Tap retry to continue.</string>
+    <string name="downloads_deleted">Deleted “%s”</string>
+    <string name="downloads_undo">Undo</string>
+    <string name="downloads_storage">%1$s used · %2$s free</string>
+    <string name="downloads_no_match">Nothing here</string>
+    <string name="downloads_filter_all">All</string>
+    <string name="downloads_filter_video">Video</string>
+    <string name="downloads_filter_audio">Audio</string>
+    <string name="downloads_filter_in_progress">In progress</string>
+    <string name="downloads_more">More options</string>
+    <string name="downloads_open_online">Open video page</string>
 </resources>

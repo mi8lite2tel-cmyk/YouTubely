@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_back">Назад</string>
+    <string name="channel_tab_videos">Видео</string>
+    <string name="channel_tab_shorts">Shorts</string>
+    <string name="channel_tab_live">Трансляции</string>
+    <string name="channel_tab_playlists">Плейлисты</string>
+    <string name="channel_empty">Здесь пока пусто</string>
+</resources>

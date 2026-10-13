@@ -8,11 +8,17 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import app.youtubely.core.common.Outcome
 import app.youtubely.core.common.outcomeOf
+import app.youtubely.core.data.HistoryRepository
+import app.youtubely.core.data.SubscriptionRepository
 import app.youtubely.core.download.DownloadManager
+import app.youtubely.core.model.ChannelRef
 import app.youtubely.core.model.Download
 import app.youtubely.core.model.DownloadFormat
 import app.youtubely.core.model.PlaybackSettings
+import app.youtubely.core.model.Playlist
+import app.youtubely.core.model.PlaylistId
 import app.youtubely.core.model.StreamInfo
+import app.youtubely.core.model.StreamItem
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.player.PlaybackManager
 import app.youtubely.core.provider.ProviderError
@@ -21,11 +27,15 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -41,33 +51,60 @@ sealed interface WatchUiState {
     ) : WatchUiState
 }
 
+/** The playlist a video was opened from; [index] is the item playing now. */
+data class PlaylistQueue(
+    val playlist: Playlist,
+    val items: List<StreamItem>,
+    val index: Int,
+) {
+    val next: StreamItem? get() = items.getOrNull(index + 1)
+}
+
 /**
  * One video on the shared [PlaybackManager] player. Several watch screens can be on the back
  * stack; the visible one reclaims the player (see [onVisible]) and resumes where it left off.
+ * Opened from a playlist, the screen plays the playlist in place and moves on to the next video
+ * by itself, also in the background.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel(assistedFactory = WatchViewModel.Factory::class)
 class WatchViewModel
     @AssistedInject
     constructor(
-        @Assisted videoId: String,
+        @Assisted("video") videoId: String,
+        @Assisted("playlist") playlistId: String?,
         private val provider: StreamProvider,
         private val playback: PlaybackManager,
         private val downloadManager: DownloadManager,
+        private val history: HistoryRepository,
+        private val subscriptions: SubscriptionRepository,
     ) : ViewModel() {
-        private val id = VideoId(videoId)
+        private val currentId = MutableStateFlow(VideoId(videoId))
+        private val id: VideoId get() = currentId.value
         val player: Player get() = playback.player
         val settings: StateFlow<PlaybackSettings> get() = playback.settings
 
         private val _state = MutableStateFlow<WatchUiState>(WatchUiState.Loading)
         val state: StateFlow<WatchUiState> = _state.asStateFlow()
 
-        private var savedPositionMs = 0L
+        private val _queue = MutableStateFlow<PlaylistQueue?>(null)
+        val queue: StateFlow<PlaylistQueue?> = _queue.asStateFlow()
+
+        /** `null` until the stream info is known. */
+        private var savedPositionMs: Long? = null
+        private var loading: Job? = null
 
         /** This video's downloads, any quality. */
         val downloads: StateFlow<List<Download>> =
-            downloadManager.downloads
-                .map { all -> all.filter { it.videoId == id } }
+            combine(downloadManager.downloads, currentId) { all, current -> all.filter { it.videoId == current } }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
+
+        val isSubscribed: StateFlow<Boolean> =
+            _state
+                .flatMapLatest { state ->
+                    val channel = (state as? WatchUiState.Content)?.info?.item?.channel
+                    if (channel == null) flowOf(false) else subscriptions.isSubscribed(channel.id)
+                }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
 
         fun downloadFormats(info: StreamInfo): List<DownloadFormat> = downloadManager.formats(info)
 
@@ -75,6 +112,14 @@ class WatchViewModel
             val content = _state.value as? WatchUiState.Content ?: return
             viewModelScope.launch { downloadManager.start(content.info, format) }
         }
+
+        fun toggleSubscription(channel: ChannelRef) {
+            viewModelScope.launch {
+                if (isSubscribed.value) subscriptions.unsubscribe(channel.id) else subscriptions.subscribe(channel)
+            }
+        }
+
+        fun setAudioOnly(enabled: Boolean) = playback.setAudioOnly(enabled)
 
         /** Media URLs are signed for a few hours; one expired-URL error triggers a silent reload. */
         private var reloadedAfterHttpError = false
@@ -88,21 +133,26 @@ class WatchViewModel
                         load(positionMs = player.currentPosition, refetch = true)
                     }
                 }
+
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == Player.STATE_ENDED && isCurrent) playNextInQueue()
+                }
             }
 
         init {
             player.addListener(listener)
             load()
+            playlistId?.let { loadQueue(PlaylistId(it)) }
         }
 
         val isCurrent: Boolean get() = playback.currentVideo.value == id
 
-        fun retry() = load(positionMs = savedPositionMs, refetch = true)
+        fun retry() = load(positionMs = savedPositionMs ?: 0, refetch = true)
 
         /** The screen is shown again (e.g. back from another video): take the player back. */
         fun onVisible() {
             val content = _state.value as? WatchUiState.Content ?: return
-            if (!isCurrent && !playback.play(content.info, savedPositionMs)) {
+            if (!isCurrent && !playback.play(content.info, savedPositionMs ?: 0)) {
                 _state.value = WatchUiState.Error(ProviderError.ExtractorOutdated())
             }
         }
@@ -116,36 +166,71 @@ class WatchViewModel
 
         val pinnedQuality: Int? get() = playback.pinnedHeight
 
+        /** Plays another video of the queue on this screen. */
+        fun playQueueItem(index: Int) {
+            val queue = _queue.value ?: return
+            val item = queue.items.getOrNull(index) ?: return
+            _queue.value = queue.copy(index = index)
+            currentId.value = item.id
+            savedPositionMs = null
+            reloadedAfterHttpError = false
+            _state.value = WatchUiState.Loading
+            load()
+        }
+
+        private fun playNextInQueue() {
+            val queue = _queue.value ?: return
+            if (queue.next != null && player.repeatMode == Player.REPEAT_MODE_OFF) playQueueItem(queue.index + 1)
+        }
+
+        private fun loadQueue(playlistId: PlaylistId) {
+            viewModelScope.launch {
+                val page = outcomeOf { provider.playlist(playlistId, null) } as? Outcome.Success ?: return@launch
+                val items = page.value.items.items
+                _queue.value =
+                    PlaylistQueue(
+                        playlist = page.value.playlist,
+                        items = items,
+                        index = items.indexOfFirst { it.id == id }.coerceAtLeast(0),
+                    )
+            }
+        }
+
         private fun load(
-            positionMs: Long = 0,
+            positionMs: Long? = null,
             refetch: Boolean = false,
         ) {
-            val previous = _state.value as? WatchUiState.Content
+            val previous = (_state.value as? WatchUiState.Content)?.takeIf { it.info.item.id == id }
             if (previous == null) _state.value = WatchUiState.Loading
-            viewModelScope.launch {
-                val info =
-                    if (previous != null && !refetch) {
-                        previous.info
-                    } else {
-                        when (val result = outcomeOf { provider.streamInfo(id) }) {
-                            is Outcome.Success -> {
-                                result.value
-                            }
+            loading?.cancel()
+            loading =
+                viewModelScope.launch {
+                    val requested = id
+                    val info =
+                        if (previous != null && !refetch) {
+                            previous.info
+                        } else {
+                            when (val result = outcomeOf { provider.streamInfo(requested) }) {
+                                is Outcome.Success -> {
+                                    result.value
+                                }
 
-                            is Outcome.Failure -> {
-                                _state.value = WatchUiState.Error(result.error)
-                                return@launch
+                                is Outcome.Failure -> {
+                                    _state.value = WatchUiState.Error(result.error)
+                                    return@launch
+                                }
                             }
                         }
-                    }
-                _state.value =
-                    if (playback.play(info, positionMs)) {
-                        WatchUiState.Content(info)
-                    } else {
-                        // Extraction succeeded but produced nothing playable: the extractor needs an update.
-                        WatchUiState.Error(ProviderError.ExtractorOutdated())
-                    }
-            }
+                    val start = positionMs ?: history.resumePosition(requested)
+                    savedPositionMs = start
+                    _state.value =
+                        if (playback.play(info, start)) {
+                            WatchUiState.Content(info)
+                        } else {
+                            // Extraction succeeded but produced nothing playable: the extractor needs an update.
+                            WatchUiState.Error(ProviderError.ExtractorOutdated())
+                        }
+                }
         }
 
         /** Leaving the video (back) ends its playback; the shared player stays for the next one. */
@@ -160,6 +245,9 @@ class WatchViewModel
 
         @AssistedFactory
         interface Factory {
-            fun create(videoId: String): WatchViewModel
+            fun create(
+                @Assisted("video") videoId: String,
+                @Assisted("playlist") playlistId: String?,
+            ): WatchViewModel
         }
     }

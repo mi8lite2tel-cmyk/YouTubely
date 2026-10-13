@@ -9,7 +9,6 @@ import androidx.core.net.toUri
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
@@ -65,13 +64,7 @@ class YouTubelyPlayer
                 MediaItem
                     .Builder()
                     .setMediaId(info.item.id.value)
-                    .setMediaMetadata(
-                        MediaMetadata
-                            .Builder()
-                            .setTitle(info.item.title)
-                            .setArtist(info.item.channel?.name)
-                            .build(),
-                    )
+                    .setMediaMetadata(info.item.toMediaMetadata())
             return when (source) {
                 is PlaybackSource.GeneratedDash -> {
                     val manifest = DashManifestParser().parse(MANIFEST_URI, source.manifest.byteInputStream())

@@ -38,15 +38,8 @@ class SettingsViewModel
 
         fun setHighContrast(enabled: Boolean) = launch { theme.setHighContrast(enabled) }
 
-        fun setBackgroundPlayback(enabled: Boolean) = launch { playback.setBackgroundPlayback(enabled) }
-
-        fun setPictureInPicture(enabled: Boolean) = launch { playback.setPictureInPicture(enabled) }
-
-        fun setMaxHeightUnmetered(height: Int?) = launch { playback.setMaxHeightUnmetered(height) }
-
-        fun setMaxHeightMetered(height: Int?) = launch { playback.setMaxHeightMetered(height) }
-
-        fun setDownloadOnWifiOnly(enabled: Boolean) = launch { playback.setDownloadOnWifiOnly(enabled) }
+        /** Applies one change to the playback settings, e.g. `playback { setAudioOnly(true) }`. */
+        fun playback(change: suspend PlaybackSettingsRepository.() -> Unit) = launch { playback.change() }
 
         private fun launch(block: suspend () -> Unit) {
             viewModelScope.launch { block() }
