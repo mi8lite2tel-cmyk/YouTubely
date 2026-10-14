@@ -56,6 +56,7 @@ import app.youtubely.core.ui.LoadMoreEffect
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.StateTransition
 import app.youtubely.core.ui.VideoRow
+import app.youtubely.core.ui.motionItem
 import app.youtubely.core.ui.videoFrameKey
 import coil3.compose.AsyncImage
 
@@ -134,7 +135,7 @@ fun PlaylistScreen(
                                     val key = videoFrameKey("playlist", item.id)
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.animateItem(),
+                                        modifier = motionItem(),
                                     ) {
                                         Text(
                                             "${index + 1}",

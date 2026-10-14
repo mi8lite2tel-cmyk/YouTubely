@@ -87,4 +87,9 @@
     <string name="settings_sb_preview">Recap or preview</string>
     <string name="settings_sb_filler">Filler</string>
     <string name="settings_sb_music_offtopic">Non-music part</string>
+    <string name="settings_animation_speed">Animation speed</string>
+    <string name="settings_animation_standard">Standard</string>
+    <string name="settings_animation_relaxed">Relaxed</string>
+    <string name="settings_animation_slow">Slow</string>
+    <string name="settings_animation_very_slow">Very slow</string>
 </resources>

@@ -8,6 +8,7 @@ import app.youtubely.core.datastore.PlaybackSettingsRepository
 import app.youtubely.core.datastore.SponsorBlockSettingsRepository
 import app.youtubely.core.datastore.SyncSettingsRepository
 import app.youtubely.core.datastore.ThemeSettingsRepository
+import app.youtubely.core.model.AnimationSpeed
 import app.youtubely.core.model.DarkMode
 import app.youtubely.core.model.PlaybackSettings
 import app.youtubely.core.model.SponsorBlockSettings
@@ -48,6 +49,8 @@ class SettingsViewModel
         fun sponsorBlock(change: suspend SponsorBlockSettingsRepository.() -> Unit) = launch { sponsorBlock.change() }
 
         fun setDarkMode(mode: DarkMode) = launch { theme.setDarkMode(mode) }
+
+        fun setAnimationSpeed(speed: AnimationSpeed) = launch { theme.setAnimationSpeed(speed) }
 
         fun setDynamicColor(enabled: Boolean) = launch { theme.setDynamicColor(enabled) }
 

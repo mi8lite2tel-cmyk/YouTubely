@@ -8,6 +8,16 @@ enum class DarkMode {
     Dark,
 }
 
+/** How long animations take, as a multiple of Material's expressive timing. */
+enum class AnimationSpeed(
+    val durationScale: Float,
+) {
+    Standard(1f),
+    Relaxed(1.5f),
+    Slow(2f),
+    VerySlow(3f),
+}
+
 data class ThemeSettings(
     val darkMode: DarkMode = DarkMode.System,
     /** Wallpaper-based colors on Android 12+. */
@@ -15,4 +25,6 @@ data class ThemeSettings(
     /** True black backgrounds in dark mode (AMOLED). */
     val pureBlack: Boolean = false,
     val highContrast: Boolean = false,
+    /** Motion is calmer by default: the stock timing feels hurried to many people. */
+    val animationSpeed: AnimationSpeed = AnimationSpeed.Relaxed,
 )

@@ -7,6 +7,10 @@ package app.youtubely.feature.downloads
 import android.text.format.Formatter
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -76,6 +80,7 @@ import app.youtubely.core.model.StorageUsage
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.formatDuration
+import app.youtubely.core.ui.motionItem
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import java.io.File
@@ -155,7 +160,7 @@ fun DownloadsScreen(
                 ) {
                     if (waitingForWifi) {
                         item(key = "wifi") {
-                            WifiOnlyCard(onDownloadNow = viewModel::downloadNow, modifier = Modifier.animateItem())
+                            WifiOnlyCard(onDownloadNow = viewModel::downloadNow, modifier = motionItem())
                         }
                     }
                     storage?.let { usage -> item(key = "storage") { StorageCard(usage) } }
@@ -179,7 +184,7 @@ fun DownloadsScreen(
                             onResume = { viewModel.resume(download.id) },
                             onDelete = { delete(download) },
                             onOpenOnline = { onOpenOnline(download.videoId) },
-                            modifier = Modifier.animateItem(),
+                            modifier = motionItem(),
                         )
                     }
                 }
@@ -332,7 +337,12 @@ private fun DownloadRow(
                     )
                     val busy = download.state == DownloadState.Downloading || download.state == DownloadState.Merging
                     // The bar grows and shrinks with the row instead of popping in and out.
-                    AnimatedVisibility(visible = busy) {
+                    val motion = MaterialTheme.motionScheme
+                    AnimatedVisibility(
+                        visible = busy,
+                        enter = fadeIn(motion.defaultEffectsSpec()) + expandVertically(motion.defaultSpatialSpec()),
+                        exit = fadeOut(motion.fastEffectsSpec()) + shrinkVertically(motion.defaultSpatialSpec()),
+                    ) {
                         if (download.state == DownloadState.Merging) {
                             LinearWavyProgressIndicator(Modifier.fillMaxWidth())
                         } else {

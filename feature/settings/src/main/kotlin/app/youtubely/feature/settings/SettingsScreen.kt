@@ -53,6 +53,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.designsystem.theme.isDynamicColorSupported
+import app.youtubely.core.model.AnimationSpeed
 import app.youtubely.core.model.DarkMode
 import app.youtubely.core.model.PlaybackSettings
 import app.youtubely.core.ui.rememberNotificationPermissionRequest
@@ -96,6 +97,7 @@ fun SettingsScreen(
             header(R.string.settings_appearance)
             item { PalettePreview() }
             item { DarkModeSelector(theme.darkMode, viewModel::setDarkMode) }
+            item(key = "animation-speed") { AnimationSpeedRow(theme.animationSpeed, viewModel::setAnimationSpeed) }
             switches(
                 listOf(
                     SwitchRow(
@@ -443,5 +445,34 @@ private fun QualityLimitRow(
         index = index,
         count = 2,
         onChange = onChange,
+    )
+}
+
+/** How long animations take: stretches the whole app's motion. */
+@Composable
+private fun AnimationSpeedRow(
+    selected: AnimationSpeed,
+    onSelect: (AnimationSpeed) -> Unit,
+) {
+    val options =
+        AnimationSpeed.entries.map { speed ->
+            speed to
+                stringResource(
+                    when (speed) {
+                        AnimationSpeed.Standard -> R.string.settings_animation_standard
+                        AnimationSpeed.Relaxed -> R.string.settings_animation_relaxed
+                        AnimationSpeed.Slow -> R.string.settings_animation_slow
+                        AnimationSpeed.VerySlow -> R.string.settings_animation_very_slow
+                    },
+                )
+        }
+    ChoiceRow(
+        title = R.string.settings_animation_speed,
+        icon = YouTubelyIcons.Schedule,
+        options = options,
+        selected = selected,
+        index = 0,
+        count = 1,
+        onChange = onSelect,
     )
 }

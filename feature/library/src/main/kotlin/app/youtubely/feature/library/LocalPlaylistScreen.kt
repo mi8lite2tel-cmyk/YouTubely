@@ -47,6 +47,7 @@ import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.VideoRow
+import app.youtubely.core.ui.motionItem
 import app.youtubely.core.ui.videoFrameKey
 import kotlinx.coroutines.launch
 
@@ -132,7 +133,7 @@ fun LocalPlaylistScreen(
                                 val first = list.first().id
                                 onPlayAll(first, videoFrameKey(ORIGIN, first))
                             },
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp).animateItem(),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp).then(motionItem()),
                         ) {
                             Icon(painterResource(YouTubelyIcons.PlaylistPlay), contentDescription = null)
                             Text(stringResource(R.string.library_play_all), Modifier.padding(start = 8.dp))
@@ -154,7 +155,7 @@ fun LocalPlaylistScreen(
                                     if (result == SnackbarResult.ActionPerformed) viewModel.restore(item)
                                 }
                             },
-                            modifier = Modifier.animateItem(),
+                            modifier = motionItem(),
                         ) {
                             val key = videoFrameKey(ORIGIN, item.id)
                             VideoRow(

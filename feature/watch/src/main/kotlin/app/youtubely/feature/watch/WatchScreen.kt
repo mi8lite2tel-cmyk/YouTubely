@@ -94,6 +94,7 @@ import app.youtubely.core.ui.VideoRow
 import app.youtubely.core.ui.compactNumber
 import app.youtubely.core.ui.currentLocale
 import app.youtubely.core.ui.formatDuration
+import app.youtubely.core.ui.motionItem
 import app.youtubely.core.ui.sharedVideoFrame
 import app.youtubely.core.ui.videoFrameKey
 import app.youtubely.core.ui.viewCountText
@@ -388,7 +389,7 @@ private fun LazyListScope.queue(
             item = item,
             sharedKey = "queue-$index",
             onClick = { if (!playing) onPlay(index) },
-            modifier = Modifier.animateItem().padding(horizontal = 4.dp),
+            modifier = motionItem().padding(horizontal = 4.dp),
             containerColor =
                 if (playing) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
         )
@@ -413,7 +414,7 @@ private fun LazyListScope.related(
             item = item,
             sharedKey = key,
             onClick = { onOpenVideo(item.id, key) },
-            modifier = Modifier.animateItem(),
+            modifier = motionItem(),
         )
     }
 }

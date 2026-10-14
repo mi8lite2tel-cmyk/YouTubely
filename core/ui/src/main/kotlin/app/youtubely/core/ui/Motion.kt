@@ -5,6 +5,7 @@
 package app.youtubely.core.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -28,7 +29,10 @@ fun <T> StateTransition(
     AnimatedContent(
         targetState = targetState,
         modifier = modifier,
-        transitionSpec = { fadeIn(motion.defaultEffectsSpec()).togetherWith(fadeOut(motion.fastEffectsSpec())) },
+        transitionSpec = {
+            (fadeIn(motion.defaultEffectsSpec()) togetherWith fadeOut(motion.fastEffectsSpec()))
+                .using(SizeTransform(clip = false) { _, _ -> motion.defaultSpatialSpec() })
+        },
         label = label,
     ) { content(it) }
 }

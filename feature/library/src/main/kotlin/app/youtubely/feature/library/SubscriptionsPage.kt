@@ -43,6 +43,7 @@ import app.youtubely.core.model.ChannelId
 import app.youtubely.core.model.Subscription
 import app.youtubely.core.ui.ChannelListItem
 import app.youtubely.core.ui.LoadingState
+import app.youtubely.core.ui.motionItem
 import kotlinx.collections.immutable.ImmutableList
 
 /** Followed channels with their notification, automatic download and group settings. */
@@ -111,7 +112,7 @@ internal fun SubscriptionsPage(
                         onToggleAutoDownload = { onToggleAutoDownload(subscription) },
                         onEditGroup = { editing = subscription },
                         onUnsubscribe = { onUnsubscribe(subscription) },
-                        modifier = Modifier.animateItem(),
+                        modifier = motionItem(),
                     )
                 }
             }

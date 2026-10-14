@@ -87,4 +87,9 @@
     <string name="settings_sb_preview">Передісторія або анонс</string>
     <string name="settings_sb_filler">Порожня балаканина</string>
     <string name="settings_sb_music_offtopic">Частина без музики</string>
+    <string name="settings_animation_speed">Швидкість анімацій</string>
+    <string name="settings_animation_standard">Стандартна</string>
+    <string name="settings_animation_relaxed">Спокійна</string>
+    <string name="settings_animation_slow">Повільна</string>
+    <string name="settings_animation_very_slow">Дуже повільна</string>
 </resources>

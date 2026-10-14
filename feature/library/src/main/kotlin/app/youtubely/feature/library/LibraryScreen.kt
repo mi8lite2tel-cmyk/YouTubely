@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -67,6 +68,7 @@ import app.youtubely.core.model.VideoId
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.VideoRow
 import app.youtubely.core.ui.currentLocale
+import app.youtubely.core.ui.motionItem
 import app.youtubely.core.ui.rememberNotificationPermissionRequest
 import app.youtubely.core.ui.videoFrameKey
 import kotlinx.collections.immutable.ImmutableList
@@ -107,6 +109,7 @@ fun LibraryScreen(
     val historyEnabled by viewModel.historyEnabled.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val pager = rememberPagerState { LibraryTab.entries.size }
+    val motion = MaterialTheme.motionScheme
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     var confirmClear by rememberSaveable { mutableStateOf(false) }
@@ -158,7 +161,14 @@ fun LibraryScreen(
                 LibraryTab.entries.forEach { tab ->
                     Tab(
                         selected = pager.currentPage == tab.ordinal,
-                        onClick = { scope.launch { pager.animateScrollToPage(tab.ordinal) } },
+                        onClick = {
+                            scope.launch {
+                                pager.animateScrollToPage(
+                                    tab.ordinal,
+                                    animationSpec = motion.defaultSpatialSpec(),
+                                )
+                            }
+                        },
                         text = { Text(stringResource(tab.label)) },
                     )
                 }
@@ -168,6 +178,7 @@ fun LibraryScreen(
                 state = pager,
                 modifier = Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.Top,
+                flingBehavior = PagerDefaults.flingBehavior(pager, snapAnimationSpec = motion.defaultSpatialSpec()),
             ) { page ->
                 when (LibraryTab.entries[page]) {
                     LibraryTab.History -> {
@@ -343,11 +354,11 @@ private fun HistoryPage(
                     },
                     style = MaterialTheme.typography.titleSmallEmphasized,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp).animateItem(),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp).then(motionItem()),
                 )
             }
             items(dayEntries, key = { it.item.id.value }) { entry ->
-                SwipeToRemove(onRemove = { onRemove(entry) }, modifier = Modifier.animateItem()) {
+                SwipeToRemove(onRemove = { onRemove(entry) }, modifier = motionItem()) {
                     val key = videoFrameKey(ORIGIN, entry.item.id)
                     VideoRow(
                         item = entry.item,

@@ -76,6 +76,7 @@ import app.youtubely.core.model.bestFor
 import app.youtubely.core.ui.ErrorState
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.VideoCard
+import app.youtubely.core.ui.motionItem
 import app.youtubely.core.ui.sharedVideoFrame
 import app.youtubely.core.ui.videoFrameKey
 import app.youtubely.core.ui.videoMetadataText
@@ -254,11 +255,11 @@ private fun ForYouTab(
                             stringResource(R.string.home_for_you_note),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp).animateItem(),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp).then(motionItem()),
                         )
                     }
                     items(state.items, key = { "$FOR_YOU_ORIGIN-${it.item.id.value}" }) { recommendation ->
-                        Column(Modifier.animateItem()) {
+                        Column(motionItem()) {
                             Text(
                                 reasonText(recommendation.reason),
                                 style = MaterialTheme.typography.labelMedium,
@@ -343,7 +344,7 @@ private fun SubscriptionsTab(
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp),
-                        modifier = Modifier.animateItem(),
+                        modifier = motionItem(),
                     ) {
                         item(key = "all") {
                             ExpressiveFilterChip(
@@ -373,7 +374,7 @@ private fun SubscriptionsTab(
                     item = item,
                     sharedKey = videoFrameKey(FEED_ORIGIN, item.id),
                     onClick = { onOpenVideo(item.id, videoFrameKey(FEED_ORIGIN, item.id)) },
-                    modifier = Modifier.animateItem(),
+                    modifier = motionItem(),
                 )
             }
         }
@@ -405,7 +406,7 @@ private fun ExploreTab(
                 VideoGrid(bottomPadding) {
                     if (items.size > HERO_COUNT) {
                         item(key = "hero-$kind", span = { GridItemSpan(maxLineSpan) }) {
-                            HeroCarousel(items.take(HERO_COUNT), onOpenVideo, Modifier.animateItem())
+                            HeroCarousel(items.take(HERO_COUNT), onOpenVideo, motionItem())
                         }
                     }
                     val rest = if (items.size > HERO_COUNT) items.drop(HERO_COUNT) else items
@@ -414,7 +415,7 @@ private fun ExploreTab(
                             item = item,
                             sharedKey = videoFrameKey(LIST_ORIGIN, item.id),
                             onClick = { onOpenVideo(item.id, videoFrameKey(LIST_ORIGIN, item.id)) },
-                            modifier = Modifier.animateItem(),
+                            modifier = motionItem(),
                         )
                     }
                 }

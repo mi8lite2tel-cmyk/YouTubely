@@ -9,6 +9,8 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -335,7 +337,11 @@ private fun ScanSheet(
                         modifier = Modifier.fillMaxWidth().height(CAMERA_HEIGHT),
                     )
                 }
-                AnimatedVisibility(visible = expected > 0) {
+                val motion = MaterialTheme.motionScheme
+                AnimatedVisibility(
+                    visible = expected > 0,
+                    enter = fadeIn(motion.defaultEffectsSpec()) + expandVertically(motion.defaultSpatialSpec()),
+                ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             stringResource(R.string.transfer_scan_progress, received, expected),
