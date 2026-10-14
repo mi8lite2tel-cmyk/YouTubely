@@ -118,7 +118,12 @@ fun WatchScreen(
     val downloads by viewModel.downloads.collectAsStateWithLifecycle()
     val queue by viewModel.queue.collectAsStateWithLifecycle()
     val subscribed by viewModel.isSubscribed.collectAsStateWithLifecycle()
+    val sponsorSegments by viewModel.sponsorSegments.collectAsStateWithLifecycle()
+    val skipNotice by viewModel.skipNotice.collectAsStateWithLifecycle()
+    val sleepTimer by viewModel.sleepTimer.collectAsStateWithLifecycle()
+    val abLoop by viewModel.abLoop.collectAsStateWithLifecycle()
     val player = viewModel.player
+    val context = LocalContext.current
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val activity = LocalActivity.current
@@ -177,6 +182,14 @@ fun WatchScreen(
             audioOnly = settings.audioOnly,
             onToggleAudioOnly = { viewModel.setAudioOnly(!settings.audioOnly) },
             artworkUrl = artworkUrl,
+            extras =
+                PlayerExtras(
+                    chapters = content?.info?.chapters.orEmpty(),
+                    segments = sponsorSegments,
+                    skipNotice = skipNotice,
+                    onUndoSkip = viewModel::undoSkip,
+                    settings = settings,
+                ),
         )
     }
     val body = @Composable { includeRelated: Boolean ->
@@ -216,6 +229,10 @@ fun WatchScreen(
             player = player,
             pinnedHeight = viewModel.pinnedQuality,
             networkLimit = rememberNetworkLimit(settings),
+            settings = settings,
+            sleepTimer = sleepTimer,
+            abLoop = abLoop,
+            actions = remember(viewModel) { viewModel.playbackManager.sheetActions(context) },
             onQuality = viewModel::setQuality,
             onDismiss = { showSettings = false },
         )

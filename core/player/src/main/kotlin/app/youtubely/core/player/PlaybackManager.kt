@@ -174,6 +174,11 @@ class PlaybackManager
             connectSession()
         }
 
+        /** Applies one change to the stored playback settings; the player follows through the settings flow. */
+        fun updateSettings(change: suspend PlaybackSettingsRepository.() -> Unit) {
+            scope.launch { settingsRepository.change() }
+        }
+
         /** Sound only, without downloading the picture. Kept for the next videos too. */
         fun setAudioOnly(enabled: Boolean) {
             _settings.value = _settings.value.copy(audioOnly = enabled)

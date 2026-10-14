@@ -43,8 +43,12 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
+import app.youtubely.core.model.PlaybackSettings
+import app.youtubely.core.player.AbLoop
 import app.youtubely.core.player.QualityOption
+import app.youtubely.core.player.SleepTimer
 import app.youtubely.core.player.qualityOptions
+import app.youtubely.core.player.subtitleOptions
 import app.youtubely.core.ui.currentLocale
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -63,10 +67,15 @@ internal fun PlayerSettingsSheet(
     player: Player,
     pinnedHeight: Int?,
     networkLimit: Int?,
+    settings: PlaybackSettings,
+    sleepTimer: SleepTimer,
+    abLoop: AbLoop,
+    actions: PlayerSheetActions,
     onQuality: (Int?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val options = remember(player) { player.qualityOptions() }
+    val subtitles = remember(player) { player.subtitleOptions() }
     var selected by remember { mutableStateOf(pinnedHeight) }
     var speed by remember { mutableFloatStateOf(player.playbackParameters.speed) }
     var repeat by remember { mutableIntStateOf(player.repeatMode) }
@@ -128,6 +137,43 @@ internal fun PlayerSettingsSheet(
                 trailingContent = { Switch(checked = repeat == Player.REPEAT_MODE_ONE, onCheckedChange = null) },
                 colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             ) { Text(stringResource(R.string.watch_repeat)) }
+
+            SectionTitle(stringResource(R.string.watch_loop))
+            LoopSection(abLoop, actions)
+
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            SectionTitle(stringResource(R.string.watch_sleep))
+            SleepTimerSection(sleepTimer, actions)
+
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            SectionTitle(stringResource(R.string.watch_audio))
+            ToggleRow(
+                R.string.watch_skip_silence,
+                YouTubelyIcons.FastForward,
+                settings.skipSilence,
+                actions.onSkipSilence,
+            )
+            ToggleRow(
+                R.string.watch_normalize,
+                YouTubelyIcons.Volume,
+                settings.normalizeVolume,
+                actions.onNormalizeVolume,
+                R.string.watch_normalize_summary,
+            )
+            ToggleRow(R.string.watch_autoplay, YouTubelyIcons.SkipNext, settings.autoplayNext, actions.onAutoplay)
+            actions.onEqualizer?.let { open ->
+                ListItem(
+                    onClick = open,
+                    leadingContent = { Icon(painterResource(YouTubelyIcons.Tune), contentDescription = null) },
+                    colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                ) { Text(stringResource(R.string.watch_equalizer)) }
+            }
+
+            if (subtitles.isNotEmpty()) {
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                SectionTitle(stringResource(R.string.watch_subtitles))
+                SubtitleSection(subtitles, settings.subtitlesEnabled, actions)
+            }
 
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
             SectionTitle(stringResource(R.string.watch_quality))
