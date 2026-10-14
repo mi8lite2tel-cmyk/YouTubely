@@ -33,5 +33,9 @@ object DataStoreModule {
 
     @Provides
     @Singleton
+    fun provideSyncSettings(store: DataStore<Preferences>) = SyncSettingsRepository(store)
+
+    @Provides
+    @Singleton
     fun provideAppPreferences(store: DataStore<Preferences>) = AppPreferences(store)
 }
