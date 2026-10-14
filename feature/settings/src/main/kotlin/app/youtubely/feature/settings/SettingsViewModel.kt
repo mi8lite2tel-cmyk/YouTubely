@@ -4,6 +4,7 @@ package app.youtubely.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.youtubely.core.data.TrafficMeter
 import app.youtubely.core.datastore.PlaybackSettingsRepository
 import app.youtubely.core.datastore.SponsorBlockSettingsRepository
 import app.youtubely.core.datastore.SyncSettingsRepository
@@ -14,6 +15,7 @@ import app.youtubely.core.model.PlaybackSettings
 import app.youtubely.core.model.SponsorBlockSettings
 import app.youtubely.core.model.SyncSettings
 import app.youtubely.core.model.ThemeSettings
+import app.youtubely.core.model.TrafficSummary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +31,7 @@ class SettingsViewModel
         private val playback: PlaybackSettingsRepository,
         private val sync: SyncSettingsRepository,
         private val sponsorBlock: SponsorBlockSettingsRepository,
+        private val trafficMeter: TrafficMeter,
     ) : ViewModel() {
         private val sharing = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS)
 
@@ -47,6 +50,11 @@ class SettingsViewModel
 
         /** Applies one change to the SponsorBlock settings. */
         fun sponsorBlock(change: suspend SponsorBlockSettingsRepository.() -> Unit) = launch { sponsorBlock.change() }
+
+        /** What the app used this month and over the last days. */
+        val traffic: StateFlow<TrafficSummary> = trafficMeter.summary.stateIn(viewModelScope, sharing, TrafficSummary())
+
+        fun resetTraffic() = launch { trafficMeter.reset() }
 
         fun setDarkMode(mode: DarkMode) = launch { theme.setDarkMode(mode) }
 

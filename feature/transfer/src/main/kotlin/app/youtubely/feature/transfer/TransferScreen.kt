@@ -70,6 +70,7 @@ import app.youtubely.core.data.TransferBundle
 import app.youtubely.core.data.TransferScope
 import app.youtubely.core.designsystem.component.ExpressiveFilterChip
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
+import app.youtubely.core.ui.groupedListItemColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -245,6 +246,7 @@ private fun ActionRow(
     SegmentedListItem(
         onClick = onClick,
         shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
+        colors = groupedListItemColors(),
         leadingContent = { Icon(painterResource(icon), contentDescription = null) },
         supportingContent = { Text(stringResource(summary)) },
     ) { Text(stringResource(title)) }

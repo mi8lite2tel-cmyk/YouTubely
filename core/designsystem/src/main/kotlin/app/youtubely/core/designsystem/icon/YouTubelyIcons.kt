@@ -93,4 +93,11 @@ object YouTubelyIcons {
     val Bookmark = R.drawable.ic_bookmark
     val BookmarkAdd = R.drawable.ic_bookmark_add
     val FolderOpen = R.drawable.ic_folder_open
+    val ChevronRight = R.drawable.ic_chevron_right
+    val DataUsage = R.drawable.ic_data_usage
+    val Speed = R.drawable.ic_speed
+    val Shield = R.drawable.ic_shield
+    val Subtitles = R.drawable.ic_subtitles
+    val Remove = R.drawable.ic_remove
+    val Savings = R.drawable.ic_savings
 }

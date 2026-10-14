@@ -5,12 +5,21 @@
 package app.youtubely.feature.settings
 
 import android.content.Intent
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -18,11 +27,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.ButtonGroupDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialShapes
@@ -30,15 +38,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,9 +64,39 @@ import app.youtubely.core.designsystem.theme.isDynamicColorSupported
 import app.youtubely.core.model.AnimationSpeed
 import app.youtubely.core.model.DarkMode
 import app.youtubely.core.model.PlaybackSettings
+import app.youtubely.core.ui.groupedListItemColors
 import app.youtubely.core.ui.rememberNotificationPermissionRequest
 
 private const val SOURCE_URL = "https://github.com/mi8lite2tel-cmyk/YouTubely"
+
+/** The sub-pages of the settings; the main page lists them in groups. */
+internal enum class SettingsPage(
+    val title: Int,
+    val summary: Int,
+    val icon: Int,
+) {
+    Appearance(R.string.settings_appearance, R.string.settings_cat_appearance, YouTubelyIcons.Palette),
+    Playback(R.string.settings_playback, R.string.settings_cat_playback, YouTubelyIcons.Play),
+    Quality(R.string.settings_quality, R.string.settings_cat_quality, YouTubelyIcons.DataUsage),
+    Subtitles(R.string.settings_subtitles, R.string.settings_cat_subtitles, YouTubelyIcons.Subtitles),
+    SponsorBlock(R.string.settings_sponsorblock, R.string.settings_cat_sponsorblock, YouTubelyIcons.FastForward),
+    Downloads(R.string.settings_downloads, R.string.settings_cat_downloads, YouTubelyIcons.Download),
+    Subscriptions(
+        R.string.settings_subscriptions,
+        R.string.settings_cat_subscriptions,
+        YouTubelyIcons.Subscriptions.outlined,
+    ),
+    Privacy(R.string.settings_privacy, R.string.settings_cat_privacy, YouTubelyIcons.Shield),
+    About(R.string.settings_about, R.string.settings_cat_about, YouTubelyIcons.Info),
+}
+
+private val PAGE_GROUPS =
+    listOf(
+        listOf(SettingsPage.Appearance),
+        listOf(SettingsPage.Playback, SettingsPage.Quality, SettingsPage.Subtitles, SettingsPage.SponsorBlock),
+        listOf(SettingsPage.Downloads, SettingsPage.Subscriptions),
+        listOf(SettingsPage.Privacy, SettingsPage.About),
+    )
 
 @Composable
 fun SettingsScreen(
@@ -67,252 +105,309 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
-    val theme by viewModel.themeSettings.collectAsStateWithLifecycle()
-    val playback by viewModel.playbackSettings.collectAsStateWithLifecycle()
-    val sync by viewModel.syncSettings.collectAsStateWithLifecycle()
-    val sponsor by viewModel.sponsorBlockSettings.collectAsStateWithLifecycle()
-    val askNotificationPermission = rememberNotificationPermissionRequest()
+    var page by rememberSaveable { mutableStateOf<SettingsPage?>(null) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val context = LocalContext.current
+    val motion = MaterialTheme.motionScheme
+    BackHandler(enabled = page != null) { page = null }
+    // Every page starts with the large title expanded.
+    LaunchedEffect(page) {
+        scrollBehavior.state.heightOffset = 0f
+        scrollBehavior.state.contentOffset = 0f
+    }
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeFlexibleTopAppBar(
-                title = { Text(stringResource(R.string.settings_title)) },
+                title = { Text(stringResource(page?.title ?: R.string.settings_title)) },
+                navigationIcon = {
+                    if (page != null) {
+                        IconButton(onClick = { page = null }) {
+                            Icon(painterResource(YouTubelyIcons.ArrowBack), stringResource(R.string.settings_back))
+                        }
+                    }
+                },
                 scrollBehavior = scrollBehavior,
             )
         },
     ) { padding ->
-        LazyColumn(
-            contentPadding =
-                PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = padding.calculateTopPadding(),
-                    bottom = padding.calculateBottomPadding() + 24.dp,
-                ),
-            verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
-        ) {
-            header(R.string.settings_appearance)
-            item { PalettePreview() }
-            item { DarkModeSelector(theme.darkMode, viewModel::setDarkMode) }
-            item(key = "animation-speed") { AnimationSpeedRow(theme.animationSpeed, viewModel::setAnimationSpeed) }
-            switches(
-                listOf(
-                    SwitchRow(
-                        title = R.string.settings_dynamic_color,
-                        summary =
-                            if (isDynamicColorSupported) {
-                                R.string.settings_dynamic_color_summary
-                            } else {
-                                R.string.settings_dynamic_color_unsupported
-                            },
-                        icon = YouTubelyIcons.Palette,
-                        checked = theme.dynamicColor && isDynamicColorSupported,
-                        enabled = isDynamicColorSupported,
-                        onChange = viewModel::setDynamicColor,
-                    ),
-                    SwitchRow(
-                        title = R.string.settings_pure_black,
-                        summary = R.string.settings_pure_black_summary,
-                        icon = YouTubelyIcons.DarkMode,
-                        checked = theme.pureBlack,
-                        enabled = true,
-                        onChange = viewModel::setPureBlack,
-                    ),
-                    SwitchRow(
-                        title = R.string.settings_high_contrast,
-                        summary = R.string.settings_high_contrast_summary,
-                        icon = YouTubelyIcons.Contrast,
-                        checked = theme.highContrast,
-                        enabled = !(theme.dynamicColor && isDynamicColorSupported),
-                        onChange = viewModel::setHighContrast,
-                    ),
-                ),
-            )
-
-            header(R.string.settings_playback)
-            switches(
-                listOf(
-                    SwitchRow(
-                        title = R.string.settings_background,
-                        summary = R.string.settings_background_summary,
-                        icon = YouTubelyIcons.Music,
-                        checked = playback.backgroundPlayback,
-                        enabled = true,
-                        onChange = { viewModel.playback { setBackgroundPlayback(it) } },
-                    ),
-                    SwitchRow(
-                        title = R.string.settings_pip,
-                        summary = R.string.settings_pip_summary,
-                        icon = YouTubelyIcons.Video,
-                        checked = playback.pictureInPicture,
-                        enabled = true,
-                        onChange = { viewModel.playback { setPictureInPicture(it) } },
-                    ),
-                    SwitchRow(
-                        title = R.string.settings_audio_only,
-                        summary = R.string.settings_audio_only_summary,
-                        icon = YouTubelyIcons.Headphones,
-                        checked = playback.audioOnly,
-                        enabled = true,
-                        onChange = { viewModel.playback { setAudioOnly(it) } },
-                    ),
-                    SwitchRow(
-                        title = R.string.settings_resume,
-                        summary = R.string.settings_resume_summary,
-                        icon = YouTubelyIcons.History,
-                        checked = playback.resumePlayback,
-                        enabled = true,
-                        onChange = { viewModel.playback { setResumePlayback(it) } },
-                    ),
-                    SwitchRow(
-                        title = R.string.settings_skip_silence,
-                        summary = R.string.settings_skip_silence_summary,
-                        icon = YouTubelyIcons.FastForward,
-                        checked = playback.skipSilence,
-                        enabled = true,
-                        onChange = { viewModel.playback { setSkipSilence(it) } },
-                    ),
-                    SwitchRow(
-                        title = R.string.settings_normalize,
-                        summary = R.string.settings_normalize_summary,
-                        icon = YouTubelyIcons.Volume,
-                        checked = playback.normalizeVolume,
-                        enabled = true,
-                        onChange = { viewModel.playback { setNormalizeVolume(it) } },
-                    ),
-                    SwitchRow(
-                        title = R.string.settings_autoplay,
-                        summary = R.string.settings_autoplay_summary,
-                        icon = YouTubelyIcons.SkipNext,
-                        checked = playback.autoplayNext,
-                        enabled = true,
-                        onChange = { viewModel.playback { setAutoplayNext(it) } },
-                    ),
-                ),
-            )
-            header(R.string.settings_subtitles)
-            item(key = "subtitles") { SubtitleSettings(playback) { viewModel.playback(it) } }
-            header(R.string.settings_sponsorblock)
-            item(key = "sponsorblock") { SponsorBlockSettingsSection(sponsor, viewModel::sponsorBlock) }
-            item(key = "seek-step") {
-                SeekStepSelector(playback.seekStepSeconds) { viewModel.playback { setSeekStepSeconds(it) } }
-            }
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
-                    QualityLimitRow(
-                        title = R.string.settings_max_quality_wifi,
-                        value = playback.maxHeightUnmetered,
-                        index = 0,
-                        onChange = { viewModel.playback { setMaxHeightUnmetered(it) } },
+        AnimatedContent(
+            targetState = page,
+            transitionSpec = {
+                val forward = targetState != null
+                val direction = if (forward) 1 else -1
+                val enter = slideInHorizontally(motion.defaultSpatialSpec()) { direction * it / SLIDE_FRACTION }
+                (enter + fadeIn(motion.defaultEffectsSpec()))
+                    .togetherWith(
+                        slideOutHorizontally(motion.defaultSpatialSpec()) { -direction * it / SLIDE_FRACTION } +
+                            fadeOut(motion.fastEffectsSpec()),
                     )
-                    QualityLimitRow(
-                        title = R.string.settings_max_quality_mobile,
-                        value = playback.maxHeightMetered,
-                        index = 1,
-                        onChange = { viewModel.playback { setMaxHeightMetered(it) } },
-                    )
+            },
+            label = "settings-page",
+            modifier = Modifier.fillMaxSize(),
+        ) { current ->
+            LazyColumn(
+                contentPadding =
+                    PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = padding.calculateTopPadding(),
+                        bottom = padding.calculateBottomPadding() + 24.dp,
+                    ),
+                verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                if (current == null) {
+                    mainPage(onOpen = { page = it })
+                } else {
+                    item(key = current.name) {
+                        SettingsPageContent(current, viewModel, versionName, onOpenTransfer)
+                    }
                 }
             }
+        }
+    }
+}
 
-            header(R.string.settings_privacy)
-            switches(
-                listOf(
-                    SwitchRow(
+private const val SLIDE_FRACTION = 4
+
+internal fun LazyListScope.mainPage(onOpen: (SettingsPage) -> Unit) {
+    PAGE_GROUPS.forEachIndexed { groupIndex, group ->
+        if (groupIndex > 0) item(key = "gap-$groupIndex") { Box(Modifier.height(12.dp)) }
+        group.forEachIndexed { index, page ->
+            item(key = page.name) {
+                CategoryRow(
+                    title = page.title,
+                    summary = page.summary,
+                    icon = page.icon,
+                    position = RowPosition(index, group.size),
+                ) { onOpen(page) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsPageContent(
+    page: SettingsPage,
+    viewModel: SettingsViewModel,
+    versionName: String,
+    onOpenTransfer: () -> Unit,
+) {
+    val playback by viewModel.playbackSettings.collectAsStateWithLifecycle()
+    Column {
+        when (page) {
+            SettingsPage.Appearance -> {
+                AppearancePage(viewModel)
+            }
+
+            SettingsPage.Playback -> {
+                PlaybackPage(playback, viewModel)
+            }
+
+            SettingsPage.Quality -> {
+                val traffic by viewModel.traffic.collectAsStateWithLifecycle()
+                QualitySettings(playback, viewModel::playback)
+                SectionHeader(R.string.settings_traffic)
+                TrafficSettings(traffic, playback, viewModel::playback, viewModel::resetTraffic)
+            }
+
+            SettingsPage.Subtitles -> {
+                SubtitleSettings(playback, viewModel::playback)
+            }
+
+            SettingsPage.SponsorBlock -> {
+                val sponsor by viewModel.sponsorBlockSettings.collectAsStateWithLifecycle()
+                SponsorBlockSettingsSection(sponsor, viewModel::sponsorBlock)
+            }
+
+            SettingsPage.Downloads -> {
+                DownloadsPage(playback, viewModel)
+            }
+
+            SettingsPage.Subscriptions -> {
+                SubscriptionsPage(viewModel, onOpenTransfer)
+            }
+
+            SettingsPage.Privacy -> {
+                SettingsGroup {
+                    SwitchItem(
                         title = R.string.settings_history,
                         summary = R.string.settings_history_summary,
                         icon = YouTubelyIcons.History,
                         checked = playback.historyEnabled,
-                        enabled = true,
-                        onChange = { viewModel.playback { setHistoryEnabled(it) } },
-                    ),
-                ),
-            )
-
-            header(R.string.settings_downloads)
-            switches(
-                listOf(
-                    SwitchRow(
-                        title = R.string.settings_download_wifi_only,
-                        summary = R.string.settings_download_wifi_only_summary,
-                        icon = YouTubelyIcons.Wifi,
-                        checked = playback.downloadOnWifiOnly,
-                        enabled = true,
-                        onChange = { viewModel.playback { setDownloadOnWifiOnly(it) } },
-                    ),
-                ),
-            )
-
-            header(R.string.settings_subscriptions)
-            item(key = "refresh") { RefreshSettings(sync, viewModel::sync, askNotificationPermission) }
-            header(R.string.settings_auto_download)
-            item(key = "auto-download") { AutoDownloadSettings(sync, viewModel::sync) }
-            item(key = "transfer") {
-                SegmentedListItem(
-                    onClick = onOpenTransfer,
-                    shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
-                    leadingContent = { Icon(painterResource(YouTubelyIcons.QrCode), contentDescription = null) },
-                    supportingContent = { Text(stringResource(R.string.settings_transfer_summary)) },
-                ) { Text(stringResource(R.string.settings_transfer)) }
+                        position = RowPosition(0, 1),
+                    ) { viewModel.playback { setHistoryEnabled(it) } }
+                }
             }
 
-            header(R.string.settings_about)
-            item {
-                SegmentedListItem(
-                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, SOURCE_URL.toUri())) },
-                    shapes = ListItemDefaults.segmentedShapes(index = 0, count = 2),
-                    leadingContent = { Icon(painterResource(YouTubelyIcons.Info), contentDescription = null) },
-                    supportingContent = { Text(stringResource(R.string.settings_version, versionName)) },
-                ) { Text(stringResource(R.string.settings_source)) }
-            }
-            item {
-                SegmentedListItem(
-                    onClick = {},
-                    enabled = false,
-                    shapes = ListItemDefaults.segmentedShapes(index = 1, count = 2),
-                    leadingContent = { Icon(painterResource(YouTubelyIcons.Language), contentDescription = null) },
-                    supportingContent = { Text(stringResource(R.string.settings_license_summary)) },
-                ) { Text(stringResource(R.string.settings_license)) }
+            SettingsPage.About -> {
+                AboutPage(versionName)
             }
         }
     }
 }
 
-private fun LazyListScope.header(title: Int) {
-    item(key = "header-$title") {
-        Text(
-            stringResource(title),
-            style = MaterialTheme.typography.titleSmallEmphasized,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp),
+@Composable
+private fun AppearancePage(viewModel: SettingsViewModel) {
+    val theme by viewModel.themeSettings.collectAsStateWithLifecycle()
+    val dynamicAvailable = isDynamicColorSupported
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        PalettePreview()
+        DarkModeSelector(theme.darkMode, viewModel::setDarkMode)
+    }
+    Spacer(Modifier.height(16.dp))
+    SettingsGroup {
+        SwitchItem(
+            title = R.string.settings_dynamic_color,
+            summary =
+                if (dynamicAvailable) {
+                    R.string.settings_dynamic_color_summary
+                } else {
+                    R.string.settings_dynamic_color_unsupported
+                },
+            icon = YouTubelyIcons.Palette,
+            checked = theme.dynamicColor && dynamicAvailable,
+            enabled = dynamicAvailable,
+            position = RowPosition(0, APPEARANCE_ROWS),
+            onChange = viewModel::setDynamicColor,
+        )
+        SwitchItem(
+            title = R.string.settings_pure_black,
+            summary = R.string.settings_pure_black_summary,
+            icon = YouTubelyIcons.DarkMode,
+            checked = theme.pureBlack,
+            position = RowPosition(1, APPEARANCE_ROWS),
+            onChange = viewModel::setPureBlack,
+        )
+        SwitchItem(
+            title = R.string.settings_high_contrast,
+            summary = R.string.settings_high_contrast_summary,
+            icon = YouTubelyIcons.Contrast,
+            checked = theme.highContrast,
+            enabled = !(theme.dynamicColor && dynamicAvailable),
+            position = RowPosition(2, APPEARANCE_ROWS),
+            onChange = viewModel::setHighContrast,
         )
     }
+    SectionHeader(R.string.settings_animation_speed)
+    AnimationSpeedRow(theme.animationSpeed, viewModel::setAnimationSpeed)
 }
 
-private class SwitchRow(
-    val title: Int,
-    val summary: Int,
-    val icon: Int,
-    val checked: Boolean,
-    val enabled: Boolean,
-    val onChange: (Boolean) -> Unit,
-)
+private const val APPEARANCE_ROWS = 3
+private const val PLAYBACK_ROWS = 7
 
-private fun LazyListScope.switches(rows: List<SwitchRow>) {
-    rows.forEachIndexed { index, row ->
-        item(key = "switch-${row.title}") {
-            SegmentedListItem(
-                checked = row.checked,
-                onCheckedChange = row.onChange,
-                enabled = row.enabled,
-                shapes = ListItemDefaults.segmentedShapes(index = index, count = rows.size),
-                leadingContent = { Icon(painterResource(row.icon), contentDescription = null) },
-                trailingContent = { Switch(checked = row.checked, onCheckedChange = null, enabled = row.enabled) },
-                supportingContent = { Text(stringResource(row.summary)) },
-            ) { Text(stringResource(row.title)) }
+@Composable
+private fun PlaybackPage(
+    playback: PlaybackSettings,
+    viewModel: SettingsViewModel,
+) {
+    val rows =
+        listOf(
+            Triple(R.string.settings_background, R.string.settings_background_summary, YouTubelyIcons.Music) to
+                (playback.backgroundPlayback to { on: Boolean -> viewModel.playback { setBackgroundPlayback(on) } }),
+            Triple(R.string.settings_pip, R.string.settings_pip_summary, YouTubelyIcons.Video) to
+                (playback.pictureInPicture to { on: Boolean -> viewModel.playback { setPictureInPicture(on) } }),
+            Triple(R.string.settings_audio_only, R.string.settings_audio_only_summary, YouTubelyIcons.Headphones) to
+                (playback.audioOnly to { on: Boolean -> viewModel.playback { setAudioOnly(on) } }),
+            Triple(R.string.settings_resume, R.string.settings_resume_summary, YouTubelyIcons.History) to
+                (playback.resumePlayback to { on: Boolean -> viewModel.playback { setResumePlayback(on) } }),
+            Triple(
+                R.string.settings_skip_silence,
+                R.string.settings_skip_silence_summary,
+                YouTubelyIcons.FastForward,
+            ) to
+                (playback.skipSilence to { on: Boolean -> viewModel.playback { setSkipSilence(on) } }),
+            Triple(R.string.settings_normalize, R.string.settings_normalize_summary, YouTubelyIcons.Volume) to
+                (playback.normalizeVolume to { on: Boolean -> viewModel.playback { setNormalizeVolume(on) } }),
+            Triple(R.string.settings_autoplay, R.string.settings_autoplay_summary, YouTubelyIcons.SkipNext) to
+                (playback.autoplayNext to { on: Boolean -> viewModel.playback { setAutoplayNext(on) } }),
+        )
+    SettingsGroup {
+        rows.forEachIndexed { index, (text, state) ->
+            SwitchItem(
+                title = text.first,
+                summary = text.second,
+                icon = text.third,
+                checked = state.first,
+                position = RowPosition(index, PLAYBACK_ROWS),
+                onChange = state.second,
+            )
         }
+    }
+    Spacer(Modifier.height(16.dp))
+    SeekStepSelector(playback.seekStepSeconds) { viewModel.playback { setSeekStepSeconds(it) } }
+}
+
+@Composable
+private fun DownloadsPage(
+    playback: PlaybackSettings,
+    viewModel: SettingsViewModel,
+) {
+    SettingsGroup {
+        SwitchItem(
+            title = R.string.settings_download_wifi_only,
+            summary = R.string.settings_download_wifi_only_summary,
+            icon = YouTubelyIcons.Wifi,
+            checked = playback.downloadOnWifiOnly,
+            position = RowPosition(0, 2),
+        ) { viewModel.playback { setDownloadOnWifiOnly(it) } }
+        ChoiceRow(
+            title = R.string.settings_download_connections,
+            icon = YouTubelyIcons.Speed,
+            options = PlaybackSettings.CONNECTION_CHOICES.map { it to it.toString() },
+            selected = playback.downloadConnections,
+            position = RowPosition(1, 2),
+        ) { viewModel.playback { setDownloadConnections(it) } }
+    }
+    Text(
+        stringResource(R.string.settings_download_connections_summary),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    )
+}
+
+@Composable
+private fun SubscriptionsPage(
+    viewModel: SettingsViewModel,
+    onOpenTransfer: () -> Unit,
+) {
+    val sync by viewModel.syncSettings.collectAsStateWithLifecycle()
+    val askNotificationPermission = rememberNotificationPermissionRequest()
+    RefreshSettings(sync, viewModel::sync, askNotificationPermission)
+    SectionHeader(R.string.settings_auto_download)
+    AutoDownloadSettings(sync, viewModel::sync)
+    SectionHeader(R.string.settings_transfer)
+    SegmentedListItem(
+        onClick = onOpenTransfer,
+        shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+        colors = groupedListItemColors(),
+        leadingContent = { Icon(painterResource(YouTubelyIcons.QrCode), contentDescription = null) },
+        trailingContent = { Icon(painterResource(YouTubelyIcons.ChevronRight), contentDescription = null) },
+        supportingContent = { Text(stringResource(R.string.settings_transfer_summary)) },
+    ) { Text(stringResource(R.string.settings_transfer)) }
+}
+
+@Composable
+private fun AboutPage(versionName: String) {
+    val context = LocalContext.current
+    SettingsGroup {
+        SegmentedListItem(
+            onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, SOURCE_URL.toUri())) },
+            shapes = ListItemDefaults.segmentedShapes(index = 0, count = 2),
+            colors = groupedListItemColors(),
+            leadingContent = { Icon(painterResource(YouTubelyIcons.Info), contentDescription = null) },
+            supportingContent = { Text(stringResource(R.string.settings_version, versionName)) },
+        ) { Text(stringResource(R.string.settings_source)) }
+        SegmentedListItem(
+            onClick = {},
+            enabled = false,
+            shapes = ListItemDefaults.segmentedShapes(index = 1, count = 2),
+            colors = groupedListItemColors(),
+            leadingContent = { Icon(painterResource(YouTubelyIcons.Language), contentDescription = null) },
+            supportingContent = { Text(stringResource(R.string.settings_license_summary)) },
+        ) { Text(stringResource(R.string.settings_license)) }
     }
 }
 
@@ -424,30 +519,6 @@ private fun PalettePreview() {
     }
 }
 
-@Composable
-private fun QualityLimitRow(
-    title: Int,
-    value: Int?,
-    index: Int,
-    onChange: (Int?) -> Unit,
-) {
-    val noLimit = stringResource(R.string.settings_quality_no_limit)
-    val options =
-        (listOf<Int?>(null) + PlaybackSettings.HEIGHT_CHOICES).map {
-            it to
-                (it?.let { h -> "${h}p" } ?: noLimit)
-        }
-    ChoiceRow(
-        title = title,
-        icon = YouTubelyIcons.Tune,
-        options = options,
-        selected = value,
-        index = index,
-        count = 2,
-        onChange = onChange,
-    )
-}
-
 /** How long animations take: stretches the whole app's motion. */
 @Composable
 private fun AnimationSpeedRow(
@@ -471,8 +542,7 @@ private fun AnimationSpeedRow(
         icon = YouTubelyIcons.Schedule,
         options = options,
         selected = selected,
-        index = 0,
-        count = 1,
+        position = RowPosition(0, 1),
         onChange = onSelect,
     )
 }
