@@ -81,4 +81,13 @@
     <string name="stats_back">Back</string>
     <string name="stats_hours_minutes">%1$d h %2$d min</string>
     <string name="stats_minutes">%d min</string>
+    <string name="library_search">Search the library</string>
+    <string name="library_search_hint">History, watch later, downloads, playlists</string>
+    <string name="library_search_nothing">Nothing found in your library</string>
+    <string name="library_search_downloads">Downloaded</string>
+    <string name="library_search_playlists">Playlists</string>
+    <string name="library_search_history">History</string>
+    <string name="library_search_later">Watch later</string>
+    <string name="library_search_clear">Clear</string>
+    <string name="library_playlist_count">%d videos</string>
 </resources>

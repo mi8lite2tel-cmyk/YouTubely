@@ -81,4 +81,13 @@
     <string name="stats_back">Назад</string>
     <string name="stats_hours_minutes">%1$d год %2$d хв</string>
     <string name="stats_minutes">%d хв</string>
+    <string name="library_search">Пошук у бібліотеці</string>
+    <string name="library_search_hint">Історія, «Переглянути пізніше», завантажене, плейлисти</string>
+    <string name="library_search_nothing">У бібліотеці нічого не знайдено</string>
+    <string name="library_search_downloads">Завантажене</string>
+    <string name="library_search_playlists">Плейлисти</string>
+    <string name="library_search_history">Історія</string>
+    <string name="library_search_later">Переглянути пізніше</string>
+    <string name="library_search_clear">Очистити</string>
+    <string name="library_playlist_count">%d відео</string>
 </resources>

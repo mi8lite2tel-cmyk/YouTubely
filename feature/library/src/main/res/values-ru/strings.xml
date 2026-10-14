@@ -81,4 +81,13 @@
     <string name="stats_back">Назад</string>
     <string name="stats_hours_minutes">%1$d ч %2$d мин</string>
     <string name="stats_minutes">%d мин</string>
+    <string name="library_search">Поиск по библиотеке</string>
+    <string name="library_search_hint">История, «Смотреть позже», скачанное, плейлисты</string>
+    <string name="library_search_nothing">В библиотеке ничего не найдено</string>
+    <string name="library_search_downloads">Скачанное</string>
+    <string name="library_search_playlists">Плейлисты</string>
+    <string name="library_search_history">История</string>
+    <string name="library_search_later">Смотреть позже</string>
+    <string name="library_search_clear">Очистить</string>
+    <string name="library_playlist_count">%d видео</string>
 </resources>

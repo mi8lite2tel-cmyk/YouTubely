@@ -12,6 +12,7 @@ android {
 dependencies {
     implementation(projects.core.data)
     implementation(projects.core.datastore)
+    implementation(projects.core.download)
 
     testImplementation(projects.core.testing)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

@@ -57,6 +57,7 @@ import app.youtubely.feature.channel.ChannelScreen
 import app.youtubely.feature.downloads.DownloadsScreen
 import app.youtubely.feature.home.HomeScreen
 import app.youtubely.feature.library.LibraryScreen
+import app.youtubely.feature.library.LibrarySearchScreen
 import app.youtubely.feature.library.LocalPlaylistScreen
 import app.youtubely.feature.library.StatsScreen
 import app.youtubely.feature.playlist.PlaylistScreen
@@ -70,6 +71,7 @@ import app.youtubely.navigation.ChannelRoute
 import app.youtubely.navigation.DownloadsRoute
 import app.youtubely.navigation.HomeRoute
 import app.youtubely.navigation.LibraryRoute
+import app.youtubely.navigation.LibrarySearchRoute
 import app.youtubely.navigation.LocalPlaylistRoute
 import app.youtubely.navigation.OfflineWatchRoute
 import app.youtubely.navigation.PlaylistRoute
@@ -209,6 +211,15 @@ fun YouTubelyApp(
                                         },
                                         onOpenTransfer = { stack.add(TransferRoute) },
                                         onOpenStats = { stack.add(StatsRoute) },
+                                        onOpenSearch = { stack.add(LibrarySearchRoute) },
+                                    )
+                                }
+                                entry<LibrarySearchRoute> {
+                                    LibrarySearchScreen(
+                                        onBack = { stack.removeLastOrNull() },
+                                        onOpenVideo = ::openVideo,
+                                        onPlayDownload = { stack.add(OfflineWatchRoute(it)) },
+                                        onOpenPlaylist = { stack.add(LocalPlaylistRoute(it)) },
                                     )
                                 }
                                 entry<StatsRoute> { StatsScreen(onBack = { stack.removeLastOrNull() }) }

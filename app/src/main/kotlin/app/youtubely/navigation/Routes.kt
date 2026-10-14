@@ -65,3 +65,7 @@ data object TransferRoute : Route
 /** Watching statistics from the local history. */
 @Serializable
 data object StatsRoute : Route
+
+/** Search over history, watch later, downloads and local playlists. */
+@Serializable
+data object LibrarySearchRoute : Route

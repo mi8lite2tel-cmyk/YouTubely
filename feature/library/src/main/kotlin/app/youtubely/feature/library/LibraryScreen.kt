@@ -98,6 +98,7 @@ fun LibraryScreen(
     onPlayAllLater: (VideoId, sharedKey: String) -> Unit,
     onOpenTransfer: () -> Unit,
     onOpenStats: () -> Unit,
+    onOpenSearch: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
@@ -138,6 +139,9 @@ fun LibraryScreen(
                 title = { Text(stringResource(R.string.library_title)) },
                 subtitle = { Text(stringResource(R.string.library_subtitle)) },
                 actions = {
+                    IconButton(onClick = onOpenSearch) {
+                        Icon(painterResource(YouTubelyIcons.Search.outlined), stringResource(R.string.library_search))
+                    }
                     IconButton(onClick = onOpenStats) {
                         Icon(painterResource(YouTubelyIcons.Insights), stringResource(R.string.library_stats))
                     }

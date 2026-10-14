@@ -67,3 +67,20 @@ class WatchStatsTest {
         assertEquals(Duration.ZERO, stats.timeMonth)
     }
 }
+
+class TextMatchTest {
+    @Test
+    fun `all words must appear in any of the texts`() {
+        assertEquals(true, matchesQuery("rust talk", "A Talk about Rust", null))
+        assertEquals(true, matchesQuery("rust conf", "Talk about Rust", "RustConf"))
+        assertEquals(false, matchesQuery("rust go", "Talk about Rust"))
+        assertEquals(false, matchesQuery("   ", "anything"))
+    }
+
+    @Test
+    fun `case and accents are ignored`() {
+        assertEquals(true, matchesQuery("ЁЖИК", "Ёжик в тумане"))
+        assertEquals(true, matchesQuery("ежик", "Ёжик в тумане"))
+        assertEquals(true, matchesQuery("cafe", "Café Music"))
+    }
+}
