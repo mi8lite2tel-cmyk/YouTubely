@@ -45,11 +45,13 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.model.VideoId
+import app.youtubely.core.ui.DownloadAllDialog
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.VideoRow
 import app.youtubely.core.ui.motionItem
 import app.youtubely.core.ui.videoFrameKey
 import kotlinx.coroutines.launch
+import app.youtubely.core.ui.R as UiR
 
 private const val ORIGIN = "local-playlist"
 
@@ -87,6 +89,18 @@ fun LocalPlaylistScreen(
     val removedMessage = stringResource(R.string.library_removed)
     val undoLabel = stringResource(R.string.library_undo)
 
+    var downloadingAll by rememberSaveable { mutableStateOf(false) }
+    if (downloadingAll) {
+        DownloadAllDialog(
+            count = items?.size ?: 0,
+            onDismiss = { downloadingAll = false },
+            onConfirm = {
+                downloadingAll = false
+                viewModel.downloadAll(it)
+            },
+        )
+    }
+
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbar) },
@@ -99,7 +113,14 @@ fun LocalPlaylistScreen(
                         Icon(painterResource(YouTubelyIcons.ArrowBack), stringResource(R.string.library_back))
                     }
                 },
-                actions = { PlaylistMenu(onRename = { renaming = true }, onDelete = { deleting = true }) },
+                actions = {
+                    if (!items.isNullOrEmpty()) {
+                        IconButton(onClick = { downloadingAll = true }) {
+                            Icon(painterResource(YouTubelyIcons.Download), stringResource(UiR.string.download_all))
+                        }
+                    }
+                    PlaylistMenu(onRename = { renaming = true }, onDelete = { deleting = true })
+                },
                 scrollBehavior = scrollBehavior,
             )
         },

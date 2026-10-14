@@ -22,6 +22,7 @@ import app.youtubely.core.model.DownloadFormat
 import app.youtubely.core.model.DownloadState
 import app.youtubely.core.model.StorageUsage
 import app.youtubely.core.model.StreamInfo
+import app.youtubely.core.model.VideoId
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -119,6 +120,12 @@ class DownloadManager
             enqueue(id, forceUnmetered = unmeteredOnly)
             return download
         }
+
+        /** Saves all [ids] (e.g. a playlist) in the best quality up to [maxHeight]; `null` saves sound only. */
+        fun startAll(
+            ids: List<VideoId>,
+            maxHeight: Int?,
+        ) = BatchDownloadWorker.enqueue(context, ids, maxHeight)
 
         suspend fun pause(id: String) {
             store.update(id) { it.copy(state = DownloadState.Paused) }

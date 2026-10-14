@@ -33,6 +33,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +54,7 @@ import app.youtubely.core.model.Playlist
 import app.youtubely.core.model.PlaylistId
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.model.bestFor
+import app.youtubely.core.ui.DownloadAllDialog
 import app.youtubely.core.ui.ErrorState
 import app.youtubely.core.ui.LoadMoreEffect
 import app.youtubely.core.ui.LoadingState
@@ -59,6 +63,7 @@ import app.youtubely.core.ui.VideoRow
 import app.youtubely.core.ui.motionItem
 import app.youtubely.core.ui.videoFrameKey
 import coil3.compose.AsyncImage
+import app.youtubely.core.ui.R as UiR
 
 private const val COVER_ASPECT = 16f / 9f
 
@@ -78,6 +83,17 @@ fun PlaylistScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val playlist = state.playlist
+    var downloadingAll by rememberSaveable { mutableStateOf(false) }
+    if (downloadingAll) {
+        DownloadAllDialog(
+            count = (playlist?.streamCount?.toInt()?.takeIf { it > 0 } ?: state.items.size).coerceAtMost(BATCH_LIMIT),
+            onDismiss = { downloadingAll = false },
+            onConfirm = {
+                downloadingAll = false
+                viewModel.downloadAll(it)
+            },
+        )
+    }
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -88,6 +104,13 @@ fun PlaylistScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(painterResource(YouTubelyIcons.ArrowBack), stringResource(R.string.playlist_back))
+                    }
+                },
+                actions = {
+                    if (state.items.isNotEmpty()) {
+                        IconButton(onClick = { downloadingAll = true }) {
+                            Icon(painterResource(YouTubelyIcons.Download), stringResource(UiR.string.download_all))
+                        }
                     }
                 },
                 scrollBehavior = scrollBehavior,
@@ -221,3 +244,5 @@ private fun Header(
         }
     }
 }
+
+private const val BATCH_LIMIT = 300

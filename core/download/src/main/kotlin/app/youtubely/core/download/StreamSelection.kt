@@ -67,6 +67,24 @@ object StreamSelection {
         }
     }
 
+    /**
+     * The best [DownloadFormat.Video] not above [maxHeight] (the lowest one when all are higher),
+     * or audio when [maxHeight] is `null` or the video has no suitable picture.
+     */
+    fun best(
+        formats: List<DownloadFormat>,
+        maxHeight: Int?,
+    ): DownloadFormat? {
+        val audio = formats.firstOrNull { it == DownloadFormat.Audio }
+        val videos = formats.filterIsInstance<DownloadFormat.Video>()
+        val video =
+            maxHeight?.let {
+                videos.filter { format -> format.height <= it }.maxByOrNull { format -> format.height }
+                    ?: videos.minByOrNull { format -> format.height }
+            }
+        return video ?: audio
+    }
+
     /** Original-language AAC with the highest bitrate. */
     private fun bestAudio(info: StreamInfo): AudioStream? =
         info.audioStreams

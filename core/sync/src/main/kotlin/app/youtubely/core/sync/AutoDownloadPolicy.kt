@@ -3,6 +3,7 @@
 package app.youtubely.core.sync
 
 import app.youtubely.core.data.AutoDownload
+import app.youtubely.core.download.StreamSelection
 import app.youtubely.core.model.AutoDownloadRule
 import app.youtubely.core.model.DownloadFormat
 import app.youtubely.core.model.SyncSettings
@@ -10,23 +11,11 @@ import app.youtubely.core.model.VideoId
 
 /** Decisions of the automatic download that do not touch the system, so they can be tested. */
 object AutoDownloadPolicy {
-    /**
-     * The best [DownloadFormat.Video] not above [maxHeight] (the lowest one when all are higher),
-     * or audio when [maxHeight] is `null` or the video has no suitable picture.
-     */
+    /** See [StreamSelection.best]. */
     fun choose(
         formats: List<DownloadFormat>,
         maxHeight: Int?,
-    ): DownloadFormat? {
-        val audio = formats.firstOrNull { it == DownloadFormat.Audio }
-        val videos = formats.filterIsInstance<DownloadFormat.Video>()
-        val video =
-            maxHeight?.let {
-                videos.filter { format -> format.height <= it }.maxByOrNull { format -> format.height }
-                    ?: videos.minByOrNull { format -> format.height }
-            }
-        return video ?: audio
-    }
+    ): DownloadFormat? = StreamSelection.best(formats, maxHeight)
 
     /** Automatic downloads of a channel beyond the newest [keep], given newest first. */
     fun expired(
