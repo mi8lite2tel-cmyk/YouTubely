@@ -85,8 +85,8 @@ class DownloadManager
             }
         }
 
-        /** What can be saved for this video without re-encoding (see [StreamSelection]). */
-        fun formats(info: StreamInfo): List<DownloadFormat> = StreamSelection.formats(info)
+        /** What can be saved for this video without re-encoding and played back on this device (see [StreamSelection]). */
+        fun formats(info: StreamInfo): List<DownloadFormat> = StreamSelection.formats(info, DeviceDecoders::canPlay)
 
         /** @param unmeteredOnly wait for Wi-Fi whatever the setting says (automatic downloads). */
         suspend fun start(

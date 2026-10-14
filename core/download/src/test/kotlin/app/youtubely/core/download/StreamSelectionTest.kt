@@ -107,4 +107,18 @@ class StreamSelectionTest {
         assertEquals("Ep_ 1_ What_s new_ (2026)", DownloadWorker.safeFileName("Ep: 1/ What's new? (2026)"))
         assertEquals("video", DownloadWorker.safeFileName("///"))
     }
+
+    @Test
+    fun skipsStreamsTheDeviceCannotDecode() {
+        val noAv1: (VideoStream) -> Boolean = { it.codecs?.startsWith("av01") != true }
+        val avcOnly: (VideoStream) -> Boolean = { it.codecs?.startsWith("avc1") == true }
+        val limited = info.copy(videoStreams = info.videoStreams + video(2160, "video/mp4", "av01.0.12M.08"))
+        assertEquals(1080, (StreamSelection.formats(limited, noAv1).first() as DownloadFormat.Video).height)
+        assertEquals(2160, (StreamSelection.formats(limited).first() as DownloadFormat.Video).height)
+        assertEquals(
+            "v1080avc1.640028",
+            StreamSelection.select(limited, DownloadFormat.Video(2160), avcOnly)!!.video!!.url,
+        )
+        assertNull(StreamSelection.select(limited, DownloadFormat.Video(2160)) { false })
+    }
 }

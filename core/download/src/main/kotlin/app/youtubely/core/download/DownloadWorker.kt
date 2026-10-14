@@ -77,7 +77,9 @@ internal class DownloadWorker
         private suspend fun run(download: Download) {
             setState(download, DownloadState.Downloading, download.progress)
             val info = provider.streamInfo(download.videoId)
-            val streams = StreamSelection.select(info, download.format) ?: throw ProviderError.ExtractorOutdated()
+            val streams =
+                StreamSelection.select(info, download.format, DeviceDecoders::canPlay)
+                    ?: throw ProviderError.ExtractorOutdated()
             val dir = File(downloadsRoot(applicationContext), download.id).apply { mkdirs() }
 
             val thumbnail = File(dir, "thumbnail.jpg")
