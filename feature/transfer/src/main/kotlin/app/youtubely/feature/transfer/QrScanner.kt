@@ -10,6 +10,8 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -34,9 +36,9 @@ fun QrScanner(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnCode by rememberUpdatedState(onCode)
-    val executor = androidx.compose.runtime.remember { Executors.newSingleThreadExecutor() }
+    val executor = remember { Executors.newSingleThreadExecutor() }
     val previewView =
-        androidx.compose.runtime.remember {
+        remember {
             PreviewView(context).apply { scaleType = PreviewView.ScaleType.FILL_CENTER }
         }
 

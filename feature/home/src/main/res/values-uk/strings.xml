@@ -9,4 +9,13 @@
     <string name="explore_movies">Фільми та шоу</string>
     <string name="home_subscriptions">Підписки</string>
     <string name="home_feed_empty">Нових відео з підписок поки немає</string>
+    <string name="home_for_you">Для вас</string>
+    <string name="home_for_you_note">Підібрано на вашому телефоні за історією та підписками. Нічого нікуди не надсилається.</string>
+    <string name="home_for_you_empty_title">Поки немає на чому будувати добірку</string>
+    <string name="home_for_you_empty_body">Подивіться кілька відео або підпишіться на канали, і тут з’являться рекомендації. Вони рахуються на телефоні й не потребують облікового запису.</string>
+    <string name="home_show_trends">Показати, що в тренді</string>
+    <string name="home_reason_watched">Бо ви дивилися «%s»</string>
+    <string name="home_reason_subscription">З ваших підписок</string>
+    <string name="home_reason_frequent">Канал, який ви часто дивитеся</string>
+    <string name="home_group_all">Усі</string>
 </resources>
