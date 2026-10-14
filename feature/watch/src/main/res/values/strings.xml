@@ -31,4 +31,5 @@
     <string name="watch_audio_only_off">Show video</string>
     <string name="watch_queue_position">%1$d of %2$d</string>
     <string name="watch_next">Next video</string>
+    <string name="watch_queue_later">Watch later</string>
 </resources>

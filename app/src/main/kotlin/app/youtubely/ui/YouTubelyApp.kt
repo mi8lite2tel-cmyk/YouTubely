@@ -26,6 +26,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -41,27 +42,36 @@ import androidx.navigation3.ui.NavDisplay
 import app.youtubely.R
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.model.ChannelId
+import app.youtubely.core.model.LocalQueue
 import app.youtubely.core.model.PlaylistId
+import app.youtubely.core.model.StreamItem
 import app.youtubely.core.model.VideoId
+import app.youtubely.core.model.YouTubeLink
 import app.youtubely.core.ui.LocalSharedTransitionScope
+import app.youtubely.core.ui.LocalVideoActions
+import app.youtubely.feature.actions.VideoActionsSheet
 import app.youtubely.feature.channel.ChannelScreen
 import app.youtubely.feature.downloads.DownloadsScreen
 import app.youtubely.feature.home.HomeScreen
 import app.youtubely.feature.library.LibraryScreen
+import app.youtubely.feature.library.LocalPlaylistScreen
 import app.youtubely.feature.playlist.PlaylistScreen
 import app.youtubely.feature.search.SearchScreen
 import app.youtubely.feature.settings.SettingsScreen
+import app.youtubely.feature.transfer.TransferScreen
 import app.youtubely.feature.watch.OfflineWatchScreen
 import app.youtubely.feature.watch.WatchScreen
 import app.youtubely.navigation.ChannelRoute
 import app.youtubely.navigation.DownloadsRoute
 import app.youtubely.navigation.HomeRoute
 import app.youtubely.navigation.LibraryRoute
+import app.youtubely.navigation.LocalPlaylistRoute
 import app.youtubely.navigation.OfflineWatchRoute
 import app.youtubely.navigation.PlaylistRoute
 import app.youtubely.navigation.SearchRoute
 import app.youtubely.navigation.SettingsRoute
 import app.youtubely.navigation.TopLevelRoute
+import app.youtubely.navigation.TransferRoute
 import app.youtubely.navigation.WatchRoute
 
 private data class TopLevelItem(
@@ -87,6 +97,8 @@ private val TopLevelItems =
 @Composable
 fun YouTubelyApp(
     versionName: String,
+    pendingLink: YouTubeLink?,
+    onLinkHandled: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val stacks: Map<TopLevelRoute, NavBackStack<NavKey>> =
@@ -124,6 +136,29 @@ fun YouTubelyApp(
     fun openPlaylist(id: PlaylistId) {
         backStack.add(PlaylistRoute(id.value))
     }
+
+    // A link or notification the app was opened with: show it on top of the current tab.
+    LaunchedEffect(pendingLink) {
+        when (val link = pendingLink) {
+            null -> {
+                return@LaunchedEffect
+            }
+
+            is YouTubeLink.Video -> {
+                backStack.add(WatchRoute(link.id.value, "link-${link.id.value}", link.playlist?.value))
+            }
+
+            is YouTubeLink.Playlist -> {
+                backStack.add(PlaylistRoute(link.id.value))
+            }
+
+            is YouTubeLink.Channel -> {
+                backStack.add(ChannelRoute(link.id.value))
+            }
+        }
+        onLinkHandled()
+    }
+    var actionsFor by remember { mutableStateOf<StreamItem?>(null) }
 
     NavigationSuiteScaffold(
         modifier = modifier,
@@ -163,7 +198,10 @@ fun YouTubelyApp(
         },
     ) {
         SharedTransitionLayout {
-            CompositionLocalProvider(LocalSharedTransitionScope provides this) {
+            CompositionLocalProvider(
+                LocalSharedTransitionScope provides this,
+                LocalVideoActions provides { actionsFor = it },
+            ) {
                 AnimatedContent(targetState = current, label = "tab", transitionSpec = {
                     fadeIn(motion.defaultEffectsSpec())
                         .togetherWith(fadeOut(motion.fastEffectsSpec()))
@@ -202,8 +240,30 @@ fun YouTubelyApp(
                                     )
                                 }
                                 entry<LibraryRoute> {
-                                    LibraryScreen(onOpenVideo = ::openVideo, onOpenChannel = ::openChannel)
+                                    LibraryScreen(
+                                        onOpenVideo = ::openVideo,
+                                        onOpenChannel = ::openChannel,
+                                        onOpenPlaylist = { stack.add(LocalPlaylistRoute(it)) },
+                                        onPlayAllLater = {
+                                            id,
+                                            key,
+                                            ->
+                                            stack.add(WatchRoute(id.value, key, LocalQueue.WATCH_LATER))
+                                        },
+                                        onOpenTransfer = { stack.add(TransferRoute) },
+                                    )
                                 }
+                                entry<LocalPlaylistRoute> { route ->
+                                    LocalPlaylistScreen(
+                                        playlistId = route.playlistId,
+                                        onBack = { stack.removeLastOrNull() },
+                                        onOpenVideo = ::openVideo,
+                                        onPlayAll = { id, key ->
+                                            stack.add(WatchRoute(id.value, key, LocalQueue.playlist(route.playlistId)))
+                                        },
+                                    )
+                                }
+                                entry<TransferRoute> { TransferScreen(onBack = { stack.removeLastOrNull() }) }
                                 entry<DownloadsRoute> {
                                     DownloadsScreen(
                                         onPlay = { stack.add(OfflineWatchRoute(it)) },
@@ -234,7 +294,12 @@ fun YouTubelyApp(
                                     )
                                 }
                                 entry<OfflineWatchRoute> { route -> OfflineWatchScreen(downloadId = route.downloadId) }
-                                entry<SettingsRoute> { SettingsScreen(versionName = versionName) }
+                                entry<SettingsRoute> {
+                                    SettingsScreen(
+                                        versionName = versionName,
+                                        onOpenTransfer = { stack.add(TransferRoute) },
+                                    )
+                                }
                                 entry<WatchRoute> { route ->
                                     WatchScreen(
                                         videoId = VideoId(route.videoId),
@@ -249,5 +314,8 @@ fun YouTubelyApp(
                 }
             }
         }
+    }
+    actionsFor?.let { item ->
+        VideoActionsSheet(item = item, onDismiss = { actionsFor = null }, onOpenChannel = ::openChannel)
     }
 }

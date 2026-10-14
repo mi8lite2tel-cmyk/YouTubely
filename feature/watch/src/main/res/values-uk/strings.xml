@@ -31,4 +31,5 @@
     <string name="watch_audio_only_off">Показати відео</string>
     <string name="watch_queue_position">%1$d з %2$d</string>
     <string name="watch_next">Наступне відео</string>
+    <string name="watch_queue_later">Дивитися пізніше</string>
 </resources>

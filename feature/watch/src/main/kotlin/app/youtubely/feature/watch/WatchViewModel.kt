@@ -9,11 +9,14 @@ import androidx.media3.common.Player
 import app.youtubely.core.common.Outcome
 import app.youtubely.core.common.outcomeOf
 import app.youtubely.core.data.HistoryRepository
+import app.youtubely.core.data.PlaylistRepository
 import app.youtubely.core.data.SubscriptionRepository
+import app.youtubely.core.data.WatchLaterRepository
 import app.youtubely.core.download.DownloadManager
 import app.youtubely.core.model.ChannelRef
 import app.youtubely.core.model.Download
 import app.youtubely.core.model.DownloadFormat
+import app.youtubely.core.model.LocalQueue
 import app.youtubely.core.model.PlaybackSettings
 import app.youtubely.core.model.Playlist
 import app.youtubely.core.model.PlaylistId
@@ -34,6 +37,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -78,6 +82,8 @@ class WatchViewModel
         private val downloadManager: DownloadManager,
         private val history: HistoryRepository,
         private val subscriptions: SubscriptionRepository,
+        private val watchLater: WatchLaterRepository,
+        private val localPlaylists: PlaylistRepository,
     ) : ViewModel() {
         private val currentId = MutableStateFlow(VideoId(videoId))
         private val id: VideoId get() = currentId.value
@@ -184,12 +190,43 @@ class WatchViewModel
         }
 
         private fun loadQueue(playlistId: PlaylistId) {
+            if (LocalQueue.isLocal(playlistId.value)) {
+                loadLocalQueue(playlistId)
+                return
+            }
             viewModelScope.launch {
                 val page = outcomeOf { provider.playlist(playlistId, null) } as? Outcome.Success ?: return@launch
                 val items = page.value.items.items
                 _queue.value =
                     PlaylistQueue(
                         playlist = page.value.playlist,
+                        items = items,
+                        index = items.indexOfFirst { it.id == id }.coerceAtLeast(0),
+                    )
+            }
+        }
+
+        /** "Watch later" or a playlist of this device, as it is when playback starts. */
+        private fun loadLocalQueue(queueId: PlaylistId) {
+            viewModelScope.launch {
+                val localId = LocalQueue.playlistIdOf(queueId.value)
+                val items =
+                    if (localId == null) {
+                        watchLater.videos.first().map { it.item }
+                    } else {
+                        localPlaylists.itemsOnce(localId)
+                    }
+                val name = localId?.let { localPlaylists.playlist(it).first() }.orEmpty()
+                _queue.value =
+                    PlaylistQueue(
+                        playlist =
+                            Playlist(
+                                queueId,
+                                name,
+                                uploader = null,
+                                thumbnails = emptyList(),
+                                streamCount = items.size.toLong(),
+                            ),
                         items = items,
                         index = items.indexOfFirst { it.id == id }.coerceAtLeast(0),
                     )

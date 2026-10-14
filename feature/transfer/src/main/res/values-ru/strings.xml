@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="transfer_title">Импорт, экспорт, QR</string>
+    <string name="transfer_subtitle">Перенос библиотеки между устройствами. Без аккаунта и сервера</string>
+    <string name="transfer_back">Назад</string>
+    <string name="transfer_what">Что переносить</string>
+    <string name="transfer_scope_subscriptions">Подписки</string>
+    <string name="transfer_scope_playlists">Плейлисты</string>
+    <string name="transfer_scope_later">Смотреть позже</string>
+    <string name="transfer_scope_everything">Всё</string>
+    <string name="transfer_show_qr">Показать QR-коды</string>
+    <string name="transfer_show_qr_summary">Другой телефон читает их камерой</string>
+    <string name="transfer_scan">Сканировать QR-коды</string>
+    <string name="transfer_scan_summary">Получить с другого телефона с YouTubely</string>
+    <string name="transfer_export">Экспорт в файл</string>
+    <string name="transfer_export_summary">Резервная копия, которую можно хранить или перенести самому</string>
+    <string name="transfer_import">Импорт из файла</string>
+    <string name="transfer_import_summary">YouTubely, NewPipe, LibreTube, Google Takeout (CSV) и OPML</string>
+    <string name="transfer_formats">Подписки из файлов NewPipe, LibreTube, Google Takeout и OPML распознаются автоматически. Ничего не покидает устройство.</string>
+    <string name="transfer_imported">Добавлено каналов: %1$d, плейлистов: %2$d (видео: %3$d)</string>
+    <string name="transfer_unreadable">Этот файл или код не похож на список подписок или плейлистов</string>
+    <string name="transfer_nothing">Пока нечего переносить</string>
+    <string name="transfer_qr_title">Отсканируйте другим телефоном</string>
+    <string name="transfer_qr_description">QR-код %1$d из %2$d</string>
+    <string name="transfer_qr_frame">Код %1$d из %2$d</string>
+    <string name="transfer_qr_hint">Коды меняются сами. Держите другой телефон направленным на экран, пока он не прочитает все.</string>
+    <string name="transfer_scan_progress">Получено %1$d из %2$d</string>
+    <string name="transfer_scan_hint">Наведите камеру на коды на другом телефоне. Читать их можно в любом порядке.</string>
+    <string name="transfer_camera_denied">Камера нужна только для чтения кодов. Ничего не записывается.</string>
+    <string name="transfer_camera_allow">Разрешить камеру</string>
+    <string name="transfer_preview_title">Добавить в библиотеку?</string>
+    <string name="transfer_preview_body">То, что у вас уже есть, останется как есть.</string>
+    <string name="transfer_do_import">Добавить</string>
+    <string name="transfer_cancel">Отмена</string>
+    <plurals name="transfer_channels">
+        <item quantity="one">%d канал</item>
+        <item quantity="few">%d канала</item>
+        <item quantity="many">%d каналов</item>
+        <item quantity="other">%d канала</item>
+    </plurals>
+    <plurals name="transfer_playlists">
+        <item quantity="one">%d плейлист</item>
+        <item quantity="few">%d плейлиста</item>
+        <item quantity="many">%d плейлистов</item>
+        <item quantity="other">%d плейлиста</item>
+    </plurals>
+    <plurals name="transfer_videos">
+        <item quantity="one">%d видео</item>
+        <item quantity="few">%d видео</item>
+        <item quantity="many">%d видео</item>
+        <item quantity="other">%d видео</item>
+    </plurals>
+</resources>

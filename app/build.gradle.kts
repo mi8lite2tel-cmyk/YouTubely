@@ -82,6 +82,7 @@ dependencies {
     implementation(projects.core.provider)
     implementation(projects.core.sync)
     implementation(projects.core.ui)
+    implementation(projects.feature.actions)
     implementation(projects.feature.channel)
     implementation(projects.feature.downloads)
     implementation(projects.feature.home)
@@ -89,6 +90,7 @@ dependencies {
     implementation(projects.feature.playlist)
     implementation(projects.feature.search)
     implementation(projects.feature.settings)
+    implementation(projects.feature.transfer)
     implementation(projects.feature.watch)
 
     implementation(libs.androidx.activity.compose)

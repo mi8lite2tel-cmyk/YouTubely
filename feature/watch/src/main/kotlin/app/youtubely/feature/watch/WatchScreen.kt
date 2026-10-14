@@ -341,7 +341,7 @@ private fun LazyListScope.queue(
             Icon(painterResource(YouTubelyIcons.PlaylistPlay), contentDescription = null)
             Column(Modifier.weight(1f)) {
                 Text(
-                    queue.playlist.name,
+                    queue.playlist.name.ifBlank { stringResource(R.string.watch_queue_later) },
                     style = MaterialTheme.typography.titleMediumEmphasized,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

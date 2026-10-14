@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="transfer_title">Import, export, QR</string>
+    <string name="transfer_subtitle">Move your library between devices. No account, no server</string>
+    <string name="transfer_back">Back</string>
+    <string name="transfer_what">What to move</string>
+    <string name="transfer_scope_subscriptions">Subscriptions</string>
+    <string name="transfer_scope_playlists">Playlists</string>
+    <string name="transfer_scope_later">Watch later</string>
+    <string name="transfer_scope_everything">Everything</string>
+    <string name="transfer_show_qr">Show QR codes</string>
+    <string name="transfer_show_qr_summary">Another phone reads them with its camera</string>
+    <string name="transfer_scan">Scan QR codes</string>
+    <string name="transfer_scan_summary">Receive from another phone running YouTubely</string>
+    <string name="transfer_export">Export to a file</string>
+    <string name="transfer_export_summary">Save a backup you can keep or move yourself</string>
+    <string name="transfer_import">Import from a file</string>
+    <string name="transfer_import_summary">YouTubely, NewPipe, LibreTube, Google Takeout (CSV) and OPML</string>
+    <string name="transfer_formats">Subscriptions from NewPipe, LibreTube, Google Takeout and OPML files are recognised automatically. Nothing leaves your device.</string>
+    <string name="transfer_imported">Added %1$d channels and %2$d playlists (%3$d videos)</string>
+    <string name="transfer_unreadable">This file or code is not a list of subscriptions or playlists</string>
+    <string name="transfer_nothing">There is nothing to transfer yet</string>
+    <string name="transfer_qr_title">Scan with the other phone</string>
+    <string name="transfer_qr_description">QR code %1$d of %2$d</string>
+    <string name="transfer_qr_frame">Code %1$d of %2$d</string>
+    <string name="transfer_qr_hint">The codes change by themselves. Keep the other phone pointed at the screen until it has read all of them.</string>
+    <string name="transfer_scan_progress">Received %1$d of %2$d</string>
+    <string name="transfer_scan_hint">Point the camera at the codes on the other phone. They can be read in any order.</string>
+    <string name="transfer_camera_denied">The camera is needed only to read the codes. Nothing is recorded.</string>
+    <string name="transfer_camera_allow">Allow the camera</string>
+    <string name="transfer_preview_title">Add to your library?</string>
+    <string name="transfer_preview_body">What you already have stays as it is.</string>
+    <string name="transfer_do_import">Add</string>
+    <string name="transfer_cancel">Cancel</string>
+    <plurals name="transfer_channels">
+        <item quantity="one">%d channel</item>
+        <item quantity="other">%d channels</item>
+    </plurals>
+    <plurals name="transfer_playlists">
+        <item quantity="one">%d playlist</item>
+        <item quantity="other">%d playlists</item>
+    </plurals>
+    <plurals name="transfer_videos">
+        <item quantity="one">%d video</item>
+        <item quantity="other">%d videos</item>
+    </plurals>
+</resources>
