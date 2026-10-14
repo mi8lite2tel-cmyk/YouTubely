@@ -48,7 +48,8 @@ class RangeDownloader(
     ) {
         target.parentFile?.mkdirs()
         val ledger = File(target.path + LEDGER_SUFFIX)
-        var total = totalBytes
+        // With a ledger the file already has its full length (see ParallelRanges.finished).
+        var total = totalBytes ?: target.length().takeIf { ledger.exists() && it > 0 }
         if (connections > 1 || ledger.exists()) {
             val fresh = !ledger.exists() && (!target.exists() || target.length() == 0L)
             if (fresh && total == null) {
@@ -99,6 +100,8 @@ class RangeDownloader(
             if (ledger.exists()) return ledger.readLines().mapNotNull { it.toIntOrNull() }.toSet()
             val prefix = if (target.exists()) minOf(target.length(), total) else 0L
             val done = (0 until count).filter { it * chunkSize + length(it) <= prefix }.toSet()
+            // Full length first, ledger second: a ledger on disk always means a file of the final size.
+            RandomAccessFile(target, "rw").use { it.setLength(total) }
             ledger.writeText(done.joinToString("") { "$it\n" })
             return done
         }
@@ -110,7 +113,6 @@ class RangeDownloader(
         ) {
             val done = finished()
             val pending = (0 until count).filterNot { it in done }
-            RandomAccessFile(target, "rw").use { it.setLength(total) }
             val doneBytes = AtomicLong(done.sumOf(::length))
             val next = AtomicInteger(0)
             val report = Mutex()

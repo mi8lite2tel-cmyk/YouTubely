@@ -50,6 +50,10 @@ class DownloadManager
     ) {
         private val workManager get() = WorkManager.getInstance(context)
 
+        init {
+            Thread(DeviceDecoders::warmUp, "codec-list").start()
+        }
+
         val downloads: Flow<List<Download>> = store.downloads
 
         /**

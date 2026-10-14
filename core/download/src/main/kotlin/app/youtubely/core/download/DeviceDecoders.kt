@@ -17,6 +17,11 @@ object DeviceDecoders {
         MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos.filter { !it.isEncoder }
     }
 
+    /** Reads the codec list ahead of time, off the main thread, so the first check does not wait for it. */
+    fun warmUp() {
+        decoders.size
+    }
+
     fun canPlay(stream: VideoStream): Boolean {
         val mime = mimeOf(stream.codecs) ?: return false
         return decoders.any { it.supports(mime, stream) }
@@ -36,10 +41,9 @@ object DeviceDecoders {
         mime: String,
         stream: VideoStream,
     ): Boolean {
-        val video =
-            getCapabilitiesForType(mime)
-                .takeIf { supportedTypes.any { it.equals(mime, ignoreCase = true) } }
-                ?.videoCapabilities
+        // getCapabilitiesForType throws for a type the codec does not handle, so check first.
+        val type = supportedTypes.firstOrNull { it.equals(mime, ignoreCase = true) }
+        val video = type?.let { runCatching { getCapabilitiesForType(it).videoCapabilities }.getOrNull() }
         val fps = stream.fps.coerceAtLeast(1).toDouble()
         val fits = video?.areSizeAndRateSupported(stream.width, stream.height, fps) == true
         // A software AV1 decoder cannot keep up with sharp pictures on a phone.

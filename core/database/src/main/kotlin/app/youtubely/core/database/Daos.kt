@@ -259,16 +259,35 @@ data class TrafficDay(
 
 @Dao
 interface TrafficDao {
-    @Query(
-        "INSERT INTO traffic_daily (day, metered, kind, bytes) VALUES (:day, :metered, :kind, :bytes) " +
-            "ON CONFLICT(day, metered, kind) DO UPDATE SET bytes = bytes + :bytes",
+    @Query("INSERT OR IGNORE INTO traffic_daily (day, metered, kind, bytes) VALUES (:day, :metered, :kind, 0)")
+    suspend fun ensureRow(
+        day: Long,
+        metered: Boolean,
+        kind: String,
     )
-    suspend fun add(
+
+    @Query("UPDATE traffic_daily SET bytes = bytes + :bytes WHERE day = :day AND metered = :metered AND kind = :kind")
+    suspend fun increase(
         day: Long,
         metered: Boolean,
         kind: String,
         bytes: Long,
     )
+
+    /**
+     * Adds [bytes] to the day's total. Two statements instead of an upsert: `ON CONFLICT DO UPDATE`
+     * needs SQLite 3.24, which Android ships only from version 11.
+     */
+    @Transaction
+    suspend fun add(
+        day: Long,
+        metered: Boolean,
+        kind: String,
+        bytes: Long,
+    ) {
+        ensureRow(day, metered, kind)
+        increase(day, metered, kind, bytes)
+    }
 
     @Query("SELECT metered, kind, SUM(bytes) AS bytes FROM traffic_daily WHERE day >= :from GROUP BY metered, kind")
     fun observeSums(from: Long): Flow<List<TrafficSum>>

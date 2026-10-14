@@ -132,4 +132,20 @@ class RangeDownloaderTest {
             assertEquals(9, requestedRanges.size)
             assertEquals(false, "2000-2999" in requestedRanges)
         }
+
+    @Test
+    fun parallelResumesWithoutAKnownSize() =
+        runTest {
+            val target = folder.newFile("nosize.part")
+            java.io.RandomAccessFile(target, "rw").use {
+                it.setLength(content.size.toLong())
+                it.seek(0)
+                it.write(content, 0, 3_000)
+            }
+            java.io.File(target.path + ".chunks").writeText("0\n1\n2\n")
+            RangeDownloader(OkHttpClient(), chunkSize = 1_000, connections = 3)
+                .download(server.url("/n").toString(), emptyMap(), target, totalBytes = null) { _, _ -> }
+            assertArrayEquals(content, target.readBytes())
+            assertEquals(7, requestedRanges.size)
+        }
 }

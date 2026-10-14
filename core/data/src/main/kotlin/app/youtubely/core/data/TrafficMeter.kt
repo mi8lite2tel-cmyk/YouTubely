@@ -10,6 +10,7 @@ import app.youtubely.core.model.DayTraffic
 import app.youtubely.core.model.TrafficKind
 import app.youtubely.core.model.TrafficSummary
 import app.youtubely.core.network.TrafficSink
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -49,7 +50,7 @@ class TrafficMeter
 
         init {
             scope.launch {
-                dao.deleteBefore(today().toEpochDay() - RETENTION_DAYS)
+                runCatching { dao.deleteBefore(today().toEpochDay() - RETENTION_DAYS) }
                 while (isActive) {
                     delay(FLUSH_INTERVAL_MS)
                     flush()
@@ -64,12 +65,23 @@ class TrafficMeter
             pending.computeIfAbsent(Key(network.isMetered, kind)) { AtomicLong() }.addAndGet(bytes)
         }
 
-        /** Writes what was counted since the last call. */
+        /** Writes what was counted since the last call; bytes that could not be written wait for the next one. */
         suspend fun flush() {
             val day = today().toEpochDay()
             for ((key, counter) in pending) {
                 val bytes = counter.getAndSet(0)
-                if (bytes > 0) dao.add(day, key.metered, key.kind.name, bytes)
+                if (bytes <= 0) continue
+                try {
+                    dao.add(day, key.metered, key.kind.name, bytes)
+                } catch (e: CancellationException) {
+                    counter.addAndGet(bytes)
+                    throw e
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") _: Exception,
+                ) {
+                    // A busy or broken database must never take the app down for a statistic.
+                    counter.addAndGet(bytes)
+                }
             }
         }
 
