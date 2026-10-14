@@ -21,11 +21,26 @@ data class PlaybackSettings(
     val historyEnabled: Boolean = true,
     /** Reopening a video continues where it was left. */
     val resumePlayback: Boolean = true,
+    /** Skip stretches of silence (speeds up talks and podcasts a little). */
+    val skipSilence: Boolean = false,
+    /** Turn loud videos down to the common level, like YouTube's stable volume. */
+    val normalizeVolume: Boolean = true,
+    /** When a video ends and nothing is queued, play the first suggested one. */
+    val autoplayNext: Boolean = true,
+    /** Show subtitles when the video has them. */
+    val subtitlesEnabled: Boolean = false,
+    /** BCP 47 language of the subtitles to prefer; `null` = the app's language. */
+    val subtitleLanguage: String? = null,
+    /** Subtitle text size as a multiple of the normal size. */
+    val subtitleScale: Float = 1f,
+    /** Dark box behind subtitles. */
+    val subtitleBackground: Boolean = true,
 ) {
     companion object {
         const val DEFAULT_METERED_LIMIT = 720
         const val DEFAULT_SEEK_STEP = 10
         val SEEK_STEP_CHOICES = listOf(5, 10, 15, 30)
         val HEIGHT_CHOICES = listOf(2160, 1440, 1080, 720, 480, 360, 240, 144)
+        val SUBTITLE_SCALES = listOf(0.75f, 1f, 1.25f, 1.5f, 2f)
     }
 }

@@ -37,5 +37,9 @@ object DataStoreModule {
 
     @Provides
     @Singleton
+    fun provideSponsorBlockSettings(store: DataStore<Preferences>) = SponsorBlockSettingsRepository(store)
+
+    @Provides
+    @Singleton
     fun provideAppPreferences(store: DataStore<Preferences>) = AppPreferences(store)
 }

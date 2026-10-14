@@ -63,3 +63,27 @@ data class SyncSettings(
         val AUTO_HEIGHT_CHOICES = listOf(1080, 720, 480, 360)
     }
 }
+
+/**
+ * SponsorBlock: crowd-sourced marks of sponsor reads and other stretches to skip. Off by default.
+ * When on, the first 4 characters of a hash of the video id go to [serverUrl] (never the id itself).
+ */
+data class SponsorBlockSettings(
+    val enabled: Boolean = false,
+    val categories: Set<String> = DEFAULT_CATEGORIES,
+    val serverUrl: String = DEFAULT_SERVER,
+) {
+    companion object {
+        const val DEFAULT_SERVER = "https://sponsor.ajay.app"
+        val DEFAULT_CATEGORIES = setOf("sponsor", "selfpromo", "interaction")
+        val ALL_CATEGORIES =
+            listOf("sponsor", "selfpromo", "interaction", "intro", "outro", "preview", "filler", "music_offtopic")
+    }
+}
+
+/** A stretch of a video that SponsorBlock suggests to skip. */
+data class SponsorSegment(
+    val category: String,
+    val startMs: Long,
+    val endMs: Long,
+)
