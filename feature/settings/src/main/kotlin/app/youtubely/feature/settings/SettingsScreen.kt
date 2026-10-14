@@ -69,6 +69,7 @@ fun SettingsScreen(
     val theme by viewModel.themeSettings.collectAsStateWithLifecycle()
     val playback by viewModel.playbackSettings.collectAsStateWithLifecycle()
     val sync by viewModel.syncSettings.collectAsStateWithLifecycle()
+    val sponsor by viewModel.sponsorBlockSettings.collectAsStateWithLifecycle()
     val askNotificationPermission = rememberNotificationPermissionRequest()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val context = LocalContext.current
@@ -164,8 +165,36 @@ fun SettingsScreen(
                         enabled = true,
                         onChange = { viewModel.playback { setResumePlayback(it) } },
                     ),
+                    SwitchRow(
+                        title = R.string.settings_skip_silence,
+                        summary = R.string.settings_skip_silence_summary,
+                        icon = YouTubelyIcons.FastForward,
+                        checked = playback.skipSilence,
+                        enabled = true,
+                        onChange = { viewModel.playback { setSkipSilence(it) } },
+                    ),
+                    SwitchRow(
+                        title = R.string.settings_normalize,
+                        summary = R.string.settings_normalize_summary,
+                        icon = YouTubelyIcons.Volume,
+                        checked = playback.normalizeVolume,
+                        enabled = true,
+                        onChange = { viewModel.playback { setNormalizeVolume(it) } },
+                    ),
+                    SwitchRow(
+                        title = R.string.settings_autoplay,
+                        summary = R.string.settings_autoplay_summary,
+                        icon = YouTubelyIcons.SkipNext,
+                        checked = playback.autoplayNext,
+                        enabled = true,
+                        onChange = { viewModel.playback { setAutoplayNext(it) } },
+                    ),
                 ),
             )
+            header(R.string.settings_subtitles)
+            item(key = "subtitles") { SubtitleSettings(playback) { viewModel.playback(it) } }
+            header(R.string.settings_sponsorblock)
+            item(key = "sponsorblock") { SponsorBlockSettingsSection(sponsor, viewModel::sponsorBlock) }
             item(key = "seek-step") {
                 SeekStepSelector(playback.seekStepSeconds) { viewModel.playback { setSeekStepSeconds(it) } }
             }

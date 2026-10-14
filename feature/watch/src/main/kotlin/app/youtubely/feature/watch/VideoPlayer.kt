@@ -121,6 +121,7 @@ internal fun VideoPlayer(
             modifier
                 .background(Color.Black)
                 .clipToBounds()
+                .playerKeys(player, onToggleFullscreen) { controlsVisible = true }
                 .playerGestures(
                     player = player,
                     state = gestures,

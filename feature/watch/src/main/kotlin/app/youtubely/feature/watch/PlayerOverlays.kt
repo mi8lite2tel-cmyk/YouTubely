@@ -5,6 +5,7 @@
 package app.youtubely.feature.watch
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,9 +26,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
@@ -202,3 +209,87 @@ internal fun SkipNoticeChip(
         }
     }
 }
+
+/**
+ * Keyboard shortcuts for a hardware keyboard: Space or K plays and pauses, J and ← / L and → seek,
+ * M mutes, F toggles fullscreen, ↑ and ↓ change the volume, < and > change the speed.
+ */
+@Composable
+internal fun Modifier.playerKeys(
+    player: Player,
+    onToggleFullscreen: () -> Unit,
+    onKey: () -> Unit,
+): Modifier {
+    val focus =
+        remember {
+            androidx.compose.ui.focus
+                .FocusRequester()
+        }
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+    return this
+        .focusRequester(focus)
+        .focusable()
+        .onPreviewKeyEvent { event ->
+            if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+            val handled = handleKey(player, event.key, onToggleFullscreen)
+            if (handled) onKey()
+            handled
+        }
+}
+
+private fun handleKey(
+    player: Player,
+    key: Key,
+    onToggleFullscreen: () -> Unit,
+): Boolean {
+    when (key) {
+        Key.Spacebar, Key.K -> {
+            if (player.isPlaying) player.pause() else player.play()
+        }
+
+        Key.J, Key.DirectionLeft -> {
+            player.seekBack()
+        }
+
+        Key.L, Key.DirectionRight -> {
+            player.seekForward()
+        }
+
+        Key.M -> {
+            player.isDeviceMuted = !player.isDeviceMuted
+        }
+
+        Key.F -> {
+            onToggleFullscreen()
+        }
+
+        Key.DirectionUp -> {
+            player.increaseDeviceVolume(0)
+        }
+
+        Key.DirectionDown -> {
+            player.decreaseDeviceVolume(0)
+        }
+
+        Key.Comma -> {
+            player.setPlaybackSpeed(
+                (player.playbackParameters.speed - SPEED_KEY_STEP).coerceAtLeast(MIN_SPEED),
+            )
+        }
+
+        Key.Period -> {
+            player.setPlaybackSpeed(
+                (player.playbackParameters.speed + SPEED_KEY_STEP).coerceAtMost(MAX_SPEED),
+            )
+        }
+
+        else -> {
+            return false
+        }
+    }
+    return true
+}
+
+private const val SPEED_KEY_STEP = 0.25f
+private const val MIN_SPEED = 0.25f
+private const val MAX_SPEED = 4f
