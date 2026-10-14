@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "e03f1e666d704f91ad954abda57f0cb5",
+    "identityHash": "03334b81a806ea2424b9fdb519192242",
     "entities": [
       {
         "tableName": "history",
@@ -149,7 +149,7 @@
       },
       {
         "tableName": "feed_items",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`firstSeenAt` INTEGER NOT NULL, `pending` INTEGER NOT NULL DEFAULT 0, `videoId` TEXT NOT NULL, `title` TEXT NOT NULL, `channelId` TEXT, `channelName` TEXT, `channelAvatarUrl` TEXT, `thumbnailUrl` TEXT, `durationSeconds` INTEGER, `streamType` TEXT NOT NULL, `uploadedAt` INTEGER, PRIMARY KEY(`videoId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`firstSeenAt` INTEGER NOT NULL, `pending` INTEGER NOT NULL DEFAULT 0, `downloadPending` INTEGER NOT NULL DEFAULT 0, `videoId` TEXT NOT NULL, `title` TEXT NOT NULL, `channelId` TEXT, `channelName` TEXT, `channelAvatarUrl` TEXT, `thumbnailUrl` TEXT, `durationSeconds` INTEGER, `streamType` TEXT NOT NULL, `uploadedAt` INTEGER, PRIMARY KEY(`videoId`))",
         "fields": [
           {
             "fieldPath": "firstSeenAt",
@@ -160,6 +160,13 @@
           {
             "fieldPath": "pending",
             "columnName": "pending",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "downloadPending",
+            "columnName": "downloadPending",
             "affinity": "INTEGER",
             "notNull": true,
             "defaultValue": "0"
@@ -506,7 +513,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e03f1e666d704f91ad954abda57f0cb5')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '03334b81a806ea2424b9fdb519192242')"
     ]
   }
 }

@@ -112,6 +112,12 @@ interface FeedDao {
     @Query("UPDATE feed_items SET pending = 0 WHERE videoId IN (:ids)")
     suspend fun clearPending(ids: List<String>)
 
+    @Query("SELECT * FROM feed_items WHERE downloadPending = 1 ORDER BY COALESCE(uploadedAt, firstSeenAt)")
+    suspend fun downloadPending(): List<FeedItemEntity>
+
+    @Query("UPDATE feed_items SET downloadPending = 0 WHERE videoId IN (:ids)")
+    suspend fun clearDownloadPending(ids: List<String>)
+
     @Query("DELETE FROM feed_items WHERE channelId = :channelId")
     suspend fun deleteChannel(channelId: String)
 

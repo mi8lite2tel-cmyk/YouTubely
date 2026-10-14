@@ -73,8 +73,10 @@ data class VideoSnapshot(
 data class FeedItemEntity(
     @Embedded val video: VideoSnapshot,
     val firstSeenAt: Long,
-    /** Not yet handled by the background sync (notification, automatic download). */
+    /** Found after the first load of its channel and not announced by a notification yet. */
     @ColumnInfo(defaultValue = "0") val pending: Boolean = false,
+    /** Same, for the automatic download of the channel. */
+    @ColumnInfo(defaultValue = "0") val downloadPending: Boolean = false,
 )
 
 @Entity(tableName = "watch_later", primaryKeys = ["videoId"], indices = [Index("addedAt")])

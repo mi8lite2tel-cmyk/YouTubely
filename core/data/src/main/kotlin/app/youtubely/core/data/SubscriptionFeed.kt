@@ -108,17 +108,26 @@ class SubscriptionFeed
             }
         }
 
-        /** Videos found by refreshes that background sync has not looked at yet. */
-        suspend fun fresh(): List<FreshVideo> {
+        /** Videos found by refreshes that no notification has announced yet. */
+        suspend fun freshToAnnounce(): List<FreshVideo> = fresh(dao.pending())
+
+        /** Videos found by refreshes that the automatic download has not looked at yet. */
+        suspend fun freshToDownload(): List<FreshVideo> = fresh(dao.downloadPending())
+
+        suspend fun markAnnounced(videos: List<FreshVideo>) {
+            if (videos.isNotEmpty()) dao.clearPending(videos.map { it.item.id.value })
+        }
+
+        suspend fun markDownloadHandled(videos: List<FreshVideo>) {
+            if (videos.isNotEmpty()) dao.clearDownloadPending(videos.map { it.item.id.value })
+        }
+
+        private suspend fun fresh(rows: List<FeedItemEntity>): List<FreshVideo> {
             val bySubscription = subscriptionDao.getAll().associateBy { it.channelId }
-            return dao.pending().mapNotNull { row ->
+            return rows.mapNotNull { row ->
                 val subscription = bySubscription[row.video.channelId] ?: return@mapNotNull null
                 FreshVideo(row.video.toItem(), subscription.toSubscription())
             }
-        }
-
-        suspend fun markHandled(videos: List<FreshVideo>) {
-            if (videos.isNotEmpty()) dao.clearPending(videos.map { it.item.id.value })
         }
 
         private suspend fun load(channel: SubscriptionEntity): Result<Unit> =
@@ -146,11 +155,8 @@ class SubscriptionFeed
             dao.insertAll(
                 items.map { item ->
                     val snapshot = item.toSnapshot()
-                    FeedItemEntity(
-                        video = snapshot,
-                        firstSeenAt = now,
-                        pending = !seeding && (snapshot.uploadedAt ?: now) >= recent,
-                    )
+                    val fresh = !seeding && (snapshot.uploadedAt ?: now) >= recent
+                    FeedItemEntity(video = snapshot, firstSeenAt = now, pending = fresh, downloadPending = fresh)
                 },
             )
             subscriptionDao.markRefreshed(channel.channelId, now)

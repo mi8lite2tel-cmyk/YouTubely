@@ -88,9 +88,11 @@ class DownloadManager
         /** What can be saved for this video without re-encoding (see [StreamSelection]). */
         fun formats(info: StreamInfo): List<DownloadFormat> = StreamSelection.formats(info)
 
+        /** @param unmeteredOnly wait for Wi-Fi whatever the setting says (automatic downloads). */
         suspend fun start(
             info: StreamInfo,
             format: DownloadFormat,
+            unmeteredOnly: Boolean = false,
         ): Download {
             val id = Download.idFor(info.item.id, format)
             val existing = store.get(id)
@@ -114,7 +116,7 @@ class DownloadManager
                     createdAtMillis = System.currentTimeMillis(),
                 )
             store.upsert(download)
-            enqueue(id)
+            enqueue(id, forceUnmetered = unmeteredOnly)
             return download
         }
 
@@ -172,8 +174,9 @@ class DownloadManager
         private suspend fun enqueue(
             id: String,
             allowMetered: Boolean = false,
+            forceUnmetered: Boolean = false,
         ) {
-            val wifiOnly = settings.settings.first().downloadOnWifiOnly && !allowMetered
+            val wifiOnly = forceUnmetered || (settings.settings.first().downloadOnWifiOnly && !allowMetered)
             val request =
                 OneTimeWorkRequestBuilder<DownloadWorker>()
                     .setInputData(workDataOf(DownloadWorker.KEY_ID to id))

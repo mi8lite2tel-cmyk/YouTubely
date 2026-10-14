@@ -92,11 +92,11 @@ class LibraryRepositoriesTest {
 
             feed.refresh()
             // Not "new": a channel just followed must not announce its back catalogue.
-            assertTrue(feed.fresh().isEmpty())
+            assertTrue(feed.freshToAnnounce().isEmpty())
 
             videos += item("new")
             feed.refresh()
-            val fresh = feed.fresh()
+            val fresh = feed.freshToAnnounce()
             assertEquals(listOf("new"), fresh.map { it.item.id.value })
             assertEquals(
                 channel.id,
@@ -105,8 +105,12 @@ class LibraryRepositoriesTest {
                     .subscription.channel.id,
             )
 
-            feed.markHandled(fresh)
-            assertTrue(feed.fresh().isEmpty())
+            feed.markAnnounced(fresh)
+            assertTrue(feed.freshToAnnounce().isEmpty())
+            // The automatic download keeps its own list.
+            assertEquals(listOf("new"), feed.freshToDownload().map { it.item.id.value })
+            feed.markDownloadHandled(feed.freshToDownload())
+            assertTrue(feed.freshToDownload().isEmpty())
             assertEquals(
                 2,
                 feed.state

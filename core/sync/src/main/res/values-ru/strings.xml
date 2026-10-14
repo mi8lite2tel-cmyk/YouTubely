@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sync_channel_name">Новые видео</string>
+    <string name="sync_new_video">Новое видео</string>
+    <plurals name="sync_new_videos_summary">
+        <item quantity="one">%d новое видео</item>
+        <item quantity="few">%d новых видео</item>
+        <item quantity="many">%d новых видео</item>
+        <item quantity="other">%d новых видео</item>
+    </plurals>
+</resources>

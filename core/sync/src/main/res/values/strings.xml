@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sync_channel_name">New videos</string>
+    <string name="sync_new_video">New video</string>
+    <plurals name="sync_new_videos_summary">
+        <item quantity="one">%d new video</item>
+        <item quantity="other">%d new videos</item>
+    </plurals>
+</resources>
