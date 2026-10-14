@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package app.youtubely.di
 
+import app.youtubely.core.data.TrafficMeter
 import app.youtubely.core.network.HttpClientFactory
 import app.youtubely.core.network.NewPipeDownloader
+import app.youtubely.core.network.TrafficInterceptor
 import app.youtubely.core.provider.StreamProvider
 import app.youtubely.core.provider.newpipe.NewPipeStreamProvider
 import dagger.Module
@@ -19,7 +21,9 @@ import javax.inject.Singleton
 object AppModule {
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient = HttpClientFactory.create()
+    fun provideOkHttpClient(meter: TrafficMeter): OkHttpClient =
+        // A network interceptor sees the bytes as they travel (compressed), so the Traffic screen is accurate.
+        HttpClientFactory.create { addNetworkInterceptor(TrafficInterceptor(meter)) }
 
     /** The default source; swapping it (e.g. for Piped) touches only this binding. */
     @Provides

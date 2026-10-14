@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import app.youtubely.core.model.AnimationSpeed
 import app.youtubely.core.model.DarkMode
 import app.youtubely.core.model.ThemeSettings
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +29,9 @@ class ThemeSettingsRepository(
                     dynamicColor = prefs[DYNAMIC_COLOR] ?: defaults.dynamicColor,
                     pureBlack = prefs[PURE_BLACK] ?: defaults.pureBlack,
                     highContrast = prefs[HIGH_CONTRAST] ?: defaults.highContrast,
+                    animationSpeed =
+                        prefs[ANIMATION_SPEED]?.let { name -> AnimationSpeed.entries.firstOrNull { it.name == name } }
+                            ?: defaults.animationSpeed,
                 )
             }.distinctUntilChanged()
 
@@ -47,7 +51,12 @@ class ThemeSettingsRepository(
         store.edit { it[HIGH_CONTRAST] = enabled }
     }
 
+    suspend fun setAnimationSpeed(speed: AnimationSpeed) {
+        store.edit { it[ANIMATION_SPEED] = speed.name }
+    }
+
     private companion object {
+        val ANIMATION_SPEED = stringPreferencesKey("theme_animation_speed")
         val DARK_MODE = stringPreferencesKey("theme_dark_mode")
         val DYNAMIC_COLOR = booleanPreferencesKey("theme_dynamic_color")
         val PURE_BLACK = booleanPreferencesKey("theme_pure_black")

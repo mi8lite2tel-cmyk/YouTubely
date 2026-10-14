@@ -22,6 +22,7 @@ import app.youtubely.core.model.DownloadFormat
 import app.youtubely.core.model.DownloadState
 import app.youtubely.core.model.StorageUsage
 import app.youtubely.core.model.StreamInfo
+import app.youtubely.core.model.VideoId
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -48,6 +49,10 @@ class DownloadManager
         private val settings: PlaybackSettingsRepository,
     ) {
         private val workManager get() = WorkManager.getInstance(context)
+
+        init {
+            Thread(DeviceDecoders::warmUp, "codec-list").start()
+        }
 
         val downloads: Flow<List<Download>> = store.downloads
 
@@ -85,8 +90,8 @@ class DownloadManager
             }
         }
 
-        /** What can be saved for this video without re-encoding (see [StreamSelection]). */
-        fun formats(info: StreamInfo): List<DownloadFormat> = StreamSelection.formats(info)
+        /** What can be saved without re-encoding and played back on this device (see [StreamSelection]). */
+        fun formats(info: StreamInfo): List<DownloadFormat> = StreamSelection.formats(info, DeviceDecoders::canPlay)
 
         /** @param unmeteredOnly wait for Wi-Fi whatever the setting says (automatic downloads). */
         suspend fun start(
@@ -119,6 +124,12 @@ class DownloadManager
             enqueue(id, forceUnmetered = unmeteredOnly)
             return download
         }
+
+        /** Saves all [ids] (e.g. a playlist) in the best quality up to [maxHeight]; `null` saves sound only. */
+        fun startAll(
+            ids: List<VideoId>,
+            maxHeight: Int?,
+        ) = BatchDownloadWorker.enqueue(context, ids, maxHeight)
 
         suspend fun pause(id: String) {
             store.update(id) { it.copy(state = DownloadState.Paused) }

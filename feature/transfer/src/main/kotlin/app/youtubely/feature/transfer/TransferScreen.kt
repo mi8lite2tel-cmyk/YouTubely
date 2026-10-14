@@ -9,6 +9,8 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -68,6 +70,8 @@ import app.youtubely.core.data.TransferBundle
 import app.youtubely.core.data.TransferScope
 import app.youtubely.core.designsystem.component.ExpressiveFilterChip
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
+import app.youtubely.core.ui.groupedListItemColors
+import app.youtubely.core.ui.groupedListItemShapes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -242,7 +246,8 @@ private fun ActionRow(
 ) {
     SegmentedListItem(
         onClick = onClick,
-        shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
+        shapes = groupedListItemShapes(index, count),
+        colors = groupedListItemColors(),
         leadingContent = { Icon(painterResource(icon), contentDescription = null) },
         supportingContent = { Text(stringResource(summary)) },
     ) { Text(stringResource(title)) }
@@ -335,7 +340,11 @@ private fun ScanSheet(
                         modifier = Modifier.fillMaxWidth().height(CAMERA_HEIGHT),
                     )
                 }
-                AnimatedVisibility(visible = expected > 0) {
+                val motion = MaterialTheme.motionScheme
+                AnimatedVisibility(
+                    visible = expected > 0,
+                    enter = fadeIn(motion.defaultEffectsSpec()) + expandVertically(motion.defaultSpatialSpec()),
+                ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             stringResource(R.string.transfer_scan_progress, received, expected),

@@ -45,8 +45,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.model.VideoId
+import app.youtubely.core.ui.DownloadAllButton
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.VideoRow
+import app.youtubely.core.ui.motionItem
 import app.youtubely.core.ui.videoFrameKey
 import kotlinx.coroutines.launch
 
@@ -98,7 +100,10 @@ fun LocalPlaylistScreen(
                         Icon(painterResource(YouTubelyIcons.ArrowBack), stringResource(R.string.library_back))
                     }
                 },
-                actions = { PlaylistMenu(onRename = { renaming = true }, onDelete = { deleting = true }) },
+                actions = {
+                    items?.takeIf { it.isNotEmpty() }?.let { DownloadAllButton(it.size, viewModel::downloadAll) }
+                    PlaylistMenu(onRename = { renaming = true }, onDelete = { deleting = true })
+                },
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -132,7 +137,7 @@ fun LocalPlaylistScreen(
                                 val first = list.first().id
                                 onPlayAll(first, videoFrameKey(ORIGIN, first))
                             },
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp).animateItem(),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp).then(motionItem()),
                         ) {
                             Icon(painterResource(YouTubelyIcons.PlaylistPlay), contentDescription = null)
                             Text(stringResource(R.string.library_play_all), Modifier.padding(start = 8.dp))
@@ -154,7 +159,7 @@ fun LocalPlaylistScreen(
                                     if (result == SnackbarResult.ActionPerformed) viewModel.restore(item)
                                 }
                             },
-                            modifier = Modifier.animateItem(),
+                            modifier = motionItem(),
                         ) {
                             val key = videoFrameKey(ORIGIN, item.id)
                             VideoRow(

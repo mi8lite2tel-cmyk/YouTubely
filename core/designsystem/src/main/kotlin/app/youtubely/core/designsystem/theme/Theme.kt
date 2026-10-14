@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import app.youtubely.core.model.AnimationSpeed
 import app.youtubely.core.model.DarkMode
 import app.youtubely.core.model.ThemeSettings
 
@@ -24,6 +25,7 @@ import app.youtubely.core.model.ThemeSettings
  * @param dynamicColor use the wallpaper-based palette on Android 12+. When unavailable,
  *   the scheme generated from the brand seed (see `tools/color`) is used.
  * @param pureBlack AMOLED mode: replaces dark backgrounds and surfaces with true black.
+ * @param animationSpeed how long animations take; the whole scheme is stretched, see [ScaledMotionScheme].
  * @param highContrast high-contrast variant of the seed scheme. Dynamic schemes on Android 14+
  *   already follow the system contrast setting, so this flag only affects the seed scheme.
  */
@@ -33,6 +35,7 @@ fun YouTubelyTheme(
     dynamicColor: Boolean = true,
     pureBlack: Boolean = false,
     highContrast: Boolean = false,
+    animationSpeed: AnimationSpeed = AnimationSpeed.Standard,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -53,7 +56,10 @@ fun YouTubelyTheme(
 
     MaterialExpressiveTheme(
         colorScheme = animateColorScheme(colorScheme),
-        motionScheme = MotionScheme.expressive(),
+        motionScheme =
+            remember(
+                animationSpeed,
+            ) { ScaledMotionScheme(MotionScheme.expressive(), animationSpeed.durationScale) },
         typography = YouTubelyTypography,
         content = content,
     )
@@ -70,6 +76,7 @@ fun YouTubelyTheme(
         dynamicColor = settings.dynamicColor,
         pureBlack = settings.pureBlack,
         highContrast = settings.highContrast,
+        animationSpeed = settings.animationSpeed,
         content = content,
     )
 }

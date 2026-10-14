@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.youtubely.core.common.Outcome
 import app.youtubely.core.common.outcomeOf
+import app.youtubely.core.download.DownloadManager
 import app.youtubely.core.model.Page
 import app.youtubely.core.model.Playlist
 import app.youtubely.core.model.PlaylistId
@@ -35,6 +36,7 @@ class PlaylistViewModel
     constructor(
         @Assisted playlistId: String,
         private val provider: StreamProvider,
+        private val downloads: DownloadManager,
     ) : ViewModel() {
         val id = PlaylistId(playlistId)
 
@@ -46,6 +48,21 @@ class PlaylistViewModel
         }
 
         fun retry() = load()
+
+        /** Saves the whole playlist: the pages not shown yet are fetched first, up to the batch limit. */
+        fun downloadAll(maxHeight: Int?) {
+            val current = _state.value
+            viewModelScope.launch {
+                val items = current.items.toMutableList()
+                var next = current.nextPage
+                while (next != null && items.size < BATCH_LIMIT) {
+                    val page = (outcomeOf { provider.playlist(id, next) } as? Outcome.Success)?.value ?: break
+                    items += page.items.items
+                    next = page.items.nextPage
+                }
+                downloads.startAll(items.distinctBy { it.id }.map { it.id }, maxHeight)
+            }
+        }
 
         fun loadMore() {
             val current = _state.value
@@ -93,3 +110,6 @@ class PlaylistViewModel
             fun create(playlistId: String): PlaylistViewModel
         }
     }
+
+/** Pages are fetched for "download all" until this many videos are known. */
+private const val BATCH_LIMIT = 300

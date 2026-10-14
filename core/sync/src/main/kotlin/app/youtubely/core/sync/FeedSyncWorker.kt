@@ -7,6 +7,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import app.youtubely.core.data.SubscriptionFeed
+import app.youtubely.core.data.SubscriptionRepository
 import app.youtubely.core.datastore.SyncSettingsRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -24,6 +25,7 @@ internal class FeedSyncWorker
         @Assisted params: WorkerParameters,
         private val feed: SubscriptionFeed,
         private val settings: SyncSettingsRepository,
+        private val subscriptions: SubscriptionRepository,
     ) : CoroutineWorker(context, params) {
         override suspend fun doWork(): Result {
             feed.refresh()
@@ -39,7 +41,13 @@ internal class FeedSyncWorker
 
             val download = feed.freshToDownload()
             feed.markDownloadHandled(download.filterNot { it.subscription.autoDownload })
-            if (download.any { it.subscription.autoDownload }) AutoDownloadWorker.enqueue(applicationContext, current)
+            // Also runs without new videos when watched downloads may have to go.
+            val cleanUp = subscriptions.details.first().any { it.autoDownload && it.autoRule.deleteWatched }
+            if (cleanUp ||
+                download.any { it.subscription.autoDownload }
+            ) {
+                AutoDownloadWorker.enqueue(applicationContext, current)
+            }
             return Result.success()
         }
 

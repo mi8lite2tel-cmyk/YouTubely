@@ -18,4 +18,6 @@
     <string name="home_reason_subscription">З ваших підписок</string>
     <string name="home_reason_frequent">Канал, який ви часто дивитеся</string>
     <string name="home_group_all">Усі</string>
+    <string name="home_continue">Продовжити перегляд</string>
+    <string name="home_continue_left">Залишилось %s</string>
 </resources>

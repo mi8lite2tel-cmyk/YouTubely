@@ -14,6 +14,8 @@ data class Subscription(
     /** User-chosen label to filter the feed by. */
     val group: String?,
     val subscribedAt: Instant,
+    /** What to save when [autoDownload] is on. */
+    val autoRule: AutoDownloadRule = AutoDownloadRule(),
 )
 
 /** A video put aside in "Watch later". */
@@ -51,12 +53,20 @@ data class SyncSettings(
     /** Stop saving when downloads take this much space; 0 = no limit. */
     val autoDownloadLimitGb: Int = DEFAULT_LIMIT_GB,
     val autoDownloadOnlyCharging: Boolean = true,
+    /** Only start automatic downloads inside this daily window, `null` = any time. */
+    val autoDownloadWindow: TimeWindow? = null,
+    /** Most videos one run saves, 0 = no limit. Keeps a burst of uploads from filling the phone. */
+    val autoDownloadPerRun: Int = DEFAULT_PER_RUN,
+    /** Do not save videos that are already in the watch history. */
+    val autoDownloadSkipWatched: Boolean = true,
 ) {
     companion object {
         const val DEFAULT_INTERVAL_HOURS = 6
         const val DEFAULT_AUTO_HEIGHT = 720
         const val DEFAULT_KEEP_LAST = 3
         const val DEFAULT_LIMIT_GB = 5
+        const val DEFAULT_PER_RUN = 5
+        val PER_RUN_CHOICES = listOf(1, 3, 5, 10, 0)
         val INTERVAL_CHOICES = listOf(1, 3, 6, 12, 24)
         val KEEP_LAST_CHOICES = listOf(1, 3, 5, 10)
         val LIMIT_GB_CHOICES = listOf(0, 2, 5, 10, 20)

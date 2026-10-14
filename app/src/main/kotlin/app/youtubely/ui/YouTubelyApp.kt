@@ -14,6 +14,8 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +49,7 @@ import app.youtubely.core.model.PlaylistId
 import app.youtubely.core.model.StreamItem
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.model.YouTubeLink
+import app.youtubely.core.player.NowPlaying
 import app.youtubely.core.ui.LocalSharedTransitionScope
 import app.youtubely.core.ui.LocalVideoActions
 import app.youtubely.feature.actions.VideoActionsSheet
@@ -54,22 +57,27 @@ import app.youtubely.feature.channel.ChannelScreen
 import app.youtubely.feature.downloads.DownloadsScreen
 import app.youtubely.feature.home.HomeScreen
 import app.youtubely.feature.library.LibraryScreen
+import app.youtubely.feature.library.LibrarySearchScreen
 import app.youtubely.feature.library.LocalPlaylistScreen
+import app.youtubely.feature.library.StatsScreen
 import app.youtubely.feature.playlist.PlaylistScreen
 import app.youtubely.feature.search.SearchScreen
 import app.youtubely.feature.settings.SettingsScreen
 import app.youtubely.feature.transfer.TransferScreen
+import app.youtubely.feature.watch.MiniPlayer
 import app.youtubely.feature.watch.OfflineWatchScreen
 import app.youtubely.feature.watch.WatchScreen
 import app.youtubely.navigation.ChannelRoute
 import app.youtubely.navigation.DownloadsRoute
 import app.youtubely.navigation.HomeRoute
 import app.youtubely.navigation.LibraryRoute
+import app.youtubely.navigation.LibrarySearchRoute
 import app.youtubely.navigation.LocalPlaylistRoute
 import app.youtubely.navigation.OfflineWatchRoute
 import app.youtubely.navigation.PlaylistRoute
 import app.youtubely.navigation.SearchRoute
 import app.youtubely.navigation.SettingsRoute
+import app.youtubely.navigation.StatsRoute
 import app.youtubely.navigation.TopLevelRoute
 import app.youtubely.navigation.TransferRoute
 import app.youtubely.navigation.WatchRoute
@@ -146,29 +154,9 @@ fun YouTubelyApp(
     }
     var actionsFor by remember { mutableStateOf<StreamItem?>(null) }
 
-    NavigationSuiteScaffold(
-        modifier = modifier,
-        state = suiteState,
-        navigationItems = {
-            TopLevelItems.forEach { item ->
-                val selected = item.route == current
-                NavigationSuiteItem(
-                    selected = selected,
-                    onClick = {
-                        if (selected) {
-                            // Re-selecting a tab returns to its root.
-                            while (backStack.size > 1) backStack.removeLastOrNull()
-                        } else {
-                            currentName = item.route.toString()
-                        }
-                    },
-                    icon = { NavigationIcon(item, selected) },
-                    label = { Text(stringResource(item.label)) },
-                )
-            }
-        },
-    ) {
-        SharedTransitionLayout {
+    // Tabs with their back stacks; above the mini player, which shows the video left playing.
+    val navigation: @Composable (Modifier) -> Unit = { navigationModifier ->
+        SharedTransitionLayout(navigationModifier) {
             CompositionLocalProvider(
                 LocalSharedTransitionScope provides this,
                 LocalVideoActions provides { actionsFor = it },
@@ -222,15 +210,27 @@ fun YouTubelyApp(
                                             stack.add(WatchRoute(id.value, key, LocalQueue.WATCH_LATER))
                                         },
                                         onOpenTransfer = { stack.add(TransferRoute) },
+                                        onOpenStats = { stack.add(StatsRoute) },
+                                        onOpenSearch = { stack.add(LibrarySearchRoute) },
                                     )
                                 }
+                                entry<LibrarySearchRoute> {
+                                    LibrarySearchScreen(
+                                        onBack = { stack.removeLastOrNull() },
+                                        onOpenVideo = ::openVideo,
+                                        onPlayDownload = { stack.add(OfflineWatchRoute(it)) },
+                                        onOpenPlaylist = { stack.add(LocalPlaylistRoute(it)) },
+                                    )
+                                }
+                                entry<StatsRoute> { StatsScreen(onBack = { stack.removeLastOrNull() }) }
                                 entry<LocalPlaylistRoute> { route ->
                                     LocalPlaylistScreen(
                                         playlistId = route.playlistId,
                                         onBack = { stack.removeLastOrNull() },
                                         onOpenVideo = ::openVideo,
                                         onPlayAll = { id, key ->
-                                            stack.add(WatchRoute(id.value, key, LocalQueue.playlist(route.playlistId)))
+                                            val queue = LocalQueue.playlist(route.playlistId)
+                                            stack.add(WatchRoute(id.value, key, queue))
                                         },
                                     )
                                 }
@@ -278,6 +278,7 @@ fun YouTubelyApp(
                                         playlistId = route.playlistId?.let(::PlaylistId),
                                         onOpenVideo = ::openVideo,
                                         onOpenChannel = ::openChannel,
+                                        onCollapse = { stack.removeLastOrNull() },
                                     )
                                 }
                             },
@@ -286,8 +287,60 @@ fun YouTubelyApp(
             }
         }
     }
+
+    NavigationSuiteScaffold(
+        modifier = modifier,
+        state = suiteState,
+        navigationItems = {
+            TopLevelItems.forEach { item ->
+                val selected = item.route == current
+                NavigationSuiteItem(
+                    selected = selected,
+                    onClick = {
+                        if (selected) {
+                            // Re-selecting a tab returns to its root.
+                            while (backStack.size > 1) backStack.removeLastOrNull()
+                        } else {
+                            currentName = item.route.toString()
+                        }
+                    },
+                    icon = { NavigationIcon(item, selected) },
+                    label = { Text(stringResource(item.label)) },
+                )
+            }
+        },
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            navigation(Modifier.weight(1f))
+            MiniPlayer(
+                visible = !watching,
+                onOpen = { backStack.reopen(it) },
+            )
+        }
+    }
     actionsFor?.let { item ->
         VideoActionsSheet(item = item, onDismiss = { actionsFor = null }, onOpenChannel = ::openChannel)
+    }
+}
+
+/**
+ * Shows the screen of what the mini player plays. When that screen is still deeper in this back
+ * stack it is brought back instead of opened twice (two equal keys would share their state).
+ */
+private fun NavBackStack<NavKey>.reopen(playing: NowPlaying) {
+    val id = playing.item.id.value
+    val existing =
+        indexOfLast { key ->
+            when (key) {
+                is WatchRoute -> key.videoId == id
+                is OfflineWatchRoute -> key.downloadId == playing.downloadId
+                else -> false
+            }
+        }
+    if (existing >= 0) {
+        while (size > existing + 1) removeLastOrNull()
+    } else {
+        add(playing.downloadId?.let(::OfflineWatchRoute) ?: WatchRoute(id, "mini-$id"))
     }
 }
 

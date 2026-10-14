@@ -7,6 +7,7 @@ import androidx.room3.Insert
 import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
 import androidx.room3.Transaction
+import androidx.room3.Update
 import androidx.room3.Upsert
 import kotlinx.coroutines.flow.Flow
 
@@ -83,6 +84,10 @@ interface SubscriptionDao {
         channelId: String,
         group: String?,
     )
+
+    /** Writes only the automatic-download rule columns of one subscription. */
+    @Update(entity = SubscriptionEntity::class)
+    suspend fun setAutoDownloadRule(rule: AutoDownloadRuleColumns)
 
     @Query("UPDATE subscriptions SET lastRefreshedAt = :at WHERE channelId = :channelId")
     suspend fun markRefreshed(
@@ -221,4 +226,81 @@ interface AutoDownloadDao {
 
     @Query("DELETE FROM auto_downloads WHERE videoId = :videoId")
     suspend fun delete(videoId: String)
+}
+
+@Dao
+interface ChannelPlaybackDao {
+    @Query("SELECT * FROM channel_playback WHERE channelId = :channelId")
+    suspend fun get(channelId: String): ChannelPlaybackEntity?
+
+    @Upsert
+    suspend fun upsert(entity: ChannelPlaybackEntity)
+
+    @Query("DELETE FROM channel_playback WHERE channelId = :channelId")
+    suspend fun delete(channelId: String)
+
+    @Query("DELETE FROM channel_playback")
+    suspend fun clear()
+}
+
+/** Sum of traffic for one group, as returned by the aggregate queries of [TrafficDao]. */
+data class TrafficSum(
+    val metered: Boolean,
+    val kind: String,
+    val bytes: Long,
+)
+
+/** Bytes of one day over one kind of network. */
+data class TrafficDay(
+    val day: Long,
+    val metered: Boolean,
+    val bytes: Long,
+)
+
+@Dao
+interface TrafficDao {
+    @Query("INSERT OR IGNORE INTO traffic_daily (day, metered, kind, bytes) VALUES (:day, :metered, :kind, 0)")
+    suspend fun ensureRow(
+        day: Long,
+        metered: Boolean,
+        kind: String,
+    )
+
+    @Query("UPDATE traffic_daily SET bytes = bytes + :bytes WHERE day = :day AND metered = :metered AND kind = :kind")
+    suspend fun increase(
+        day: Long,
+        metered: Boolean,
+        kind: String,
+        bytes: Long,
+    )
+
+    /**
+     * Adds [bytes] to the day's total. Two statements instead of an upsert: `ON CONFLICT DO UPDATE`
+     * needs SQLite 3.24, which Android ships only from version 11.
+     */
+    @Transaction
+    suspend fun add(
+        day: Long,
+        metered: Boolean,
+        kind: String,
+        bytes: Long,
+    ) {
+        ensureRow(day, metered, kind)
+        increase(day, metered, kind, bytes)
+    }
+
+    @Query("SELECT metered, kind, SUM(bytes) AS bytes FROM traffic_daily WHERE day >= :from GROUP BY metered, kind")
+    fun observeSums(from: Long): Flow<List<TrafficSum>>
+
+    @Query("SELECT day, metered, SUM(bytes) AS bytes FROM traffic_daily WHERE day >= :from GROUP BY day, metered")
+    fun observeDays(from: Long): Flow<List<TrafficDay>>
+
+    @Query("SELECT COALESCE(SUM(bytes), 0) FROM traffic_daily WHERE metered = 1 AND day >= :from")
+    fun observeMeteredSince(from: Long): Flow<Long>
+
+    @Query("DELETE FROM traffic_daily WHERE day < :before")
+    suspend fun deleteBefore(before: Long)
+
+    @Query("DELETE FROM traffic_daily")
+    suspend fun clear()
 }

@@ -14,6 +14,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.dash.DashMediaSource
 import androidx.media3.exoplayer.dash.manifest.DashManifestParser
@@ -22,6 +23,7 @@ import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.source.SingleSampleMediaSource
+import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import app.youtubely.core.model.StreamInfo
 import app.youtubely.core.model.StreamType
 import app.youtubely.core.model.Subtitle
@@ -37,10 +39,16 @@ class YouTubelyPlayer
     @Inject
     constructor(
         private val client: OkHttpClient,
+        private val bandwidth: BandwidthStore,
     ) {
+        /** Lets the data saver shorten the buffer while the player runs. */
+        internal val loadControl = SavingLoadControl(DefaultLoadControl())
+
         fun createPlayer(context: Context): ExoPlayer =
             ExoPlayer
                 .Builder(context)
+                .setLoadControl(loadControl)
+                .setBandwidthMeter(bandwidthMeter(context))
                 .setAudioAttributes(
                     AudioAttributes
                         .Builder()
@@ -60,6 +68,18 @@ class YouTubelyPlayer
                             .setPreferredAudioRoleFlags(C.ROLE_FLAG_MAIN)
                             .build()
                 }
+
+        /** Starts from the speed the connection had last time instead of a cautious default. */
+        private fun bandwidthMeter(context: Context): DefaultBandwidthMeter {
+            val builder = DefaultBandwidthMeter.Builder(context)
+            val wifi = bandwidth.estimate(metered = false)
+            val mobile = bandwidth.estimate(metered = true)
+            if (wifi != null) builder.setInitialBitrateEstimate(C.NETWORK_TYPE_WIFI, wifi)
+            if (mobile != null) {
+                MOBILE_NETWORK_TYPES.forEach { builder.setInitialBitrateEstimate(it, mobile) }
+            }
+            return builder.build()
+        }
 
         /** Returns `null` when the video has nothing playable (e.g. only formats the app can't handle). */
         @Suppress("SpreadOperator") // Media3 takes the sources as a vararg; there are only a few.
@@ -135,6 +155,15 @@ class YouTubelyPlayer
         private companion object {
             const val SEEK_INCREMENT_MS = 10_000L
             const val MAX_SUBTITLES = 40
+            val MOBILE_NETWORK_TYPES =
+                listOf(
+                    C.NETWORK_TYPE_2G,
+                    C.NETWORK_TYPE_3G,
+                    C.NETWORK_TYPE_4G,
+                    C.NETWORK_TYPE_5G_NSA,
+                    C.NETWORK_TYPE_5G_SA,
+                    C.NETWORK_TYPE_CELLULAR_UNKNOWN,
+                )
 
             /** Placeholder base for the generated manifest; every representation has an absolute BaseURL. */
             val MANIFEST_URI: Uri = "https://youtubely.invalid/manifest.mpd".toUri()

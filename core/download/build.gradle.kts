@@ -10,6 +10,7 @@ dependencies {
     api(projects.core.model)
     implementation(projects.core.common)
     implementation(projects.core.datastore)
+    implementation(projects.core.network)
     implementation(projects.core.provider)
     implementation(libs.androidx.datastore)
     implementation(libs.androidx.media3.transformer)

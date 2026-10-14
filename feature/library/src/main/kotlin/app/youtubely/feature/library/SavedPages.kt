@@ -39,6 +39,7 @@ import app.youtubely.core.model.SavedVideo
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.VideoRow
+import app.youtubely.core.ui.motionItem
 import app.youtubely.core.ui.videoFrameKey
 import coil3.compose.AsyncImage
 import kotlinx.collections.immutable.ImmutableList
@@ -71,14 +72,14 @@ internal fun WatchLaterPage(
                     val first = videos.first().item.id
                     onPlayAll(first, videoFrameKey(ORIGIN_LATER, first))
                 },
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp).animateItem(),
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp).then(motionItem()),
             ) {
                 Icon(painterResource(YouTubelyIcons.PlaylistPlay), contentDescription = null)
                 Text(stringResource(R.string.library_play_all), Modifier.padding(start = 8.dp))
             }
         }
         items(videos, key = { it.item.id.value }) { video ->
-            SwipeToRemove(onRemove = { onRemove(video) }, modifier = Modifier.animateItem()) {
+            SwipeToRemove(onRemove = { onRemove(video) }, modifier = motionItem()) {
                 val key = videoFrameKey(ORIGIN_LATER, video.item.id)
                 VideoRow(
                     item = video.item,
@@ -115,7 +116,7 @@ internal fun PlaylistsPage(
                         modifier = Modifier.size(PLAYLIST_THUMBNAIL),
                     )
                 },
-                modifier = Modifier.animateItem(),
+                modifier = motionItem(),
             ) { Text(stringResource(R.string.library_new_playlist), color = MaterialTheme.colorScheme.primary) }
         }
         if (playlists.isEmpty()) {
@@ -126,7 +127,7 @@ internal fun PlaylistsPage(
                 onClick = { onOpen(playlist.id) },
                 supportingContent = { Text(stringResource(R.string.library_videos_count, playlist.itemCount)) },
                 leadingContent = { PlaylistCover(playlist.thumbnailUrl) },
-                modifier = Modifier.animateItem(),
+                modifier = motionItem(),
             ) { Text(playlist.name, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
     }

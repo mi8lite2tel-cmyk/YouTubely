@@ -4,29 +4,33 @@ package app.youtubely.core.player
 
 import android.content.ComponentName
 import android.content.Context
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkCapabilities
 import android.os.SystemClock
 import androidx.annotation.MainThread
 import androidx.annotation.OptIn
-import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import app.youtubely.core.data.ChannelPlaybackRepository
 import app.youtubely.core.data.HistoryRepository
+import app.youtubely.core.data.NetworkMonitor
 import app.youtubely.core.datastore.PlaybackSettingsRepository
+import app.youtubely.core.model.ChannelId
 import app.youtubely.core.model.PlaybackSettings
+import app.youtubely.core.model.QualityCap
+import app.youtubely.core.model.QualityReason
 import app.youtubely.core.model.StreamInfo
 import app.youtubely.core.model.StreamItem
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.model.bestFor
+import app.youtubely.core.provider.StreamProvider
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -64,18 +68,45 @@ class PlaybackManager
         private val factory: YouTubelyPlayer,
         private val settingsRepository: PlaybackSettingsRepository,
         private val history: HistoryRepository,
+        private val quality: QualityController,
+        private val channelPlayback: ChannelPlaybackRepository,
+        private val bandwidth: BandwidthStore,
+        private val network: NetworkMonitor,
+        private val provider: StreamProvider,
     ) {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-        val player: ExoPlayer by lazy { factory.createPlayer(context) }
+        val player: ExoPlayer by lazy {
+            factory.createPlayer(context).also {
+                it.addAnalyticsListener(bandwidthListener)
+                it.addListener(recoveryListener)
+            }
+        }
 
         private val _currentVideo = MutableStateFlow<VideoId?>(null)
         val currentVideo: StateFlow<VideoId?> = _currentVideo.asStateFlow()
 
+        private val _nowPlaying = MutableStateFlow<NowPlaying?>(null)
+
+        /** What is loaded in the player, for the mini player; `null` after [stop]. */
+        val nowPlaying: StateFlow<NowPlaying?> = _nowPlaying.asStateFlow()
+
+        private val _isPlaying = MutableStateFlow(false)
+
+        /** Whether sound is coming out right now; for the home-screen widget. */
+        val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
+
+        /** Stream info of the online video in the player; reopening it must not load it again. */
+        var currentInfo: StreamInfo? = null
+            private set
+
         private val _settings = MutableStateFlow(PlaybackSettings())
         val settings: StateFlow<PlaybackSettings> = _settings.asStateFlow()
 
-        private val unmetered = MutableStateFlow(true)
+        private var situation = QualitySituation()
+
+        /** The ceiling of the automatic quality and why; shown next to "Auto" in the player. */
+        val qualityCap: StateFlow<QualityCap?> get() = quality.cap
 
         /** Resolution the user picked in the player for the current video; `null` = automatic. */
         var pinnedHeight: Int? = null
@@ -99,17 +130,80 @@ class PlaybackManager
         private var positionSaver: Job? = null
 
         init {
-            observeNetwork()
-            combine(settingsRepository.settings, unmetered) { settings, free -> settings to free }
-                .onEach { (settings, free) ->
+            combine(settingsRepository.settings, quality.situation) { settings, now -> settings to now }
+                .onEach { (settings, now) ->
                     _settings.value = settings
-                    applyLimits(settings, free)
+                    situation = now
+                    applyLimits(settings)
                 }.launchIn(scope)
         }
+
+        /** When the last automatic reload of expired media URLs happened, to never loop on them. */
+        private var lastReloadAt = 0L
+
+        /** Works whether or not a video screen is open: the mini player and background playback rely on it. */
+        private val recoveryListener =
+            object : Player.Listener {
+                override fun onPlayerError(error: PlaybackException) {
+                    val expired = error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
+                    val now = SystemClock.elapsedRealtime()
+                    // Media URLs are signed for a few hours; after a long pause they need fetching again.
+                    if (expired && currentInfo != null && now - lastReloadAt > RELOAD_GUARD_MS) {
+                        lastReloadAt = now
+                        reload()
+                    }
+                }
+
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState != Player.STATE_ENDED) return
+                    // Runs after the video screen had its say; without a screen nobody consumed
+                    // "sleep at the end", and it must not stop some later video instead.
+                    scope.launch(Dispatchers.Main) {
+                        if (_sleepTimer.value == SleepTimer.AtEndOfVideo) _sleepTimer.value = SleepTimer.Off
+                    }
+                }
+            }
+
+        /**
+         * Loads the online video again with fresh media URLs at the same position, or tries a
+         * download once more. Used after expired links and by the player's "Try again".
+         */
+        @MainThread
+        fun reload() {
+            val info = currentInfo
+            if (info == null) {
+                player.prepare()
+                return
+            }
+            val position = player.currentPosition
+            scope.launch {
+                val fresh = runCatching { provider.streamInfo(info.item.id) }.getOrNull()
+                if (fresh != null && currentInfo?.item?.id == info.item.id) play(fresh, position) else player.prepare()
+            }
+        }
+
+        private val bandwidthListener =
+            object : AnalyticsListener {
+                private var lastSavedAt = 0L
+
+                override fun onBandwidthEstimate(
+                    eventTime: AnalyticsListener.EventTime,
+                    totalLoadTimeMs: Int,
+                    totalBytesLoaded: Long,
+                    bitrateEstimate: Long,
+                ) {
+                    val now = SystemClock.elapsedRealtime()
+                    // Only real video transfers say something about the connection, and not too often.
+                    if (_settings.value.audioOnly || now - lastSavedAt < BANDWIDTH_SAVE_INTERVAL_MS) return
+                    lastSavedAt = now
+                    bandwidth.record(network.isMetered, bitrateEstimate)
+                }
+            }
 
         private val historyListener =
             object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    _isPlaying.value = isPlaying
                     if (isPlaying) startSavingPosition() else savePosition()
                 }
 
@@ -130,9 +224,11 @@ class PlaybackManager
             clearLoop()
             baseVolume = VolumeNormalizer.volumeFor(info.loudnessDb).takeIf { _settings.value.normalizeVolume } ?: 1f
             if (sleepJob?.isActive != true) player.volume = baseVolume
-            applyLimits(_settings.value, unmetered.value)
+            applyLimits(_settings.value)
             player.setMediaSource(source, positionMs)
-            start(info.item)
+            currentInfo = info
+            start(info.item, downloadId = null)
+            restoreChannelChoices(info.item.channel?.id)
             return true
         }
 
@@ -145,13 +241,14 @@ class PlaybackManager
             item: StreamItem,
             path: String,
             positionMs: Long = 0,
+            downloadId: String? = null,
         ) {
             savePosition()
             pinnedHeight = null
             clearLoop()
             baseVolume = 1f
             if (sleepJob?.isActive != true) player.volume = baseVolume
-            applyLimits(_settings.value, unmetered.value)
+            applyLimits(_settings.value)
             val mediaItem =
                 MediaItem
                     .Builder()
@@ -160,10 +257,15 @@ class PlaybackManager
                     .setMediaMetadata(item.toMediaMetadata())
                     .build()
             player.setMediaItem(mediaItem, positionMs)
-            start(item)
+            currentInfo = null
+            start(item, downloadId)
         }
 
-        private fun start(item: StreamItem) {
+        private fun start(
+            item: StreamItem,
+            downloadId: String?,
+        ) {
+            _nowPlaying.value = NowPlaying(item, downloadId)
             player.prepare()
             player.playWhenReady = true
             _currentVideo.value = item.id
@@ -182,7 +284,7 @@ class PlaybackManager
         /** Sound only, without downloading the picture. Kept for the next videos too. */
         fun setAudioOnly(enabled: Boolean) {
             _settings.value = _settings.value.copy(audioOnly = enabled)
-            applyLimits(_settings.value, unmetered.value)
+            applyLimits(_settings.value)
             scope.launch { settingsRepository.setAudioOnly(enabled) }
         }
 
@@ -190,7 +292,51 @@ class PlaybackManager
         @MainThread
         fun setQuality(height: Int?) {
             pinnedHeight = height
-            applyLimits(_settings.value, unmetered.value)
+            applyLimits(_settings.value)
+            remember { channelPlayback.setHeight(it, height) }
+        }
+
+        /** Sets the speed and remembers it for the channel of the current video. */
+        @MainThread
+        fun setSpeed(speed: Float) {
+            player.setPlaybackSpeed(speed)
+            // A slider sends many values; only the one it settles on is stored.
+            speedSave?.cancel()
+            speedSave =
+                remember {
+                    delay(SPEED_SAVE_DELAY_MS)
+                    channelPlayback.setSpeed(it, speed)
+                }
+        }
+
+        private var speedSave: Job? = null
+
+        /** The video is shown in a window of this size; a small window does not need the sharpest picture. */
+        fun setViewport(
+            width: Int,
+            height: Int,
+        ) = quality.setViewport(Viewport(width, height))
+
+        /** Applies what was last chosen for [channel], once the video has been handed to the player. */
+        private fun restoreChannelChoices(channel: ChannelId?) {
+            if (channel == null || !_settings.value.rememberPerChannel) return
+            scope.launch {
+                val saved = channelPlayback.get(channel)
+                if (currentItem?.channel?.id != channel) return@launch
+                // A channel without a remembered speed plays at normal speed, not at the last channel's.
+                player.setPlaybackSpeed(saved?.speed ?: 1f)
+                // The remembered quality never goes above what the network, data saver or battery allow now.
+                val ceiling = quality.cap.value?.maxHeight
+                saved?.height?.takeIf { ceiling == null || it <= ceiling }?.let {
+                    pinnedHeight = it
+                    applyLimits(_settings.value)
+                }
+            }
+        }
+
+        private fun remember(save: suspend (ChannelId) -> Unit): Job? {
+            val channel = currentItem?.channel?.id?.takeIf { _settings.value.rememberPerChannel }
+            return channel?.let { scope.launch { save(it) } }
         }
 
         @MainThread
@@ -202,12 +348,12 @@ class PlaybackManager
             player.stop()
             player.clearMediaItems()
             _currentVideo.value = null
+            _nowPlaying.value = null
+            _isPlaying.value = false
+            currentInfo = null
         }
 
-        private fun applyLimits(
-            settings: PlaybackSettings,
-            isUnmetered: Boolean,
-        ) {
+        private fun applyLimits(settings: PlaybackSettings) {
             val parameters =
                 player.trackSelectionParameters
                     .buildUpon()
@@ -215,26 +361,20 @@ class PlaybackManager
                     .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !settings.subtitlesEnabled)
                     .setPreferredTextLanguage(settings.subtitleLanguage ?: Locale.getDefault().language)
                     .setPreferredAudioRoleFlags(C.ROLE_FLAG_MAIN)
-            val pinned = pinnedHeight
-            when {
-                // Sound only: besides not loading the picture, fall back to the smallest video
-                // rendition so that switching back to video never starts with a heavy stream.
-                settings.audioOnly -> {
-                    parameters.setMinVideoSize(0, 0).setMaxVideoSize(Int.MAX_VALUE, LOWEST_HEIGHT)
-                }
-
-                pinned != null -> {
-                    parameters.setMinVideoSize(0, pinned).setMaxVideoSize(Int.MAX_VALUE, pinned)
-                }
-
-                else -> {
-                    val limit = if (isUnmetered) settings.maxHeightUnmetered else settings.maxHeightMetered
-                    parameters.setMinVideoSize(0, 0).setMaxVideoSize(Int.MAX_VALUE, limit ?: Int.MAX_VALUE)
-                }
-            }
+            val cap = quality.configure(parameters, settings, situation, pinnedHeight)
+            savingLoadControl(settings, cap)
             player.trackSelectionParameters = parameters.build()
             player.skipSilenceEnabled = settings.skipSilence
             if (sleepJob?.isActive != true) player.volume = if (settings.normalizeVolume) baseVolume else 1f
+        }
+
+        /** A short buffer wastes less when the data saver is on or the monthly allowance is nearly spent. */
+        private fun savingLoadControl(
+            settings: PlaybackSettings,
+            cap: QualityCap,
+        ) {
+            val saving = cap.reason == QualityReason.DataSaver || cap.reason == QualityReason.MonthlyLimit
+            factory.loadControl.maxBufferMs = if (saving && !settings.audioOnly) SAVER_BUFFER_MS else null
         }
 
         /** Pauses after [minutes], turning the volume down over the last few seconds. */
@@ -334,7 +474,10 @@ class PlaybackManager
 
         private companion object {
             const val SAVE_INTERVAL_MS = 10_000L
-            const val LOWEST_HEIGHT = 144
+            const val BANDWIDTH_SAVE_INTERVAL_MS = 30_000L
+            const val SPEED_SAVE_DELAY_MS = 600L
+            const val RELOAD_GUARD_MS = 60_000L
+            const val SAVER_BUFFER_MS = 20_000L
             const val MILLIS_PER_MINUTE = 60_000L
             const val FADE_MS = 8_000L
             const val FADE_STEP_MS = 250L
@@ -348,20 +491,6 @@ class PlaybackManager
             val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
             controller = MediaController.Builder(context, token).buildAsync()
         }
-
-        private fun observeNetwork() {
-            val connectivity = context.getSystemService<ConnectivityManager>() ?: return
-            connectivity.registerDefaultNetworkCallback(
-                object : ConnectivityManager.NetworkCallback() {
-                    override fun onCapabilitiesChanged(
-                        network: Network,
-                        capabilities: NetworkCapabilities,
-                    ) {
-                        unmetered.value = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
-                    }
-                },
-            )
-        }
     }
 
 internal fun StreamItem.toMediaMetadata(): MediaMetadata =
@@ -374,6 +503,12 @@ internal fun StreamItem.toMediaMetadata(): MediaMetadata =
         .build()
 
 private const val ARTWORK_WIDTH = 720
+
+/** The video in the player; [downloadId] is set when it plays from a download. */
+data class NowPlaying(
+    val item: StreamItem,
+    val downloadId: String?,
+)
 
 /** The sleep timer: off, after a time, or when the current video ends. */
 sealed interface SleepTimer {

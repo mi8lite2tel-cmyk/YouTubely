@@ -7,12 +7,12 @@ package app.youtubely.feature.watch
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
-import android.net.ConnectivityManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -56,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -94,6 +95,7 @@ import app.youtubely.core.ui.VideoRow
 import app.youtubely.core.ui.compactNumber
 import app.youtubely.core.ui.currentLocale
 import app.youtubely.core.ui.formatDuration
+import app.youtubely.core.ui.motionItem
 import app.youtubely.core.ui.sharedVideoFrame
 import app.youtubely.core.ui.videoFrameKey
 import app.youtubely.core.ui.viewCountText
@@ -112,6 +114,7 @@ fun WatchScreen(
     onOpenChannel: (ChannelId) -> Unit,
     modifier: Modifier = Modifier,
     playlistId: PlaylistId? = null,
+    onCollapse: (() -> Unit)? = null,
 ) {
     val viewModel =
         hiltViewModel<WatchViewModel, WatchViewModel.Factory>(key = "${videoId.value}/${playlistId?.value}") {
@@ -141,7 +144,7 @@ fun WatchScreen(
         viewModel.onVisible()
         onStopOrDispose {
             // Without background playback, leaving the app pauses (PiP keeps the activity started).
-            if (!settings.backgroundPlayback && activity?.isChangingConfigurations != true) player.pause()
+            if (shouldPauseForBackground(activity, settings.backgroundPlayback)) player.pause()
         }
     }
     DisposableEffect(viewModel) { onDispose { viewModel.onHidden() } }
@@ -181,7 +184,10 @@ fun WatchScreen(
             fullscreen = landscape,
             onToggleFullscreen = ::toggleFullscreen,
             onOpenSettings = { showSettings = true },
-            modifier = playerModifier.pictureInPicture(pipEnabled),
+            modifier =
+                playerModifier
+                    .pictureInPicture(pipEnabled)
+                    .swipeDownToCollapse(onCollapse.takeIf { !landscape }),
             seekStepSeconds = settings.seekStepSeconds,
             audioOnly = settings.audioOnly,
             onToggleAudioOnly = { viewModel.setAudioOnly(!settings.audioOnly) },
@@ -193,6 +199,9 @@ fun WatchScreen(
                     skipNotice = skipNotice,
                     onUndoSkip = viewModel::undoSkip,
                     settings = settings,
+                    onViewport = viewModel.playbackManager::setViewport,
+                    onRetry = viewModel.playbackManager::reload,
+                    onCollapse = onCollapse.takeIf { !landscape },
                 ),
         )
     }
@@ -229,13 +238,10 @@ fun WatchScreen(
     )
 
     if (showSettings) {
+        val qualityCap by viewModel.playbackManager.qualityCap.collectAsStateWithLifecycle()
         PlayerSettingsSheet(
             player = player,
-            pinnedHeight = viewModel.pinnedQuality,
-            networkLimit = rememberNetworkLimit(settings),
-            settings = settings,
-            sleepTimer = sleepTimer,
-            abLoop = abLoop,
+            state = PlayerSheetState(viewModel.pinnedQuality, qualityCap, settings, sleepTimer, abLoop),
             actions = remember(viewModel) { viewModel.playbackManager.sheetActions(context) },
             onQuality = viewModel::setQuality,
             onDismiss = { showSettings = false },
@@ -388,7 +394,7 @@ private fun LazyListScope.queue(
             item = item,
             sharedKey = "queue-$index",
             onClick = { if (!playing) onPlay(index) },
-            modifier = Modifier.animateItem().padding(horizontal = 4.dp),
+            modifier = motionItem().padding(horizontal = 4.dp),
             containerColor =
                 if (playing) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
         )
@@ -413,7 +419,7 @@ private fun LazyListScope.related(
             item = item,
             sharedKey = key,
             onClick = { onOpenVideo(item.id, key) },
-            modifier = Modifier.animateItem(),
+            modifier = motionItem(),
         )
     }
 }
@@ -570,16 +576,24 @@ private fun rememberIsPlaying(player: Player): Boolean {
     return playing
 }
 
-/** The resolution cap that applies on the current network, shown next to "Auto". */
-@Composable
-private fun rememberNetworkLimit(settings: PlaybackSettings): Int? {
-    val context = LocalContext.current
-    val metered =
-        remember {
-            context.getSystemService(ConnectivityManager::class.java)?.isActiveNetworkMetered ?: false
+/** A downward swipe over the player shrinks it into the mini player; `null` turns this off. */
+private fun Modifier.swipeDownToCollapse(onCollapse: (() -> Unit)?): Modifier =
+    if (onCollapse == null) {
+        this
+    } else {
+        pointerInput(onCollapse) {
+            var total = 0f
+            detectVerticalDragGestures(
+                onDragStart = { total = 0f },
+                onDragEnd = { if (total > size.height * COLLAPSE_SHARE) onCollapse() },
+            ) { change, amount ->
+                total += amount
+                if (total > 0f) change.consume()
+            }
         }
-    return if (metered) settings.maxHeightMetered else settings.maxHeightUnmetered
-}
+    }
+
+private const val COLLAPSE_SHARE = 0.25f
 
 /** Hides the system bars while the player fills the screen; swiping from an edge shows them briefly. */
 @Composable

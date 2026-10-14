@@ -8,4 +8,12 @@
     <string name="nav_downloads">Завантажені</string>
     <string name="nav_settings">Налаштування</string>
     <string name="nav_library">Бібліотека</string>
+    <string name="widget_now_playing">Зараз грає</string>
+    <string name="widget_now_playing_description">Поточне відео з кнопкою паузи</string>
+    <string name="widget_new_videos">Нове від підписок</string>
+    <string name="widget_new_videos_description">Свіжі відео ваших каналів</string>
+    <string name="widget_nothing_playing">Нічого не грає</string>
+    <string name="widget_no_new_videos">Нових відео поки немає</string>
+    <string name="widget_play">Відтворити</string>
+    <string name="widget_pause">Пауза</string>
 </resources>

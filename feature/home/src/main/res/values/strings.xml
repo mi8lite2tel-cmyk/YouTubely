@@ -19,4 +19,6 @@
     <string name="home_reason_subscription">From your subscriptions</string>
     <string name="home_reason_frequent">A channel you often watch</string>
     <string name="home_group_all">All</string>
+    <string name="home_continue">Continue watching</string>
+    <string name="home_continue_left">%s left</string>
 </resources>

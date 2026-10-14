@@ -36,4 +36,10 @@
         <item quantity="other">%d videos</item>
     </plurals>
     <string name="video_more">More actions</string>
+    <string name="download_all">Download all</string>
+    <string name="download_all_title">Download %d videos</string>
+    <string name="download_all_body">Each video is saved in the best quality up to the one you pick. Downloads follow the Wi-Fi setting.</string>
+    <string name="download_all_audio">Sound only</string>
+    <string name="download_all_confirm">Download</string>
+    <string name="download_all_cancel">Cancel</string>
 </resources>

@@ -49,6 +49,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,6 +65,7 @@ import androidx.media3.ui.compose.state.rememberSeekBackButtonState
 import androidx.media3.ui.compose.state.rememberSeekForwardButtonState
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.model.PlaybackSettings
+import app.youtubely.core.player.SkipNotice
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 
@@ -121,6 +123,7 @@ internal fun VideoPlayer(
             modifier
                 .background(Color.Black)
                 .clipToBounds()
+                .onSizeChanged { extras.onViewport(it.width, it.height) }
                 .playerKeys(player, onToggleFullscreen) { controlsVisible = true }
                 .playerGestures(
                     player = player,
@@ -141,7 +144,14 @@ internal fun VideoPlayer(
             )
         }
 
-        if (buffering) {
+        val problem = rememberPlayerProblem(player)
+        if (problem != null) {
+            PlayerErrorOverlay(
+                problem = problem,
+                onRetry = extras.onRetry ?: { player.prepare() },
+                modifier = Modifier.align(Alignment.Center),
+            )
+        } else if (buffering) {
             LoadingIndicator(color = Color.White, modifier = Modifier.align(Alignment.Center).size(64.dp))
         }
         GestureFeedbackOverlay(gestures)
@@ -169,6 +179,15 @@ internal fun VideoPlayer(
             modifier = Modifier.fillMaxSize(),
         ) {
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))) {
+                extras.onCollapse?.let { collapse ->
+                    IconButton(onClick = collapse, modifier = Modifier.align(Alignment.TopStart).padding(4.dp)) {
+                        Icon(
+                            painterResource(YouTubelyIcons.ExpandMore),
+                            stringResource(R.string.watch_collapse),
+                            tint = Color.White,
+                        )
+                    }
+                }
                 CenterControls(player, Modifier.align(Alignment.Center)) { interactions++ }
                 BottomControls(
                     player = player,

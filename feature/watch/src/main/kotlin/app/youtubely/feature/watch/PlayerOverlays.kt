@@ -46,6 +46,7 @@ import androidx.media3.common.text.CueGroup
 import app.youtubely.core.model.Chapter
 import app.youtubely.core.model.PlaybackSettings
 import app.youtubely.core.model.SponsorSegment
+import app.youtubely.core.player.SkipNotice
 import kotlinx.coroutines.delay
 
 private const val TICK_MS = 500L
@@ -58,6 +59,12 @@ internal class PlayerExtras(
     val skipNotice: SkipNotice? = null,
     val onUndoSkip: () -> Unit = {},
     val settings: PlaybackSettings = PlaybackSettings(),
+    /** "Try again" after a playback error; reloads the stream, not just the same dead links. */
+    val onRetry: (() -> Unit)? = null,
+    /** Shrinks the video into the mini player; `null` hides the button. */
+    val onCollapse: (() -> Unit)? = null,
+    /** Reports the size of the player window in pixels. */
+    val onViewport: (width: Int, height: Int) -> Unit = { _, _ -> },
 )
 
 /** The standard SponsorBlock colours of the categories. */
@@ -293,5 +300,3 @@ private fun handleKey(
 }
 
 private const val SPEED_KEY_STEP = 0.25f
-private const val MIN_SPEED = 0.25f
-private const val MAX_SPEED = 4f

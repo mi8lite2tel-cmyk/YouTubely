@@ -3,6 +3,7 @@
 package app.youtubely.core.datastore
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import app.youtubely.core.model.AnimationSpeed
 import app.youtubely.core.model.DarkMode
 import app.youtubely.core.model.ThemeSettings
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,8 +44,15 @@ class ThemeSettingsRepositoryTest {
             repo.setDynamicColor(false)
             repo.setPureBlack(true)
             repo.setHighContrast(true)
+            repo.setAnimationSpeed(AnimationSpeed.VerySlow)
             assertEquals(
-                ThemeSettings(DarkMode.Dark, dynamicColor = false, pureBlack = true, highContrast = true),
+                ThemeSettings(
+                    DarkMode.Dark,
+                    dynamicColor = false,
+                    pureBlack = true,
+                    highContrast = true,
+                    animationSpeed = AnimationSpeed.VerySlow,
+                ),
                 repo.settings.first(),
             )
         }

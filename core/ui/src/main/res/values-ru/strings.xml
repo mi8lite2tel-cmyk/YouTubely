@@ -42,4 +42,10 @@
         <item quantity="other">%d видео</item>
     </plurals>
     <string name="video_more">Дополнительные действия</string>
+    <string name="download_all">Скачать все</string>
+    <string name="download_all_title">Скачать %d видео</string>
+    <string name="download_all_body">Каждое видео сохранится в лучшем качестве не выше выбранного. Загрузки учитывают настройку «Только по Wi-Fi».</string>
+    <string name="download_all_audio">Только звук</string>
+    <string name="download_all_confirm">Скачать</string>
+    <string name="download_all_cancel">Отмена</string>
 </resources>

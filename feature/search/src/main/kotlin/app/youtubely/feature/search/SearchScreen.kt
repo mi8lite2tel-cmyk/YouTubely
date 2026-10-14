@@ -67,6 +67,7 @@ import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.PlaylistListItem
 import app.youtubely.core.ui.StateTransition
 import app.youtubely.core.ui.VideoRow
+import app.youtubely.core.ui.motionItem
 import app.youtubely.core.ui.subscriberCountText
 import app.youtubely.core.ui.videoFrameKey
 import kotlinx.coroutines.flow.collectLatest
@@ -282,7 +283,7 @@ private fun ResultList(
                         item = item.item,
                         sharedKey = key,
                         onClick = { onOpenVideo(item.item.id, key) },
-                        modifier = Modifier.animateItem(),
+                        modifier = motionItem(),
                     )
                 }
 
@@ -291,7 +292,7 @@ private fun ResultList(
                         channel = item.channel,
                         onClick = { onOpenChannel(item.channel.id) },
                         supporting = item.subscriberCount?.let { subscriberCountText(it) },
-                        modifier = Modifier.animateItem(),
+                        modifier = motionItem(),
                     )
                 }
 
@@ -299,7 +300,7 @@ private fun ResultList(
                     PlaylistListItem(
                         playlist = item.playlist,
                         onClick = { onOpenPlaylist(item.playlist.id) },
-                        modifier = Modifier.animateItem(),
+                        modifier = motionItem(),
                     )
                 }
             }

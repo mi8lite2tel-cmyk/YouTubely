@@ -33,6 +33,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,11 +54,13 @@ import app.youtubely.core.model.Playlist
 import app.youtubely.core.model.PlaylistId
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.model.bestFor
+import app.youtubely.core.ui.DownloadAllButton
 import app.youtubely.core.ui.ErrorState
 import app.youtubely.core.ui.LoadMoreEffect
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.StateTransition
 import app.youtubely.core.ui.VideoRow
+import app.youtubely.core.ui.motionItem
 import app.youtubely.core.ui.videoFrameKey
 import coil3.compose.AsyncImage
 
@@ -77,6 +82,7 @@ fun PlaylistScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val playlist = state.playlist
+    val batchSize = (playlist?.streamCount?.toInt()?.takeIf { it > 0 } ?: state.items.size).coerceAtMost(BATCH_LIMIT)
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -88,6 +94,9 @@ fun PlaylistScreen(
                     IconButton(onClick = onBack) {
                         Icon(painterResource(YouTubelyIcons.ArrowBack), stringResource(R.string.playlist_back))
                     }
+                },
+                actions = {
+                    if (state.items.isNotEmpty()) DownloadAllButton(batchSize, viewModel::downloadAll)
                 },
                 scrollBehavior = scrollBehavior,
             )
@@ -134,7 +143,7 @@ fun PlaylistScreen(
                                     val key = videoFrameKey("playlist", item.id)
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.animateItem(),
+                                        modifier = motionItem(),
                                     ) {
                                         Text(
                                             "${index + 1}",
@@ -220,3 +229,5 @@ private fun Header(
         }
     }
 }
+
+private const val BATCH_LIMIT = 300

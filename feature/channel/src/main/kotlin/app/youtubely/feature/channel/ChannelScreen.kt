@@ -71,6 +71,7 @@ import app.youtubely.core.ui.StateTransition
 import app.youtubely.core.ui.SubscribeButton
 import app.youtubely.core.ui.VerifiedBadge
 import app.youtubely.core.ui.VideoRow
+import app.youtubely.core.ui.motionItem
 import app.youtubely.core.ui.subscriberCountText
 import app.youtubely.core.ui.videoFrameKey
 import app.youtubely.core.ui.viewCountText
@@ -240,7 +241,7 @@ private fun LazyGridScope.tabContent(
 
         else -> {
             items(content.items, key = { "${state.tab}-${it.key}" }) { item ->
-                ChannelItem(item, state.tab, actions, Modifier.animateItem())
+                ChannelItem(item, state.tab, actions, motionItem())
             }
             if (content.loadingMore) {
                 item(key = "loading-more", span = { GridItemSpan(maxLineSpan) }) { CenteredLoading() }

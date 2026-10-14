@@ -70,12 +70,14 @@ import app.youtubely.core.data.RecommendationState
 import app.youtubely.core.designsystem.component.ExpressiveFilterChip
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.model.ExploreKind
+import app.youtubely.core.model.HistoryEntry
 import app.youtubely.core.model.StreamItem
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.model.bestFor
 import app.youtubely.core.ui.ErrorState
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.VideoCard
+import app.youtubely.core.ui.motionItem
 import app.youtubely.core.ui.sharedVideoFrame
 import app.youtubely.core.ui.videoFrameKey
 import app.youtubely.core.ui.videoMetadataText
@@ -98,6 +100,7 @@ fun HomeScreen(
     val tab by viewModel.tab.collectAsStateWithLifecycle()
     val explore by viewModel.explore.collectAsStateWithLifecycle()
     val forYou by viewModel.forYou.collectAsStateWithLifecycle()
+    val continueWatching by viewModel.continueWatching.collectAsStateWithLifecycle()
     val feed by viewModel.feedUi.collectAsStateWithLifecycle()
     val newVideos by viewModel.newVideos.collectAsStateWithLifecycle()
     val hasSubscriptions by viewModel.hasSubscriptions.collectAsStateWithLifecycle()
@@ -151,6 +154,7 @@ fun HomeScreen(
                     HomeTab.ForYou -> {
                         ForYouTab(
                             state = forYou,
+                            continueWatching = continueWatching,
                             bottomPadding = bottom,
                             onRefresh = viewModel::refreshForYou,
                             onShowTrends = { viewModel.select(HomeTab.Explore(ExploreKind.Trending)) },
@@ -228,6 +232,7 @@ private fun Refreshable(
 @Composable
 private fun ForYouTab(
     state: RecommendationState,
+    continueWatching: List<HistoryEntry>,
     bottomPadding: Dp,
     onRefresh: () -> Unit,
     onShowTrends: () -> Unit,
@@ -239,7 +244,10 @@ private fun ForYouTab(
         }
 
         RecommendationState.NeedsData -> {
-            ForYouEmpty(onShowTrends)
+            Column(Modifier.fillMaxSize()) {
+                ContinueWatchingRow(continueWatching, onOpenVideo, Modifier.padding(top = 8.dp))
+                Box(Modifier.weight(1f)) { ForYouEmpty(onShowTrends) }
+            }
         }
 
         is RecommendationState.Failed -> {
@@ -249,16 +257,25 @@ private fun ForYouTab(
         is RecommendationState.Ready -> {
             Refreshable(refreshing = false, onRefresh = onRefresh) {
                 VideoGrid(bottomPadding) {
+                    if (continueWatching.isNotEmpty()) {
+                        item(key = "continue", span = { GridItemSpan(maxLineSpan) }) {
+                            ContinueWatchingRow(
+                                continueWatching,
+                                onOpenVideo,
+                                Modifier.padding(top = 8.dp, bottom = 12.dp).then(motionItem()),
+                            )
+                        }
+                    }
                     item(key = "for-you-note", span = { GridItemSpan(maxLineSpan) }) {
                         Text(
                             stringResource(R.string.home_for_you_note),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp).animateItem(),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp).then(motionItem()),
                         )
                     }
                     items(state.items, key = { "$FOR_YOU_ORIGIN-${it.item.id.value}" }) { recommendation ->
-                        Column(Modifier.animateItem()) {
+                        Column(motionItem()) {
                             Text(
                                 reasonText(recommendation.reason),
                                 style = MaterialTheme.typography.labelMedium,
@@ -343,7 +360,7 @@ private fun SubscriptionsTab(
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp),
-                        modifier = Modifier.animateItem(),
+                        modifier = motionItem(),
                     ) {
                         item(key = "all") {
                             ExpressiveFilterChip(
@@ -373,7 +390,7 @@ private fun SubscriptionsTab(
                     item = item,
                     sharedKey = videoFrameKey(FEED_ORIGIN, item.id),
                     onClick = { onOpenVideo(item.id, videoFrameKey(FEED_ORIGIN, item.id)) },
-                    modifier = Modifier.animateItem(),
+                    modifier = motionItem(),
                 )
             }
         }
@@ -405,7 +422,7 @@ private fun ExploreTab(
                 VideoGrid(bottomPadding) {
                     if (items.size > HERO_COUNT) {
                         item(key = "hero-$kind", span = { GridItemSpan(maxLineSpan) }) {
-                            HeroCarousel(items.take(HERO_COUNT), onOpenVideo, Modifier.animateItem())
+                            HeroCarousel(items.take(HERO_COUNT), onOpenVideo, motionItem())
                         }
                     }
                     val rest = if (items.size > HERO_COUNT) items.drop(HERO_COUNT) else items
@@ -414,7 +431,7 @@ private fun ExploreTab(
                             item = item,
                             sharedKey = videoFrameKey(LIST_ORIGIN, item.id),
                             onClick = { onOpenVideo(item.id, videoFrameKey(LIST_ORIGIN, item.id)) },
-                            modifier = Modifier.animateItem(),
+                            modifier = motionItem(),
                         )
                     }
                 }

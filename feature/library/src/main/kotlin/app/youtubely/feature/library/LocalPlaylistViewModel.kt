@@ -5,6 +5,7 @@ package app.youtubely.feature.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.youtubely.core.data.PlaylistRepository
+import app.youtubely.core.download.DownloadManager
 import app.youtubely.core.model.StreamItem
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -25,6 +26,7 @@ class LocalPlaylistViewModel
     constructor(
         @Assisted private val playlistId: Long,
         private val playlists: PlaylistRepository,
+        private val downloads: DownloadManager,
     ) : ViewModel() {
         private val sharing = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS)
 
@@ -36,6 +38,11 @@ class LocalPlaylistViewModel
 
         fun rename(name: String) {
             viewModelScope.launch { playlists.rename(playlistId, name) }
+        }
+
+        /** Saves every video of the playlist in the best quality up to [maxHeight]; `null` = sound only. */
+        fun downloadAll(maxHeight: Int?) {
+            items.value?.let { list -> downloads.startAll(list.map { it.id }, maxHeight) }
         }
 
         fun delete() {

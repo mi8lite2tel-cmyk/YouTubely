@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package app.youtubely.core.data
 
+import app.youtubely.core.database.AutoDownloadRuleColumns
 import app.youtubely.core.database.FeedDao
 import app.youtubely.core.database.SubscriptionDao
 import app.youtubely.core.database.SubscriptionEntity
+import app.youtubely.core.model.AutoDownloadRule
 import app.youtubely.core.model.ChannelId
 import app.youtubely.core.model.ChannelRef
 import app.youtubely.core.model.Image
@@ -69,6 +71,24 @@ class SubscriptionRepository
             enabled: Boolean,
         ) = dao.setAutoDownload(id.value, enabled)
 
+        suspend fun setAutoDownloadRule(
+            id: ChannelId,
+            rule: AutoDownloadRule,
+        ) = dao.setAutoDownloadRule(
+            AutoDownloadRuleColumns(
+                channelId = id.value,
+                adQuality = if (rule.audioOnly) 0 else rule.maxHeight,
+                adKeepLast = rule.keepLast,
+                adSkipShorts = rule.skipShorts,
+                adSkipLive = rule.skipLive,
+                adMinMinutes = rule.minMinutes,
+                adMaxMinutes = rule.maxMinutes,
+                adIncludeWords = AutoDownloadRule.joinWords(rule.includeWords),
+                adExcludeWords = AutoDownloadRule.joinWords(rule.excludeWords),
+                adDeleteWatched = rule.deleteWatched,
+            ),
+        )
+
         /** `null` or a blank [group] removes the channel from its group. */
         suspend fun setGroup(
             id: ChannelId,
@@ -95,4 +115,17 @@ internal fun SubscriptionEntity.toSubscription() =
         autoDownload = autoDownload,
         group = groupName,
         subscribedAt = Instant.ofEpochMilli(subscribedAt),
+        autoRule =
+            AutoDownloadRule(
+                maxHeight = adQuality?.takeIf { it > 0 },
+                audioOnly = adQuality == 0,
+                keepLast = adKeepLast,
+                skipShorts = adSkipShorts,
+                skipLive = adSkipLive,
+                minMinutes = adMinMinutes,
+                maxMinutes = adMaxMinutes,
+                includeWords = AutoDownloadRule.parseWords(adIncludeWords),
+                excludeWords = AutoDownloadRule.parseWords(adExcludeWords),
+                deleteWatched = adDeleteWatched,
+            ),
     )

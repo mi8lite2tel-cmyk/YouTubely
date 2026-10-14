@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package app.youtubely.feature.watch
 
+import androidx.activity.compose.LocalActivity
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -84,7 +85,7 @@ class OfflineWatchViewModel
             if (path != null && !isCurrent) {
                 viewModelScope.launch {
                     val position = savedPositionMs ?: history.resumePosition(item.videoId)
-                    if (!isCurrent) playback.playLocal(item.toStreamItem(), path, position)
+                    if (!isCurrent) playback.playLocal(item.toStreamItem(), path, position, item.id)
                 }
             }
         }
@@ -99,9 +100,7 @@ class OfflineWatchViewModel
 
         val playbackManager: PlaybackManager get() = playback
 
-        override fun onCleared() {
-            if (isCurrent) playback.stop()
-        }
+        // Leaving the screen keeps playing in the mini player; its close button stops playback.
 
         @AssistedFactory
         interface Factory {
@@ -137,6 +136,7 @@ fun OfflineWatchScreen(
     val sleepTimer by viewModel.playbackManager.sleepTimer.collectAsStateWithLifecycle()
     val abLoop by viewModel.playbackManager.abLoop.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val activity = LocalActivity.current
     val player = viewModel.player
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val inPip = rememberIsInPictureInPicture()
@@ -146,7 +146,7 @@ fun OfflineWatchScreen(
     LifecycleStartEffect(item?.id) {
         viewModel.onVisible()
         onStopOrDispose {
-            if (!settings.backgroundPlayback) player.pause()
+            if (shouldPauseForBackground(activity, settings.backgroundPlayback)) player.pause()
         }
     }
     DisposableEffect(viewModel) { onDispose { viewModel.onHidden() } }
@@ -180,6 +180,7 @@ fun OfflineWatchScreen(
                 audioOnly = audioFile || settings.audioOnly,
                 onToggleAudioOnly = if (audioFile) null else ({ viewModel.setAudioOnly(!settings.audioOnly) }),
                 artworkUrl = item.thumbnailPath?.let { "file://$it" },
+                extras = PlayerExtras(settings = settings, onViewport = viewModel.playbackManager::setViewport),
             )
         }
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -197,11 +198,7 @@ fun OfflineWatchScreen(
     if (showSettings) {
         PlayerSettingsSheet(
             player = player,
-            pinnedHeight = null,
-            networkLimit = null,
-            settings = settings,
-            sleepTimer = sleepTimer,
-            abLoop = abLoop,
+            state = PlayerSheetState(null, null, settings, sleepTimer, abLoop),
             actions = remember(viewModel) { viewModel.playbackManager.sheetActions(context) },
             onQuality = viewModel::setQuality,
             onDismiss = { showSettings = false },
