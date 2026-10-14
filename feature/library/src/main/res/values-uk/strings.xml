@@ -46,4 +46,23 @@
     <string name="library_group_none">Без групи</string>
     <string name="library_transfer">Імпорт, експорт і QR</string>
     <string name="library_videos_count">Відео: %d</string>
+    <string name="library_rule_title">Автозавантаження · %s</string>
+    <string name="library_rule_enabled">Завантажувати нові відео</string>
+    <string name="library_rule_enabled_summary">Через Wi-Fi, у межах лімітів з налаштувань</string>
+    <string name="library_rule_quality">Якість</string>
+    <string name="library_rule_default">Як у налаштуваннях</string>
+    <string name="library_rule_audio">Лише звук</string>
+    <string name="library_rule_keep">Зберігати останні</string>
+    <string name="library_rule_skip_shorts">Пропускати Shorts</string>
+    <string name="library_rule_skip_live">Пропускати трансляції</string>
+    <string name="library_rule_min">Не коротше</string>
+    <string name="library_rule_max">Не довше</string>
+    <string name="library_rule_any">Будь-яка</string>
+    <string name="library_rule_minutes">%d хв</string>
+    <string name="library_rule_include">Лише якщо в назві є</string>
+    <string name="library_rule_exclude">Пропускати, якщо в назві є</string>
+    <string name="library_rule_words_hint">Слова через кому</string>
+    <string name="library_rule_delete_watched">Видаляти після перегляду</string>
+    <string name="library_rule_delete_watched_summary">Коли відео переглянуто майже до кінця</string>
+    <string name="library_rule_badge">Автозавантаження</string>
 </resources>

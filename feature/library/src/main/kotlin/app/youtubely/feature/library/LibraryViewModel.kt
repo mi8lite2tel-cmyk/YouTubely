@@ -9,6 +9,7 @@ import app.youtubely.core.data.PlaylistRepository
 import app.youtubely.core.data.SubscriptionRepository
 import app.youtubely.core.data.WatchLaterRepository
 import app.youtubely.core.datastore.PlaybackSettingsRepository
+import app.youtubely.core.model.AutoDownloadRule
 import app.youtubely.core.model.ChannelRef
 import app.youtubely.core.model.HistoryEntry
 import app.youtubely.core.model.LocalPlaylist
@@ -75,10 +76,15 @@ class LibraryViewModel
             enabled: Boolean,
         ) = launch { subscriptions.setNotify(subscription.channel.id, enabled) }
 
-        fun setAutoDownload(
+        /** Turns the channel's automatic download on or off together with what it should save. */
+        fun saveAutoDownload(
             subscription: Subscription,
             enabled: Boolean,
-        ) = launch { subscriptions.setAutoDownload(subscription.channel.id, enabled) }
+            rule: AutoDownloadRule,
+        ) = launch {
+            subscriptions.setAutoDownloadRule(subscription.channel.id, rule)
+            subscriptions.setAutoDownload(subscription.channel.id, enabled)
+        }
 
         fun setGroup(
             subscription: Subscription,

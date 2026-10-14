@@ -39,6 +39,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.youtubely.core.designsystem.component.ExpressiveFilterChip
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
+import app.youtubely.core.model.AutoDownloadRule
 import app.youtubely.core.model.ChannelId
 import app.youtubely.core.model.Subscription
 import app.youtubely.core.ui.ChannelListItem
@@ -53,7 +54,7 @@ internal fun SubscriptionsPage(
     groups: ImmutableList<String>,
     onOpenChannel: (ChannelId) -> Unit,
     onToggleNotify: (Subscription) -> Unit,
-    onToggleAutoDownload: (Subscription) -> Unit,
+    onSaveAutoDownload: (Subscription, Boolean, AutoDownloadRule) -> Unit,
     onSetGroup: (Subscription, String?) -> Unit,
     onUnsubscribe: (Subscription) -> Unit,
 ) {
@@ -78,6 +79,7 @@ internal fun SubscriptionsPage(
                     }
                 }
             var editing by remember { mutableStateOf<Subscription?>(null) }
+            var rules by remember { mutableStateOf<Subscription?>(null) }
             LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
                 if (groups.isNotEmpty()) {
                     item(key = "groups") {
@@ -109,12 +111,22 @@ internal fun SubscriptionsPage(
                         subscription = subscription,
                         onOpen = { onOpenChannel(subscription.channel.id) },
                         onToggleNotify = { onToggleNotify(subscription) },
-                        onToggleAutoDownload = { onToggleAutoDownload(subscription) },
+                        onEditAutoDownload = { rules = subscription },
                         onEditGroup = { editing = subscription },
                         onUnsubscribe = { onUnsubscribe(subscription) },
                         modifier = motionItem(),
                     )
                 }
+            }
+            rules?.let { target ->
+                AutoDownloadRuleSheet(
+                    subscription = target,
+                    onDismiss = { rules = null },
+                    onSave = { enabled, rule ->
+                        onSaveAutoDownload(target, enabled, rule)
+                        rules = null
+                    },
+                )
             }
             editing?.let { target ->
                 GroupDialog(
@@ -136,7 +148,7 @@ private fun SubscriptionItem(
     subscription: Subscription,
     onOpen: () -> Unit,
     onToggleNotify: () -> Unit,
-    onToggleAutoDownload: () -> Unit,
+    onEditAutoDownload: () -> Unit,
     onEditGroup: () -> Unit,
     onUnsubscribe: () -> Unit,
     modifier: Modifier = Modifier,
@@ -146,7 +158,11 @@ private fun SubscriptionItem(
     ChannelListItem(
         channel = channel,
         onClick = onOpen,
-        supporting = subscription.group,
+        supporting =
+            listOfNotNull(
+                subscription.group,
+                stringResource(R.string.library_rule_badge).takeIf { subscription.autoDownload },
+            ).joinToString(" · ").ifEmpty { null },
         modifier = modifier,
         trailing = {
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -178,7 +194,7 @@ private fun SubscriptionItem(
                 SubscriptionMenu(
                     channelName = channel.name,
                     autoDownload = subscription.autoDownload,
-                    onToggleAutoDownload = onToggleAutoDownload,
+                    onEditAutoDownload = onEditAutoDownload,
                     onEditGroup = onEditGroup,
                     onUnsubscribe = onUnsubscribe,
                 )
@@ -191,7 +207,7 @@ private fun SubscriptionItem(
 private fun SubscriptionMenu(
     channelName: String,
     autoDownload: Boolean,
-    onToggleAutoDownload: () -> Unit,
+    onEditAutoDownload: () -> Unit,
     onEditGroup: () -> Unit,
     onUnsubscribe: () -> Unit,
 ) {
@@ -212,7 +228,7 @@ private fun SubscriptionMenu(
                     },
                 onClick = {
                     expanded = false
-                    onToggleAutoDownload()
+                    onEditAutoDownload()
                 },
             )
             DropdownMenuItem(

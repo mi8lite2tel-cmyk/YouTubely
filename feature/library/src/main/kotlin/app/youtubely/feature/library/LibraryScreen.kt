@@ -203,7 +203,7 @@ fun LibraryScreen(
                                 if (!subscription.notify) askNotificationPermission()
                                 viewModel.setNotify(subscription, !subscription.notify)
                             },
-                            onToggleAutoDownload = { viewModel.setAutoDownload(it, !it.autoDownload) },
+                            onSaveAutoDownload = viewModel::saveAutoDownload,
                             onSetGroup = viewModel::setGroup,
                             onUnsubscribe = { subscription ->
                                 viewModel.unsubscribe(subscription.channel)

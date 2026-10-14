@@ -46,4 +46,23 @@
     <string name="library_group_none">Без группы</string>
     <string name="library_transfer">Импорт, экспорт и QR</string>
     <string name="library_videos_count">Видео: %d</string>
+    <string name="library_rule_title">Автозагрузка · %s</string>
+    <string name="library_rule_enabled">Скачивать новые видео</string>
+    <string name="library_rule_enabled_summary">По Wi-Fi, в пределах лимитов из настроек</string>
+    <string name="library_rule_quality">Качество</string>
+    <string name="library_rule_default">Как в настройках</string>
+    <string name="library_rule_audio">Только звук</string>
+    <string name="library_rule_keep">Хранить последние</string>
+    <string name="library_rule_skip_shorts">Пропускать Shorts</string>
+    <string name="library_rule_skip_live">Пропускать трансляции</string>
+    <string name="library_rule_min">Не короче</string>
+    <string name="library_rule_max">Не длиннее</string>
+    <string name="library_rule_any">Любая</string>
+    <string name="library_rule_minutes">%d мин</string>
+    <string name="library_rule_include">Только если в названии есть</string>
+    <string name="library_rule_exclude">Пропускать, если в названии есть</string>
+    <string name="library_rule_words_hint">Слова через запятую</string>
+    <string name="library_rule_delete_watched">Удалять после просмотра</string>
+    <string name="library_rule_delete_watched_summary">Когда видео досмотрено почти до конца</string>
+    <string name="library_rule_badge">Автозагрузка</string>
 </resources>

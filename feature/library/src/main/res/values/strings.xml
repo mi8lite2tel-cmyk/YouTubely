@@ -46,4 +46,23 @@
     <string name="library_group_none">No group</string>
     <string name="library_transfer">Import, export and QR</string>
     <string name="library_videos_count">Videos: %d</string>
+    <string name="library_rule_title">Automatic download · %s</string>
+    <string name="library_rule_enabled">Save new videos</string>
+    <string name="library_rule_enabled_summary">On Wi-Fi, within the limits from Settings</string>
+    <string name="library_rule_quality">Quality</string>
+    <string name="library_rule_default">As in Settings</string>
+    <string name="library_rule_audio">Sound only</string>
+    <string name="library_rule_keep">Keep the latest</string>
+    <string name="library_rule_skip_shorts">Skip Shorts</string>
+    <string name="library_rule_skip_live">Skip live streams</string>
+    <string name="library_rule_min">At least</string>
+    <string name="library_rule_max">At most</string>
+    <string name="library_rule_any">Any length</string>
+    <string name="library_rule_minutes">%d min</string>
+    <string name="library_rule_include">Only titles with</string>
+    <string name="library_rule_exclude">Skip titles with</string>
+    <string name="library_rule_words_hint">Words, separated by commas</string>
+    <string name="library_rule_delete_watched">Delete once watched</string>
+    <string name="library_rule_delete_watched_summary">When the video was watched almost to the end</string>
+    <string name="library_rule_badge">Automatic download</string>
 </resources>
