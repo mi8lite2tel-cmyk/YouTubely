@@ -14,6 +14,8 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -59,6 +61,7 @@ import app.youtubely.feature.playlist.PlaylistScreen
 import app.youtubely.feature.search.SearchScreen
 import app.youtubely.feature.settings.SettingsScreen
 import app.youtubely.feature.transfer.TransferScreen
+import app.youtubely.feature.watch.MiniPlayer
 import app.youtubely.feature.watch.OfflineWatchScreen
 import app.youtubely.feature.watch.WatchScreen
 import app.youtubely.navigation.ChannelRoute
@@ -146,29 +149,9 @@ fun YouTubelyApp(
     }
     var actionsFor by remember { mutableStateOf<StreamItem?>(null) }
 
-    NavigationSuiteScaffold(
-        modifier = modifier,
-        state = suiteState,
-        navigationItems = {
-            TopLevelItems.forEach { item ->
-                val selected = item.route == current
-                NavigationSuiteItem(
-                    selected = selected,
-                    onClick = {
-                        if (selected) {
-                            // Re-selecting a tab returns to its root.
-                            while (backStack.size > 1) backStack.removeLastOrNull()
-                        } else {
-                            currentName = item.route.toString()
-                        }
-                    },
-                    icon = { NavigationIcon(item, selected) },
-                    label = { Text(stringResource(item.label)) },
-                )
-            }
-        },
-    ) {
-        SharedTransitionLayout {
+    // Tabs with their back stacks; above the mini player, which shows the video left playing.
+    val navigation: @Composable (Modifier) -> Unit = { navigationModifier ->
+        SharedTransitionLayout(navigationModifier) {
             CompositionLocalProvider(
                 LocalSharedTransitionScope provides this,
                 LocalVideoActions provides { actionsFor = it },
@@ -230,7 +213,8 @@ fun YouTubelyApp(
                                         onBack = { stack.removeLastOrNull() },
                                         onOpenVideo = ::openVideo,
                                         onPlayAll = { id, key ->
-                                            stack.add(WatchRoute(id.value, key, LocalQueue.playlist(route.playlistId)))
+                                            val queue = LocalQueue.playlist(route.playlistId)
+                                            stack.add(WatchRoute(id.value, key, queue))
                                         },
                                     )
                                 }
@@ -278,12 +262,47 @@ fun YouTubelyApp(
                                         playlistId = route.playlistId?.let(::PlaylistId),
                                         onOpenVideo = ::openVideo,
                                         onOpenChannel = ::openChannel,
+                                        onCollapse = { stack.removeLastOrNull() },
                                     )
                                 }
                             },
                     )
                 }
             }
+        }
+    }
+
+    NavigationSuiteScaffold(
+        modifier = modifier,
+        state = suiteState,
+        navigationItems = {
+            TopLevelItems.forEach { item ->
+                val selected = item.route == current
+                NavigationSuiteItem(
+                    selected = selected,
+                    onClick = {
+                        if (selected) {
+                            // Re-selecting a tab returns to its root.
+                            while (backStack.size > 1) backStack.removeLastOrNull()
+                        } else {
+                            currentName = item.route.toString()
+                        }
+                    },
+                    icon = { NavigationIcon(item, selected) },
+                    label = { Text(stringResource(item.label)) },
+                )
+            }
+        },
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            navigation(Modifier.weight(1f))
+            MiniPlayer(
+                visible = !watching,
+                onOpen = { playing ->
+                    val id = playing.item.id.value
+                    backStack.add(playing.downloadId?.let(::OfflineWatchRoute) ?: WatchRoute(id, "mini-$id"))
+                },
+            )
         }
     }
     actionsFor?.let { item ->

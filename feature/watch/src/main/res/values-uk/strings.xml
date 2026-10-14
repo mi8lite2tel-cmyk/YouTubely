@@ -85,4 +85,7 @@
     <string name="watch_speed_normal">Звичайна</string>
     <string name="watch_speed_hint">Утримуйте плеєр, щоб ненадовго ввімкнути 2×</string>
     <string name="watch_loop_off">Вимкнено</string>
+    <string name="watch_mini_close">Зупинити й закрити</string>
+    <string name="watch_mini_open">Відкрити відео</string>
+    <string name="watch_collapse">Згорнути</string>
 </resources>

@@ -85,4 +85,7 @@
     <string name="watch_speed_normal">Normal</string>
     <string name="watch_speed_hint">Hold the player to play at 2× for a moment</string>
     <string name="watch_loop_off">Off</string>
+    <string name="watch_mini_close">Stop and close</string>
+    <string name="watch_mini_open">Open the video</string>
+    <string name="watch_collapse">Minimise</string>
 </resources>

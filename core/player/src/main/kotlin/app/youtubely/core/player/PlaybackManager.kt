@@ -83,6 +83,15 @@ class PlaybackManager
         private val _currentVideo = MutableStateFlow<VideoId?>(null)
         val currentVideo: StateFlow<VideoId?> = _currentVideo.asStateFlow()
 
+        private val _nowPlaying = MutableStateFlow<NowPlaying?>(null)
+
+        /** What is loaded in the player, for the mini player; `null` after [stop]. */
+        val nowPlaying: StateFlow<NowPlaying?> = _nowPlaying.asStateFlow()
+
+        /** Stream info of the online video in the player; reopening it must not load it again. */
+        var currentInfo: StreamInfo? = null
+            private set
+
         private val _settings = MutableStateFlow(PlaybackSettings())
         val settings: StateFlow<PlaybackSettings> = _settings.asStateFlow()
 
@@ -164,7 +173,8 @@ class PlaybackManager
             if (sleepJob?.isActive != true) player.volume = baseVolume
             applyLimits(_settings.value)
             player.setMediaSource(source, positionMs)
-            start(info.item)
+            currentInfo = info
+            start(info.item, downloadId = null)
             restoreChannelChoices(info.item.channel?.id)
             return true
         }
@@ -178,6 +188,7 @@ class PlaybackManager
             item: StreamItem,
             path: String,
             positionMs: Long = 0,
+            downloadId: String? = null,
         ) {
             savePosition()
             pinnedHeight = null
@@ -193,10 +204,15 @@ class PlaybackManager
                     .setMediaMetadata(item.toMediaMetadata())
                     .build()
             player.setMediaItem(mediaItem, positionMs)
-            start(item)
+            currentInfo = null
+            start(item, downloadId)
         }
 
-        private fun start(item: StreamItem) {
+        private fun start(
+            item: StreamItem,
+            downloadId: String?,
+        ) {
+            _nowPlaying.value = NowPlaying(item, downloadId)
             player.prepare()
             player.playWhenReady = true
             _currentVideo.value = item.id
@@ -269,6 +285,8 @@ class PlaybackManager
             player.stop()
             player.clearMediaItems()
             _currentVideo.value = null
+            _nowPlaying.value = null
+            currentInfo = null
         }
 
         private fun applyLimits(settings: PlaybackSettings) {
@@ -419,6 +437,12 @@ internal fun StreamItem.toMediaMetadata(): MediaMetadata =
         .build()
 
 private const val ARTWORK_WIDTH = 720
+
+/** The video in the player; [downloadId] is set when it plays from a download. */
+data class NowPlaying(
+    val item: StreamItem,
+    val downloadId: String?,
+)
 
 /** The sleep timer: off, after a time, or when the current video ends. */
 sealed interface SleepTimer {

@@ -346,6 +346,14 @@ class WatchViewModel
             loading =
                 viewModelScope.launch {
                     val requested = id
+                    // Back from the mini player: the video is still loaded, keep playing as it is.
+                    val playing = playback.currentInfo?.takeIf { it.item.id == requested && isCurrent && !refetch }
+                    if (playing != null) {
+                        savedPositionMs = player.currentPosition
+                        loadSegments(requested)
+                        _state.value = WatchUiState.Content(playing)
+                        return@launch
+                    }
                     val info =
                         if (previous != null && !refetch) {
                             previous.info
@@ -374,10 +382,9 @@ class WatchViewModel
                 }
         }
 
-        /** Leaving the video (back) ends its playback; the shared player stays for the next one. */
+        /** Leaving the video (back) keeps it playing in the mini player, which can stop it. */
         override fun onCleared() {
             player.removeListener(listener)
-            if (isCurrent) playback.stop()
         }
 
         private companion object {

@@ -84,7 +84,7 @@ class OfflineWatchViewModel
             if (path != null && !isCurrent) {
                 viewModelScope.launch {
                     val position = savedPositionMs ?: history.resumePosition(item.videoId)
-                    if (!isCurrent) playback.playLocal(item.toStreamItem(), path, position)
+                    if (!isCurrent) playback.playLocal(item.toStreamItem(), path, position, item.id)
                 }
             }
         }
@@ -99,9 +99,7 @@ class OfflineWatchViewModel
 
         val playbackManager: PlaybackManager get() = playback
 
-        override fun onCleared() {
-            if (isCurrent) playback.stop()
-        }
+        // Leaving the screen keeps playing in the mini player; its close button stops playback.
 
         @AssistedFactory
         interface Factory {

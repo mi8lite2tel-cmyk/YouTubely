@@ -58,6 +58,8 @@ internal class PlayerExtras(
     val skipNotice: SkipNotice? = null,
     val onUndoSkip: () -> Unit = {},
     val settings: PlaybackSettings = PlaybackSettings(),
+    /** Shrinks the video into the mini player; `null` hides the button. */
+    val onCollapse: (() -> Unit)? = null,
     /** Reports the size of the player window in pixels. */
     val onViewport: (width: Int, height: Int) -> Unit = { _, _ -> },
 )

@@ -178,6 +178,15 @@ internal fun VideoPlayer(
             modifier = Modifier.fillMaxSize(),
         ) {
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))) {
+                extras.onCollapse?.let { collapse ->
+                    IconButton(onClick = collapse, modifier = Modifier.align(Alignment.TopStart).padding(4.dp)) {
+                        Icon(
+                            painterResource(YouTubelyIcons.ExpandMore),
+                            stringResource(R.string.watch_collapse),
+                            tint = Color.White,
+                        )
+                    }
+                }
                 CenterControls(player, Modifier.align(Alignment.Center)) { interactions++ }
                 BottomControls(
                     player = player,

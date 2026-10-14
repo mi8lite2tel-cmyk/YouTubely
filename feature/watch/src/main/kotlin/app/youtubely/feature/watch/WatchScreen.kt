@@ -12,6 +12,7 @@ import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -112,6 +114,7 @@ fun WatchScreen(
     onOpenChannel: (ChannelId) -> Unit,
     modifier: Modifier = Modifier,
     playlistId: PlaylistId? = null,
+    onCollapse: (() -> Unit)? = null,
 ) {
     val viewModel =
         hiltViewModel<WatchViewModel, WatchViewModel.Factory>(key = "${videoId.value}/${playlistId?.value}") {
@@ -181,7 +184,10 @@ fun WatchScreen(
             fullscreen = landscape,
             onToggleFullscreen = ::toggleFullscreen,
             onOpenSettings = { showSettings = true },
-            modifier = playerModifier.pictureInPicture(pipEnabled),
+            modifier =
+                playerModifier
+                    .pictureInPicture(pipEnabled)
+                    .then(if (!landscape && onCollapse != null) Modifier.swipeDownToCollapse(onCollapse) else Modifier),
             seekStepSeconds = settings.seekStepSeconds,
             audioOnly = settings.audioOnly,
             onToggleAudioOnly = { viewModel.setAudioOnly(!settings.audioOnly) },
@@ -194,6 +200,7 @@ fun WatchScreen(
                     onUndoSkip = viewModel::undoSkip,
                     settings = settings,
                     onViewport = viewModel.playbackManager::setViewport,
+                    onCollapse = onCollapse.takeIf { !landscape },
                 ),
         )
     }
@@ -567,6 +574,21 @@ private fun rememberIsPlaying(player: Player): Boolean {
     }
     return playing
 }
+
+/** A downward swipe over the player shrinks it into the mini player. */
+private fun Modifier.swipeDownToCollapse(onCollapse: () -> Unit): Modifier =
+    pointerInput(onCollapse) {
+        var total = 0f
+        detectVerticalDragGestures(
+            onDragStart = { total = 0f },
+            onDragEnd = { if (total > size.height * COLLAPSE_SHARE) onCollapse() },
+        ) { change, amount ->
+            total += amount
+            if (total > 0f) change.consume()
+        }
+    }
+
+private const val COLLAPSE_SHARE = 0.25f
 
 /** Hides the system bars while the player fills the screen; swiping from an edge shows them briefly. */
 @Composable
