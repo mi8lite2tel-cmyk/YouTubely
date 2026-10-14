@@ -19,10 +19,12 @@ import androidx.room3.RoomDatabase
         PlaylistEntity::class,
         PlaylistItemEntity::class,
         AutoDownloadEntity::class,
+        ChannelPlaybackEntity::class,
+        TrafficDailyEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2)],
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
 )
 abstract class YouTubelyDatabase : RoomDatabase() {
     abstract fun historyDao(): HistoryDao
@@ -36,4 +38,8 @@ abstract class YouTubelyDatabase : RoomDatabase() {
     abstract fun playlistDao(): PlaylistDao
 
     abstract fun autoDownloadDao(): AutoDownloadDao
+
+    abstract fun channelPlaybackDao(): ChannelPlaybackDao
+
+    abstract fun trafficDao(): TrafficDao
 }

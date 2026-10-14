@@ -5,6 +5,7 @@ package app.youtubely.core.data
 import app.youtubely.core.database.FeedDao
 import app.youtubely.core.database.SubscriptionDao
 import app.youtubely.core.database.SubscriptionEntity
+import app.youtubely.core.model.AutoDownloadRule
 import app.youtubely.core.model.ChannelId
 import app.youtubely.core.model.ChannelRef
 import app.youtubely.core.model.Image
@@ -69,6 +70,22 @@ class SubscriptionRepository
             enabled: Boolean,
         ) = dao.setAutoDownload(id.value, enabled)
 
+        suspend fun setAutoDownloadRule(
+            id: ChannelId,
+            rule: AutoDownloadRule,
+        ) = dao.setAutoDownloadRule(
+            channelId = id.value,
+            quality = if (rule.audioOnly) 0 else rule.maxHeight,
+            keepLast = rule.keepLast,
+            skipShorts = rule.skipShorts,
+            skipLive = rule.skipLive,
+            minMinutes = rule.minMinutes,
+            maxMinutes = rule.maxMinutes,
+            include = AutoDownloadRule.joinWords(rule.includeWords),
+            exclude = AutoDownloadRule.joinWords(rule.excludeWords),
+            deleteWatched = rule.deleteWatched,
+        )
+
         /** `null` or a blank [group] removes the channel from its group. */
         suspend fun setGroup(
             id: ChannelId,
@@ -95,4 +112,17 @@ internal fun SubscriptionEntity.toSubscription() =
         autoDownload = autoDownload,
         group = groupName,
         subscribedAt = Instant.ofEpochMilli(subscribedAt),
+        autoRule =
+            AutoDownloadRule(
+                maxHeight = adQuality?.takeIf { it > 0 },
+                audioOnly = adQuality == 0,
+                keepLast = adKeepLast,
+                skipShorts = adSkipShorts,
+                skipLive = adSkipLive,
+                minMinutes = adMinMinutes,
+                maxMinutes = adMaxMinutes,
+                includeWords = AutoDownloadRule.parseWords(adIncludeWords),
+                excludeWords = AutoDownloadRule.parseWords(adExcludeWords),
+                deleteWatched = adDeleteWatched,
+            ),
     )

@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import app.youtubely.core.model.SyncSettings
+import app.youtubely.core.model.TimeWindow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -35,6 +36,9 @@ class SyncSettingsRepository(
                     autoDownloadKeepLast = prefs[KEEP_LAST] ?: defaults.autoDownloadKeepLast,
                     autoDownloadLimitGb = prefs[LIMIT_GB] ?: defaults.autoDownloadLimitGb,
                     autoDownloadOnlyCharging = prefs[ONLY_CHARGING] ?: defaults.autoDownloadOnlyCharging,
+                    autoDownloadWindow = window(prefs[WINDOW_START], prefs[WINDOW_END]),
+                    autoDownloadPerRun = prefs[PER_RUN] ?: defaults.autoDownloadPerRun,
+                    autoDownloadSkipWatched = prefs[SKIP_WATCHED] ?: defaults.autoDownloadSkipWatched,
                 )
             }.distinctUntilChanged()
 
@@ -61,7 +65,41 @@ class SyncSettingsRepository(
 
     suspend fun setAutoDownloadOnlyCharging(enabled: Boolean) = store.edit { it[ONLY_CHARGING] = enabled }.let {}
 
+    /** `null` removes the window: downloads may start at any time. */
+    suspend fun setAutoDownloadWindow(window: TimeWindow?) =
+        store
+            .edit {
+                if (window == null) {
+                    it.remove(WINDOW_START)
+                    it.remove(WINDOW_END)
+                } else {
+                    it[WINDOW_START] = window.startHour
+                    it[WINDOW_END] = window.endHour
+                }
+            }.let {}
+
+    suspend fun setAutoDownloadPerRun(count: Int) = store.edit { it[PER_RUN] = count }.let {}
+
+    suspend fun setAutoDownloadSkipWatched(enabled: Boolean) = store.edit { it[SKIP_WATCHED] = enabled }.let {}
+
+    private fun window(
+        start: Int?,
+        end: Int?,
+    ): TimeWindow? =
+        if (start != null &&
+            end != null
+        ) {
+            TimeWindow(start.coerceIn(0, LAST_HOUR), end.coerceIn(0, LAST_HOUR))
+        } else {
+            null
+        }
+
     private companion object {
+        const val LAST_HOUR = 23
+        val WINDOW_START = intPreferencesKey("sync_window_start")
+        val WINDOW_END = intPreferencesKey("sync_window_end")
+        val PER_RUN = intPreferencesKey("sync_per_run")
+        val SKIP_WATCHED = booleanPreferencesKey("sync_skip_watched")
         const val AUDIO_ONLY = 0
         val REFRESH = booleanPreferencesKey("sync_refresh")
         val INTERVAL = intPreferencesKey("sync_interval_hours")

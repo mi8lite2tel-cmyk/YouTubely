@@ -84,6 +84,25 @@ interface SubscriptionDao {
         group: String?,
     )
 
+    @Query(
+        "UPDATE subscriptions SET adQuality = :quality, adKeepLast = :keepLast, adSkipShorts = :skipShorts, " +
+            "adSkipLive = :skipLive, adMinMinutes = :minMinutes, adMaxMinutes = :maxMinutes, " +
+            "adIncludeWords = :include, adExcludeWords = :exclude, adDeleteWatched = :deleteWatched " +
+            "WHERE channelId = :channelId",
+    )
+    suspend fun setAutoDownloadRule(
+        channelId: String,
+        quality: Int?,
+        keepLast: Int?,
+        skipShorts: Boolean,
+        skipLive: Boolean,
+        minMinutes: Int,
+        maxMinutes: Int,
+        include: String?,
+        exclude: String?,
+        deleteWatched: Boolean,
+    )
+
     @Query("UPDATE subscriptions SET lastRefreshedAt = :at WHERE channelId = :channelId")
     suspend fun markRefreshed(
         channelId: String,
@@ -221,4 +240,62 @@ interface AutoDownloadDao {
 
     @Query("DELETE FROM auto_downloads WHERE videoId = :videoId")
     suspend fun delete(videoId: String)
+}
+
+@Dao
+interface ChannelPlaybackDao {
+    @Query("SELECT * FROM channel_playback WHERE channelId = :channelId")
+    suspend fun get(channelId: String): ChannelPlaybackEntity?
+
+    @Upsert
+    suspend fun upsert(entity: ChannelPlaybackEntity)
+
+    @Query("DELETE FROM channel_playback WHERE channelId = :channelId")
+    suspend fun delete(channelId: String)
+
+    @Query("DELETE FROM channel_playback")
+    suspend fun clear()
+}
+
+/** Sum of traffic for one group, as returned by the aggregate queries of [TrafficDao]. */
+data class TrafficSum(
+    val metered: Boolean,
+    val kind: String,
+    val bytes: Long,
+)
+
+/** Bytes of one day over one kind of network. */
+data class TrafficDay(
+    val day: Long,
+    val metered: Boolean,
+    val bytes: Long,
+)
+
+@Dao
+interface TrafficDao {
+    @Query(
+        "INSERT INTO traffic_daily (day, metered, kind, bytes) VALUES (:day, :metered, :kind, :bytes) " +
+            "ON CONFLICT(day, metered, kind) DO UPDATE SET bytes = bytes + :bytes",
+    )
+    suspend fun add(
+        day: Long,
+        metered: Boolean,
+        kind: String,
+        bytes: Long,
+    )
+
+    @Query("SELECT metered, kind, SUM(bytes) AS bytes FROM traffic_daily WHERE day >= :from GROUP BY metered, kind")
+    fun observeSums(from: Long): Flow<List<TrafficSum>>
+
+    @Query("SELECT day, metered, SUM(bytes) AS bytes FROM traffic_daily WHERE day >= :from GROUP BY day, metered")
+    fun observeDays(from: Long): Flow<List<TrafficDay>>
+
+    @Query("SELECT COALESCE(SUM(bytes), 0) FROM traffic_daily WHERE metered = 1 AND day >= :from")
+    fun observeMeteredSince(from: Long): Flow<Long>
+
+    @Query("DELETE FROM traffic_daily WHERE day < :before")
+    suspend fun deleteBefore(before: Long)
+
+    @Query("DELETE FROM traffic_daily")
+    suspend fun clear()
 }

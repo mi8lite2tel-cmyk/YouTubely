@@ -40,6 +40,18 @@ data class SubscriptionEntity(
     val groupName: String? = null,
     /** Last successful feed load; `null` until the first one, whose videos are not "new". */
     val lastRefreshedAt: Long? = null,
+    /** Automatic download rule; `null` quality/keep = the global default. Quality 0 = audio only. */
+    val adQuality: Int? = null,
+    val adKeepLast: Int? = null,
+    @ColumnInfo(defaultValue = "1") val adSkipShorts: Boolean = true,
+    @ColumnInfo(defaultValue = "1") val adSkipLive: Boolean = true,
+    @ColumnInfo(defaultValue = "0") val adMinMinutes: Int = 0,
+    @ColumnInfo(defaultValue = "0") val adMaxMinutes: Int = 0,
+    /** Words separated by newlines; a title must contain one of the included, none of the excluded ones. */
+    val adIncludeWords: String? = null,
+    val adExcludeWords: String? = null,
+    /** Remove an automatic download once it has been watched to the end. */
+    @ColumnInfo(defaultValue = "0") val adDeleteWatched: Boolean = false,
 )
 
 /** Watched share of a video, for the progress bar on thumbnails. */
@@ -128,4 +140,22 @@ data class AutoDownloadEntity(
     val channelId: String,
     val downloadId: String,
     val createdAt: Long,
+)
+
+/** Quality and speed last used for videos of a channel. */
+@Entity(tableName = "channel_playback")
+data class ChannelPlaybackEntity(
+    @PrimaryKey val channelId: String,
+    val height: Int?,
+    val speed: Float?,
+    val updatedAt: Long,
+)
+
+/** Bytes moved on one day over one kind of network for one kind of traffic. [day] is an epoch day. */
+@Entity(tableName = "traffic_daily", primaryKeys = ["day", "metered", "kind"])
+data class TrafficDailyEntity(
+    val day: Long,
+    val metered: Boolean,
+    val kind: String,
+    val bytes: Long,
 )

@@ -45,4 +45,10 @@ object DatabaseModule {
 
     @Provides
     fun provideAutoDownloadDao(database: YouTubelyDatabase): AutoDownloadDao = database.autoDownloadDao()
+
+    @Provides
+    fun provideChannelPlaybackDao(database: YouTubelyDatabase): ChannelPlaybackDao = database.channelPlaybackDao()
+
+    @Provides
+    fun provideTrafficDao(database: YouTubelyDatabase): TrafficDao = database.trafficDao()
 }

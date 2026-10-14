@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package app.youtubely.core.download
 
+import app.youtubely.core.model.TrafficKind
+import app.youtubely.core.network.trafficKind
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import okhttp3.OkHttpClient
@@ -63,6 +65,7 @@ class RangeDownloader(
                 .url(url)
                 .apply { headers.forEach { (name, value) -> header(name, value) } }
                 .header("Range", "bytes=$offset-$end")
+                .trafficKind(TrafficKind.Download)
                 .build()
         return client.newCall(request).execute().use { response ->
             when {

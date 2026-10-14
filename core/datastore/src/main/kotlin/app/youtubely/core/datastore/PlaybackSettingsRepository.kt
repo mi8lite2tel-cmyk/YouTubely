@@ -9,6 +9,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import app.youtubely.core.model.CodecPreference
+import app.youtubely.core.model.DataSaverMode
 import app.youtubely.core.model.PlaybackSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -39,6 +41,15 @@ class PlaybackSettingsRepository(
                     subtitleLanguage = prefs[SUBTITLE_LANGUAGE]?.takeIf { it.isNotBlank() },
                     subtitleScale = prefs[SUBTITLE_SCALE] ?: defaults.subtitleScale,
                     subtitleBackground = prefs[SUBTITLE_BACKGROUND] ?: defaults.subtitleBackground,
+                    dataSaver = prefs[DATA_SAVER].toEnum(defaults.dataSaver),
+                    dataSaverMaxHeight = prefs[SAVER_HEIGHT] ?: defaults.dataSaverMaxHeight,
+                    maxFps = prefs[MAX_FPS]?.takeIf { it > 0 },
+                    codec = prefs[CODEC].toEnum(defaults.codec),
+                    fitToPlayerSize = prefs[FIT_VIEWPORT] ?: defaults.fitToPlayerSize,
+                    limitOnPowerSave = prefs[POWER_SAVE_LIMIT] ?: defaults.limitOnPowerSave,
+                    rememberPerChannel = prefs[PER_CHANNEL] ?: defaults.rememberPerChannel,
+                    monthlyMobileLimitMb = prefs[MONTHLY_LIMIT] ?: defaults.monthlyMobileLimitMb,
+                    downloadConnections = prefs[CONNECTIONS] ?: defaults.downloadConnections,
                 )
             }.distinctUntilChanged()
 
@@ -107,6 +118,46 @@ class PlaybackSettingsRepository(
         store.edit { it[SUBTITLE_BACKGROUND] = enabled }
     }
 
+    suspend fun setDataSaver(mode: DataSaverMode) {
+        store.edit { it[DATA_SAVER] = mode.name }
+    }
+
+    suspend fun setDataSaverMaxHeight(height: Int) {
+        store.edit { it[SAVER_HEIGHT] = height }
+    }
+
+    /** `null` removes the frame-rate cap. */
+    suspend fun setMaxFps(fps: Int?) {
+        store.edit { it[MAX_FPS] = fps ?: NO_LIMIT }
+    }
+
+    suspend fun setCodec(codec: CodecPreference) {
+        store.edit { it[CODEC] = codec.name }
+    }
+
+    suspend fun setFitToPlayerSize(enabled: Boolean) {
+        store.edit { it[FIT_VIEWPORT] = enabled }
+    }
+
+    suspend fun setLimitOnPowerSave(enabled: Boolean) {
+        store.edit { it[POWER_SAVE_LIMIT] = enabled }
+    }
+
+    suspend fun setRememberPerChannel(enabled: Boolean) {
+        store.edit { it[PER_CHANNEL] = enabled }
+    }
+
+    suspend fun setMonthlyMobileLimitMb(megabytes: Int) {
+        store.edit { it[MONTHLY_LIMIT] = megabytes }
+    }
+
+    suspend fun setDownloadConnections(count: Int) {
+        store.edit { it[CONNECTIONS] = count }
+    }
+
+    private inline fun <reified T : Enum<T>> String?.toEnum(default: T): T =
+        enumValues<T>().firstOrNull { it.name == this } ?: default
+
     private fun Int?.limitOr(default: Int?): Int? =
         when (this) {
             null -> default
@@ -132,5 +183,14 @@ class PlaybackSettingsRepository(
         val SUBTITLE_LANGUAGE = stringPreferencesKey("playback_subtitle_language")
         val SUBTITLE_SCALE = floatPreferencesKey("playback_subtitle_scale")
         val SUBTITLE_BACKGROUND = booleanPreferencesKey("playback_subtitle_background")
+        val DATA_SAVER = stringPreferencesKey("playback_data_saver")
+        val SAVER_HEIGHT = intPreferencesKey("playback_saver_height")
+        val MAX_FPS = intPreferencesKey("playback_max_fps")
+        val CODEC = stringPreferencesKey("playback_codec")
+        val FIT_VIEWPORT = booleanPreferencesKey("playback_fit_viewport")
+        val POWER_SAVE_LIMIT = booleanPreferencesKey("playback_power_save_limit")
+        val PER_CHANNEL = booleanPreferencesKey("playback_per_channel")
+        val MONTHLY_LIMIT = intPreferencesKey("traffic_monthly_limit_mb")
+        val CONNECTIONS = intPreferencesKey("download_connections")
     }
 }

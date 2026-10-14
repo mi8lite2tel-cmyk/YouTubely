@@ -5,6 +5,7 @@ plugins {
 }
 
 dependencies {
+    api(projects.core.model)
     api(libs.okhttp)
     api(libs.newpipe.extractor)
 
