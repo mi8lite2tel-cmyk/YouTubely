@@ -22,7 +22,7 @@ class RangeDownloaderTest {
 
     private val content = ByteArray(10_000) { (it % 251).toByte() }
     private val server = MockWebServer()
-    private val requestedRanges = mutableListOf<String>()
+    private val requestedRanges: MutableList<String> = java.util.Collections.synchronizedList(mutableListOf())
 
     @Before
     fun setUp() {
@@ -87,5 +87,49 @@ class RangeDownloaderTest {
             RangeDownloader(OkHttpClient(), chunkSize = 4_000)
                 .download(server.url("/w").toString(), emptyMap(), target, null) { _, _ -> }
             assertArrayEquals(content, target.readBytes())
+        }
+
+    @Test
+    fun loadsRangesInParallelAndRecordsNothingWhenDone() =
+        runTest {
+            val target = folder.newFile("parallel.part").apply { delete() }
+            val progress = mutableListOf<Long>()
+            RangeDownloader(OkHttpClient(), chunkSize = 1_000, connections = 4)
+                .download(server.url("/p").toString(), emptyMap(), target, content.size.toLong()) { done, _ ->
+                    progress += done
+                }
+            assertArrayEquals(content, target.readBytes())
+            assertEquals(10, requestedRanges.size)
+            assertEquals(progress.sorted(), progress)
+            assertEquals(10_000L, progress.last())
+            assertEquals(false, java.io.File(target.path + ".chunks").exists())
+        }
+
+    @Test
+    fun parallelLearnsTheSizeFromTheFirstRange() =
+        runTest {
+            val target = folder.newFile("unknown.part").apply { delete() }
+            RangeDownloader(OkHttpClient(), chunkSize = 3_000, connections = 3)
+                .download(server.url("/u").toString(), emptyMap(), target, null) { _, _ -> }
+            assertArrayEquals(content, target.readBytes())
+            assertEquals("0-2999", requestedRanges.first())
+            assertEquals(4, requestedRanges.size)
+        }
+
+    @Test
+    fun parallelResumesFromTheLedger() =
+        runTest {
+            val target = folder.newFile("resume.part")
+            java.io.RandomAccessFile(target, "rw").use {
+                it.setLength(content.size.toLong())
+                it.seek(2_000)
+                it.write(content, 2_000, 1_000)
+            }
+            java.io.File(target.path + ".chunks").writeText("2\n")
+            RangeDownloader(OkHttpClient(), chunkSize = 1_000, connections = 2)
+                .download(server.url("/r").toString(), emptyMap(), target, content.size.toLong()) { _, _ -> }
+            assertArrayEquals(content, target.readBytes())
+            assertEquals(9, requestedRanges.size)
+            assertEquals(false, "2000-2999" in requestedRanges)
         }
 }

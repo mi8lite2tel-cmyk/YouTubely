@@ -9,6 +9,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
+import app.youtubely.core.datastore.PlaybackSettingsRepository
 import app.youtubely.core.model.Download
 import app.youtubely.core.model.DownloadState
 import app.youtubely.core.model.bestFor
@@ -18,11 +19,17 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Downloads one [Download]: fresh stream URLs from the provider, video and audio in resumable
@@ -38,6 +45,7 @@ internal class DownloadWorker
         private val store: DownloadStore,
         private val provider: StreamProvider,
         private val client: OkHttpClient,
+        private val settings: PlaybackSettingsRepository,
     ) : CoroutineWorker(context, params) {
         private val id = requireNotNull(inputData.getString(KEY_ID))
         private val notificationId = id.hashCode()
@@ -138,30 +146,40 @@ internal class DownloadWorker
             audioPart: File,
         ): Long? {
             val total = ((streams.video?.contentLength ?: 0L) + (streams.audio.contentLength ?: 0L)).takeIf { it > 0 }
-            var videoDone = if (videoPart.exists()) videoPart.length() else 0L
-            var audioDone = if (audioPart.exists()) audioPart.length() else 0L
+            val videoDone = AtomicLong(if (videoPart.exists()) videoPart.length() else 0L)
+            val audioDone = AtomicLong(if (audioPart.exists()) audioPart.length() else 0L)
             var lastPercent = -1
 
-            suspend fun report() {
-                val progress = total?.let { (videoDone + audioDone).toFloat() / it } ?: 0f
-                val percent = (progress * PERCENT).toInt()
-                if (percent != lastPercent) {
-                    lastPercent = percent
-                    setState(download, DownloadState.Downloading, progress, total)
-                }
-            }
+            val reporting = Mutex()
 
-            val downloader = RangeDownloader(client)
-            streams.video?.let { video ->
-                downloader.download(video.url, video.httpHeaders, videoPart, video.contentLength) { done, _ ->
-                    videoDone = done
-                    report()
+            suspend fun report() =
+                reporting.withLock {
+                    val progress = total?.let { (videoDone.get() + audioDone.get()).toFloat() / it } ?: 0f
+                    val percent = (progress * PERCENT).toInt()
+                    if (percent != lastPercent) {
+                        lastPercent = percent
+                        setState(download, DownloadState.Downloading, progress, total)
+                    }
                 }
-            }
-            val audio = streams.audio
-            downloader.download(audio.url, audio.httpHeaders, audioPart, audio.contentLength) { done, _ ->
-                audioDone = done
-                report()
+
+            // Picture and sound load at the same time, each over several connections.
+            val downloader = RangeDownloader(client, connections = settings.settings.first().downloadConnections)
+            coroutineScope {
+                streams.video?.let { video ->
+                    launch {
+                        downloader.download(video.url, video.httpHeaders, videoPart, video.contentLength) { done, _ ->
+                            videoDone.set(done)
+                            report()
+                        }
+                    }
+                }
+                val audio = streams.audio
+                launch {
+                    downloader.download(audio.url, audio.httpHeaders, audioPart, audio.contentLength) { done, _ ->
+                        audioDone.set(done)
+                        report()
+                    }
+                }
             }
             return total
         }

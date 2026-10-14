@@ -4,23 +4,34 @@ package app.youtubely.core.download
 
 import app.youtubely.core.model.TrafficKind
 import app.youtubely.core.network.trafficKind
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.io.RandomAccessFile
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 /**
- * Downloads a file in fixed-size range requests and appends to [target], so an interrupted
- * download resumes from the bytes already on disk. Small ranges also keep media servers from
- * throttling one long-running response.
+ * Downloads a file in fixed-size range requests, so an interrupted download resumes from the
+ * bytes already on disk. Small ranges also keep media servers from throttling one long-running
+ * response. With more than one [connections], several ranges load at once into their place in
+ * the file; a small ledger next to it (`.chunks`) records the finished ones for resuming.
  */
 class RangeDownloader(
     private val client: OkHttpClient,
     private val chunkSize: Long = DEFAULT_CHUNK_SIZE,
+    private val connections: Int = 1,
 ) {
     /**
      * @param totalBytes expected size if known (the source reports it); otherwise read from the
@@ -35,6 +46,32 @@ class RangeDownloader(
         onProgress: suspend (done: Long, total: Long) -> Unit,
     ) {
         target.parentFile?.mkdirs()
+        val ledger = File(target.path + LEDGER_SUFFIX)
+        var total = totalBytes
+        if (connections > 1 || ledger.exists()) {
+            val fresh = !ledger.exists() && (!target.exists() || target.length() == 0L)
+            if (fresh && total == null) {
+                // The first range tells the size (or the server sends everything at once).
+                val first = fetchChunk(url, headers, target, 0) ?: return
+                total = first.total
+                onProgress(first.written, first.total)
+                if (first.written >= first.total) return
+            }
+            if (total != null) {
+                ParallelRanges(target, ledger, total).run(url, headers, onProgress)
+                return
+            }
+        }
+        sequential(url, headers, target, total, onProgress)
+    }
+
+    private suspend fun sequential(
+        url: String,
+        headers: Map<String, String>,
+        target: File,
+        totalBytes: Long?,
+        onProgress: suspend (done: Long, total: Long) -> Unit,
+    ) {
         var done = if (target.exists()) target.length() else 0L
         var total = totalBytes
         while (total == null || done < total) {
@@ -43,6 +80,99 @@ class RangeDownloader(
             done += chunk.written
             total = total ?: chunk.total
             onProgress(done, total)
+        }
+    }
+
+    /** One download split into numbered ranges that several connections fetch in parallel. */
+    private inner class ParallelRanges(
+        private val target: File,
+        private val ledger: File,
+        private val total: Long,
+    ) {
+        private val count = ((total + chunkSize - 1) / chunkSize).toInt()
+
+        private fun length(index: Int): Long = minOf(chunkSize, total - index * chunkSize)
+
+        /** Ranges already on disk: from the ledger, or the contiguous start of an older sequential download. */
+        private fun finished(): Set<Int> {
+            if (ledger.exists()) return ledger.readLines().mapNotNull { it.toIntOrNull() }.toSet()
+            val prefix = if (target.exists()) minOf(target.length(), total) else 0L
+            val done = (0 until count).filter { it * chunkSize + length(it) <= prefix }.toSet()
+            ledger.writeText(done.joinToString("") { "$it\n" })
+            return done
+        }
+
+        suspend fun run(
+            url: String,
+            headers: Map<String, String>,
+            onProgress: suspend (done: Long, total: Long) -> Unit,
+        ) {
+            val done = finished()
+            val pending = (0 until count).filterNot { it in done }
+            RandomAccessFile(target, "rw").use { it.setLength(total) }
+            val doneBytes = AtomicLong(done.sumOf(::length))
+            val next = AtomicInteger(0)
+            val report = Mutex()
+            onProgress(doneBytes.get(), total)
+            withContext(Dispatchers.IO) {
+                coroutineScope {
+                    repeat(minOf(connections, pending.size)) {
+                        launch {
+                            RandomAccessFile(target, "rw").use { file ->
+                                while (true) {
+                                    ensureActive()
+                                    val index = pending.getOrNull(next.getAndIncrement()) ?: break
+                                    fetchInto(url, headers, file, index)
+                                    synchronized(ledger) { ledger.appendText("$index\n") }
+                                    doneBytes.addAndGet(length(index))
+                                    // Read inside the lock so progress never goes backwards.
+                                    report.withLock { onProgress(doneBytes.get(), total) }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            ledger.delete()
+        }
+
+        private fun fetchInto(
+            url: String,
+            headers: Map<String, String>,
+            file: RandomAccessFile,
+            index: Int,
+        ) {
+            val start = index * chunkSize
+            val end = start + length(index) - 1
+            val request =
+                Request
+                    .Builder()
+                    .url(url)
+                    .apply { headers.forEach { (name, value) -> header(name, value) } }
+                    .header("Range", "bytes=$start-$end")
+                    .trafficKind(TrafficKind.Download)
+                    .build()
+            client.newCall(request).execute().use { response ->
+                if (response.code !=
+                    HTTP_PARTIAL_CONTENT
+                ) {
+                    throw IOException("Unexpected HTTP ${response.code} for range $start-$end")
+                }
+                val buffer = ByteArray(COPY_BUFFER)
+                var position = start
+                response.body.byteStream().use { input ->
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        synchronized(file) {
+                            file.seek(position)
+                            file.write(buffer, 0, read)
+                        }
+                        position += read
+                    }
+                }
+                if (position != end + 1) throw IOException("Short range $start-$end: got ${position - start} bytes")
+            }
         }
     }
 
@@ -103,6 +233,8 @@ class RangeDownloader(
 
     companion object {
         const val DEFAULT_CHUNK_SIZE = 4L * 1024 * 1024
+        private const val LEDGER_SUFFIX = ".chunks"
+        private const val COPY_BUFFER = 64 * 1024
         private const val HTTP_OK = 200
         private const val HTTP_PARTIAL_CONTENT = 206
         private const val HTTP_RANGE_NOT_SATISFIABLE = 416

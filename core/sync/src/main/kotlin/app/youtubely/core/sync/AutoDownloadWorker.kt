@@ -79,8 +79,10 @@ internal class AutoDownloadWorker
             videos.map { it.subscription }.distinctBy { it.channel.id }.forEach { cleanUp(it, current, progress) }
             return when {
                 retry && runAttemptCount < MAX_ATTEMPTS -> Result.retry()
+
                 // The rest of a burst of uploads waits for the next run instead of filling the phone at once.
                 full -> Result.success().also { enqueue(applicationContext, current, NEXT_RUN_MINUTES) }
+
                 else -> Result.success()
             }
         }
