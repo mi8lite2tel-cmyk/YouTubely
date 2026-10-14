@@ -65,4 +65,8 @@
     <string name="sb_filler">Порожня балаканина</string>
     <string name="sb_music_offtopic">Частина без музики</string>
     <string name="watch_save">Зберегти</string>
+    <string name="watch_error_unplayable">Цей пристрій не може відтворити відео. Видаліть завантаження й завантажте в іншій якості.</string>
+    <string name="watch_error_network">Немає з’єднання. Перевірте мережу й повторіть.</string>
+    <string name="watch_error_other">Не вдалося відтворити. Спробуйте ще раз.</string>
+    <string name="watch_error_retry">Повторити</string>
 </resources>

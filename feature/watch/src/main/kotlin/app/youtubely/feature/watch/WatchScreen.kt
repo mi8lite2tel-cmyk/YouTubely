@@ -194,6 +194,7 @@ fun WatchScreen(
                     skipNotice = skipNotice,
                     onUndoSkip = viewModel::undoSkip,
                     settings = settings,
+                    onViewport = viewModel.playbackManager::setViewport,
                 ),
         )
     }

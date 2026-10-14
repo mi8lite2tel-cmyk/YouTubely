@@ -234,6 +234,12 @@ class PlaybackManager
             remember { channelPlayback.setSpeed(it, speed) }
         }
 
+        /** The video is shown in a window of this size; a small window does not need the sharpest picture. */
+        fun setViewport(
+            width: Int,
+            height: Int,
+        ) = quality.setViewport(Viewport(width, height))
+
         /** Applies what was last chosen for [channel], once the video has been handed to the player. */
         private fun restoreChannelChoices(channel: ChannelId?) {
             if (channel == null || !_settings.value.rememberPerChannel) return

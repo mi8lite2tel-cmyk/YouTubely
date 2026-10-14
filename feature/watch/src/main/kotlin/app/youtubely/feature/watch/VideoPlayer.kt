@@ -49,6 +49,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -121,6 +122,7 @@ internal fun VideoPlayer(
             modifier
                 .background(Color.Black)
                 .clipToBounds()
+                .onSizeChanged { extras.onViewport(it.width, it.height) }
                 .playerKeys(player, onToggleFullscreen) { controlsVisible = true }
                 .playerGestures(
                     player = player,
@@ -141,7 +143,14 @@ internal fun VideoPlayer(
             )
         }
 
-        if (buffering) {
+        val problem = rememberPlayerProblem(player)
+        if (problem != null) {
+            PlayerErrorOverlay(
+                problem = problem,
+                onRetry = { player.prepare() },
+                modifier = Modifier.align(Alignment.Center),
+            )
+        } else if (buffering) {
             LoadingIndicator(color = Color.White, modifier = Modifier.align(Alignment.Center).size(64.dp))
         }
         GestureFeedbackOverlay(gestures)

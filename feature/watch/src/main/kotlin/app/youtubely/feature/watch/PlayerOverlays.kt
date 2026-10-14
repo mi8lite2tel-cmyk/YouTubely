@@ -58,6 +58,8 @@ internal class PlayerExtras(
     val skipNotice: SkipNotice? = null,
     val onUndoSkip: () -> Unit = {},
     val settings: PlaybackSettings = PlaybackSettings(),
+    /** Reports the size of the player window in pixels. */
+    val onViewport: (width: Int, height: Int) -> Unit = { _, _ -> },
 )
 
 /** The standard SponsorBlock colours of the categories. */

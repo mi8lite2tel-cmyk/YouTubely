@@ -65,4 +65,8 @@
     <string name="sb_filler">Пустая болтовня</string>
     <string name="sb_music_offtopic">Часть без музыки</string>
     <string name="watch_save">Сохранить</string>
+    <string name="watch_error_unplayable">Это устройство не может воспроизвести видео. Удалите загрузку и скачайте в другом качестве.</string>
+    <string name="watch_error_network">Нет соединения. Проверьте сеть и повторите.</string>
+    <string name="watch_error_other">Не удалось воспроизвести. Повторите попытку.</string>
+    <string name="watch_error_retry">Повторить</string>
 </resources>

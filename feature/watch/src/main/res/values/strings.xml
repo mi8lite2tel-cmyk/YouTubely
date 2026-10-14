@@ -65,4 +65,8 @@
     <string name="sb_filler">Filler</string>
     <string name="sb_music_offtopic">Non-music part</string>
     <string name="watch_save">Save</string>
+    <string name="watch_error_unplayable">This device cannot play this video. Delete the download and save another quality.</string>
+    <string name="watch_error_network">No connection. Check the network and try again.</string>
+    <string name="watch_error_other">Playback failed. Try again.</string>
+    <string name="watch_error_retry">Try again</string>
 </resources>

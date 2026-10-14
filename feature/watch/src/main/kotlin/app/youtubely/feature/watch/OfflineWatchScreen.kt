@@ -180,6 +180,7 @@ fun OfflineWatchScreen(
                 audioOnly = audioFile || settings.audioOnly,
                 onToggleAudioOnly = if (audioFile) null else ({ viewModel.setAudioOnly(!settings.audioOnly) }),
                 artworkUrl = item.thumbnailPath?.let { "file://$it" },
+                extras = PlayerExtras(settings = settings, onViewport = viewModel.playbackManager::setViewport),
             )
         }
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

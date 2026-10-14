@@ -17,11 +17,14 @@ import app.youtubely.core.model.QualityCap
 import app.youtubely.core.model.QualityInputs
 import app.youtubely.core.model.QualityPolicy
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.onStart
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.max
@@ -57,9 +60,14 @@ class QualityController
 
         /** Changes whenever the connection, the power mode, the allowance or the window size does. */
         val situation: Flow<QualitySituation> =
-            combine(network.state, traffic.monthlyUsedFraction, viewport) { state, used, size ->
+            combine(network.state, traffic.monthlyUsedFraction, settledViewport()) { state, used, size ->
                 QualitySituation(state, used, size)
             }
+
+        /** The window size without the flood of values while it animates (full screen, picture-in-picture). */
+        @OptIn(FlowPreview::class)
+        private fun settledViewport(): Flow<Viewport?> =
+            viewport.debounce(VIEWPORT_DEBOUNCE_MS).onStart { emit(viewport.value) }
 
         private val _cap = MutableStateFlow<QualityCap?>(null)
 
@@ -156,5 +164,6 @@ class QualityController
 
         private companion object {
             const val VIEWPORT_MARGIN = 1.5f
+            const val VIEWPORT_DEBOUNCE_MS = 400L
         }
     }
