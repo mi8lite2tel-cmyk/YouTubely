@@ -23,4 +23,7 @@
     <string name="downloads_filter_in_progress">Загружаются</string>
     <string name="downloads_more">Ещё</string>
     <string name="downloads_open_online">Открыть страницу видео</string>
+    <string name="downloads_wifi_title">Загрузки ждут Wi-Fi</string>
+    <string name="downloads_wifi_body">Загрузки идут только по Wi-Fi (см. «Настройки»). Сейчас включена мобильная сеть, поэтому они стоят.</string>
+    <string name="downloads_wifi_action">Скачать по мобильной сети</string>
 </resources>

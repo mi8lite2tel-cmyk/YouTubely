@@ -78,4 +78,19 @@ object YouTubelyIcons {
     val Storage = R.drawable.ic_hard_drive
     val AspectRatio = R.drawable.ic_aspect_ratio
     val VideoFilled = R.drawable.ic_smart_display_fill1
+    val Notifications = R.drawable.ic_notifications
+    val NotificationsOff = R.drawable.ic_notifications_off
+    val Battery = R.drawable.ic_battery_charging_full
+    val PlaylistAdd = R.drawable.ic_playlist_add
+    val PlaylistAddCheck = R.drawable.ic_playlist_add_check
+    val QrCode = R.drawable.ic_qr_code_2
+    val QrScanner = R.drawable.ic_qr_code_scanner
+    val Upload = R.drawable.ic_file_upload
+    val Add = R.drawable.ic_add
+    val Edit = R.drawable.ic_edit
+    val ForYou = R.drawable.ic_auto_awesome
+    val Label = R.drawable.ic_label
+    val Bookmark = R.drawable.ic_bookmark
+    val BookmarkAdd = R.drawable.ic_bookmark_add
+    val FolderOpen = R.drawable.ic_folder_open
 }

@@ -70,4 +70,22 @@ class RangeDownloaderTest {
             assertArrayEquals(content, target.readBytes())
             assertEquals(listOf("6000-9999"), requestedRanges)
         }
+
+    @Test
+    fun acceptsAServerThatIgnoresRanges() =
+        runTest {
+            server.dispatcher =
+                object : Dispatcher() {
+                    override fun dispatch(request: RecordedRequest): MockResponse =
+                        MockResponse
+                            .Builder()
+                            .code(200)
+                            .body(okio.Buffer().write(content))
+                            .build()
+                }
+            val target = folder.newFile("whole.part").apply { delete() }
+            RangeDownloader(OkHttpClient(), chunkSize = 4_000)
+                .download(server.url("/w").toString(), emptyMap(), target, null) { _, _ -> }
+            assertArrayEquals(content, target.readBytes())
+        }
 }

@@ -35,4 +35,5 @@
         <item quantity="one">%d video</item>
         <item quantity="other">%d videos</item>
     </plurals>
+    <string name="video_more">More actions</string>
 </resources>

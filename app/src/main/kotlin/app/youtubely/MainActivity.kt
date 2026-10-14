@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package app.youtubely
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -12,6 +13,9 @@ import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.youtubely.core.designsystem.theme.YouTubelyTheme
+import app.youtubely.core.model.VideoId
+import app.youtubely.core.model.YouTubeLink
+import app.youtubely.core.sync.NewVideoNotifications
 import app.youtubely.core.ui.LocalWatchProgress
 import app.youtubely.ui.NoticeDialog
 import app.youtubely.ui.YouTubelyApp
@@ -26,18 +30,38 @@ class MainActivity : ComponentActivity() {
         installSplashScreen().setKeepOnScreenCondition { viewModel.theme.value == null }
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) handle(intent)
         val versionName = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty()
         setContent {
             val theme by viewModel.theme.collectAsStateWithLifecycle()
             val noticeAccepted by viewModel.noticeAccepted.collectAsStateWithLifecycle()
             val watchProgress by viewModel.watchProgress.collectAsStateWithLifecycle()
+            val pendingLink by viewModel.pendingLink.collectAsStateWithLifecycle()
             val settings = theme ?: return@setContent
             YouTubelyTheme(settings) {
                 CompositionLocalProvider(LocalWatchProgress provides watchProgress) {
-                    YouTubelyApp(versionName = versionName)
+                    YouTubelyApp(
+                        versionName = versionName,
+                        pendingLink = pendingLink,
+                        onLinkHandled = viewModel::linkHandled,
+                    )
                 }
                 if (noticeAccepted == false) NoticeDialog(onAccept = viewModel::acceptNotice)
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handle(intent)
+    }
+
+    /** A new-video notification, a link opened with the app or a link shared to it. */
+    private fun handle(intent: Intent?) {
+        val link =
+            intent?.getStringExtra(NewVideoNotifications.EXTRA_OPEN_VIDEO)?.let { YouTubeLink.Video(VideoId(it)) }
+                ?: intent?.dataString?.let(YouTubeLink::parse)
+                ?: intent?.getStringExtra(Intent.EXTRA_TEXT)?.let(YouTubeLink::find)
+        link?.let(viewModel::open)
     }
 }

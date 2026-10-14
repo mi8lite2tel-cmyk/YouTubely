@@ -13,6 +13,7 @@ import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -32,6 +33,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -84,6 +86,8 @@ import app.youtubely.core.model.bestFor
 import app.youtubely.core.ui.ChannelAvatar
 import app.youtubely.core.ui.ErrorState
 import app.youtubely.core.ui.LoadingState
+import app.youtubely.core.ui.LocalVideoActions
+import app.youtubely.core.ui.StateTransition
 import app.youtubely.core.ui.SubscribeButton
 import app.youtubely.core.ui.VerifiedBadge
 import app.youtubely.core.ui.VideoRow
@@ -118,7 +122,12 @@ fun WatchScreen(
     val downloads by viewModel.downloads.collectAsStateWithLifecycle()
     val queue by viewModel.queue.collectAsStateWithLifecycle()
     val subscribed by viewModel.isSubscribed.collectAsStateWithLifecycle()
+    val sponsorSegments by viewModel.sponsorSegments.collectAsStateWithLifecycle()
+    val skipNotice by viewModel.skipNotice.collectAsStateWithLifecycle()
+    val sleepTimer by viewModel.sleepTimer.collectAsStateWithLifecycle()
+    val abLoop by viewModel.abLoop.collectAsStateWithLifecycle()
     val player = viewModel.player
+    val context = LocalContext.current
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val activity = LocalActivity.current
@@ -177,6 +186,14 @@ fun WatchScreen(
             audioOnly = settings.audioOnly,
             onToggleAudioOnly = { viewModel.setAudioOnly(!settings.audioOnly) },
             artworkUrl = artworkUrl,
+            extras =
+                PlayerExtras(
+                    chapters = content?.info?.chapters.orEmpty(),
+                    segments = sponsorSegments,
+                    skipNotice = skipNotice,
+                    onUndoSkip = viewModel::undoSkip,
+                    settings = settings,
+                ),
         )
     }
     val body = @Composable { includeRelated: Boolean ->
@@ -216,6 +233,10 @@ fun WatchScreen(
             player = player,
             pinnedHeight = viewModel.pinnedQuality,
             networkLimit = rememberNetworkLimit(settings),
+            settings = settings,
+            sleepTimer = sleepTimer,
+            abLoop = abLoop,
+            actions = remember(viewModel) { viewModel.playbackManager.sheetActions(context) },
             onQuality = viewModel::setQuality,
             onDismiss = { showSettings = false },
         )
@@ -280,33 +301,35 @@ private fun WatchBody(
     queue: PlaylistQueue?,
     subscribed: Boolean,
 ) {
-    when (state) {
-        WatchUiState.Loading -> {
-            LoadingState()
-        }
+    StateTransition(state, label = "watchBody") { target ->
+        when (target) {
+            WatchUiState.Loading -> {
+                LoadingState()
+            }
 
-        is WatchUiState.Error -> {
-            ErrorState(state.error, onRetry)
-        }
+            is WatchUiState.Error -> {
+                ErrorState(target.error, onRetry)
+            }
 
-        is WatchUiState.Content -> {
-            LazyColumn(
-                contentPadding = PaddingValues(bottom = 24.dp),
-                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
-            ) {
-                item(key = "details") {
-                    Details(
-                        info = state.info,
-                        onSeek = { player.seekTo(it) },
-                        downloadFormats = remember(state.info) { actions.formatsFor(state.info) },
-                        downloads = downloads,
-                        actions = actions,
-                        subscribed = subscribed,
-                    )
-                }
-                if (includeRelated) {
-                    queue(queue, actions.onPlayQueueItem)
-                    related(state.info, actions.onOpenVideo)
+            is WatchUiState.Content -> {
+                LazyColumn(
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
+                ) {
+                    item(key = "details") {
+                        Details(
+                            info = target.info,
+                            onSeek = { player.seekTo(it) },
+                            downloadFormats = remember(target.info) { actions.formatsFor(target.info) },
+                            downloads = downloads,
+                            actions = actions,
+                            subscribed = subscribed,
+                        )
+                    }
+                    if (includeRelated) {
+                        queue(queue, actions.onPlayQueueItem)
+                        related(target.info, actions.onOpenVideo)
+                    }
                 }
             }
         }
@@ -341,7 +364,7 @@ private fun LazyListScope.queue(
             Icon(painterResource(YouTubelyIcons.PlaylistPlay), contentDescription = null)
             Column(Modifier.weight(1f)) {
                 Text(
-                    queue.playlist.name,
+                    queue.playlist.name.ifBlank { stringResource(R.string.watch_queue_later) },
                     style = MaterialTheme.typography.titleMediumEmphasized,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -438,7 +461,10 @@ private fun Details(
                 SubscribeButton(subscribed = subscribed, onClick = { actions.onToggleSubscription(channel) })
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+        ) {
             info.likeCount?.let { likes ->
                 AssistChip(
                     onClick = {},
@@ -458,6 +484,12 @@ private fun Details(
                 Icon(painterResource(YouTubelyIcons.Share), contentDescription = null)
                 Text(stringResource(R.string.watch_share), Modifier.padding(start = 8.dp))
             }
+            LocalVideoActions.current?.let { open ->
+                FilledTonalButton(onClick = { open(item) }, shapes = ButtonDefaults.shapes()) {
+                    Icon(painterResource(YouTubelyIcons.BookmarkAdd), contentDescription = null)
+                    Text(stringResource(R.string.watch_save), Modifier.padding(start = 8.dp))
+                }
+            }
         }
         DownloadButton(formats = downloadFormats, downloads = downloads, onDownload = actions.onDownload)
         if (info.chapters.isNotEmpty()) {
@@ -476,12 +508,15 @@ private fun Details(
                 }
             }
         }
-        if (info.description.isNotBlank()) Description(info.description)
+        if (info.description.isNotBlank()) Description(info.description, onSeek)
     }
 }
 
 @Composable
-private fun Description(text: String) {
+private fun Description(
+    text: String,
+    onSeek: (Long) -> Unit,
+) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     Surface(
         shape = MaterialTheme.shapes.large,
@@ -493,8 +528,9 @@ private fun Description(text: String) {
                 .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()),
     ) {
         Column(Modifier.padding(12.dp)) {
+            val linkColor = MaterialTheme.colorScheme.primary
             Text(
-                text,
+                remember(text, linkColor) { linkify(text, linkColor, onSeek) },
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = if (expanded) Int.MAX_VALUE else COLLAPSED_DESCRIPTION_LINES,
                 overflow = TextOverflow.Ellipsis,

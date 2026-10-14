@@ -72,6 +72,12 @@ class DownloadsViewModel
             }
         }
 
+        /** Downloads wait for Wi-Fi while the phone is on mobile data. */
+        val waitingForWifi: StateFlow<Boolean> =
+            manager.waitingForWifi.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
+
+        fun downloadNow() = launch { manager.downloadNow() }
+
         fun setFilter(value: DownloadFilter) {
             filter.value = value
         }

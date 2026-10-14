@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="actions_watch_later">Watch later</string>
+    <string name="actions_remove_watch_later">Remove from Watch later</string>
+    <string name="actions_save_to_playlist">Save to playlist</string>
+    <string name="actions_open_channel">Go to channel</string>
+    <string name="actions_share">Share link</string>
+    <string name="actions_new_playlist">New playlist</string>
+    <string name="actions_playlist_name">Name</string>
+    <string name="actions_create">Create</string>
+    <string name="actions_cancel">Cancel</string>
+    <string name="actions_back">Back</string>
+    <string name="actions_videos_count">Videos: %d</string>
+</resources>

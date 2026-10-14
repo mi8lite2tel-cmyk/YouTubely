@@ -67,6 +67,7 @@ import app.youtubely.core.ui.ErrorState
 import app.youtubely.core.ui.LoadMoreEffect
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.PlaylistListItem
+import app.youtubely.core.ui.StateTransition
 import app.youtubely.core.ui.SubscribeButton
 import app.youtubely.core.ui.VerifiedBadge
 import app.youtubely.core.ui.VideoRow
@@ -117,34 +118,46 @@ fun ChannelScreen(
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            when {
-                state.error != null -> {
-                    ErrorState(state.error!!, onRetry = viewModel::retry)
+            val pane =
+                when {
+                    state.error != null -> ChannelPane.Error
+                    channel == null -> ChannelPane.Loading
+                    else -> ChannelPane.Content
                 }
+            StateTransition(pane, label = "channelPane") {
+                when (it) {
+                    ChannelPane.Error -> {
+                        state.error?.let { error -> ErrorState(error, onRetry = viewModel::retry) }
+                    }
 
-                channel == null -> {
-                    LoadingState()
-                }
+                    ChannelPane.Loading -> {
+                        LoadingState()
+                    }
 
-                else -> {
-                    ChannelContent(
-                        state = state,
-                        channel = channel,
-                        subscribed = subscribed,
-                        actions =
-                            ChannelActions(
-                                onSelectTab = viewModel::selectTab,
-                                onToggleSubscription = viewModel::toggleSubscription,
-                                onRetry = viewModel::retry,
-                                onLoadMore = viewModel::loadMore,
-                                navigation = ChannelNavigation(onOpenVideo, onOpenChannel, onOpenPlaylist),
-                            ),
-                    )
+                    ChannelPane.Content -> {
+                        if (channel != null) {
+                            ChannelContent(
+                                state = state,
+                                channel = channel,
+                                subscribed = subscribed,
+                                actions =
+                                    ChannelActions(
+                                        onSelectTab = viewModel::selectTab,
+                                        onToggleSubscription = viewModel::toggleSubscription,
+                                        onRetry = viewModel::retry,
+                                        onLoadMore = viewModel::loadMore,
+                                        navigation = ChannelNavigation(onOpenVideo, onOpenChannel, onOpenPlaylist),
+                                    ),
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
+
+private enum class ChannelPane { Error, Loading, Content }
 
 private class ChannelActions(
     val onSelectTab: (ChannelTab) -> Unit,

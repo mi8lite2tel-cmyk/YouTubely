@@ -31,6 +31,7 @@ coil = "3.6.3"
 hiltAndroidx = "1.4.0"
 work = "2.12.0"
 room3 = "3.0.3"
+camerax = "1.6.2"
 
 # DI
 hilt = "2.60.1"
@@ -40,6 +41,8 @@ okhttp = "5.5.0"
 newpipeExtractor = "v0.26.5"
 # Used to turn description HTML into text (NewPipeExtractor itself pulls 1.22.x).
 jsoup = "1.23.2"
+# QR codes (Apache-2.0, no Google Play Services).
+zxing = "3.5.4"
 
 # Quality
 detekt = "1.23.8"
@@ -82,6 +85,13 @@ androidx-media3-transformer = { module = "androidx.media3:media3-transformer", v
 androidx-media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
 androidx-media3-ui-compose = { module = "androidx.media3:media3-ui-compose", version.ref = "media3" }
 androidx-media3-ui-compose-material3 = { module = "androidx.media3:media3-ui-compose-material3", version.ref = "media3" }
+
+# Camera (QR scanning)
+androidx-camera-core = { module = "androidx.camera:camera-core", version.ref = "camerax" }
+androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }
+androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
+androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 
 # Images
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }

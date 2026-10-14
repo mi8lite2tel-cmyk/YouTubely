@@ -33,4 +33,16 @@ object DatabaseModule {
 
     @Provides
     fun provideSubscriptionDao(database: YouTubelyDatabase): SubscriptionDao = database.subscriptionDao()
+
+    @Provides
+    fun provideFeedDao(database: YouTubelyDatabase): FeedDao = database.feedDao()
+
+    @Provides
+    fun provideWatchLaterDao(database: YouTubelyDatabase): WatchLaterDao = database.watchLaterDao()
+
+    @Provides
+    fun providePlaylistDao(database: YouTubelyDatabase): PlaylistDao = database.playlistDao()
+
+    @Provides
+    fun provideAutoDownloadDao(database: YouTubelyDatabase): AutoDownloadDao = database.autoDownloadDao()
 }

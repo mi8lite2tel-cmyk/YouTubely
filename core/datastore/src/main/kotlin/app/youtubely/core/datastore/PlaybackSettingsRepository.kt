@@ -6,7 +6,9 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import app.youtubely.core.model.PlaybackSettings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -30,6 +32,13 @@ class PlaybackSettingsRepository(
                     seekStepSeconds = prefs[SEEK_STEP] ?: defaults.seekStepSeconds,
                     historyEnabled = prefs[HISTORY] ?: defaults.historyEnabled,
                     resumePlayback = prefs[RESUME] ?: defaults.resumePlayback,
+                    skipSilence = prefs[SKIP_SILENCE] ?: defaults.skipSilence,
+                    normalizeVolume = prefs[NORMALIZE] ?: defaults.normalizeVolume,
+                    autoplayNext = prefs[AUTOPLAY] ?: defaults.autoplayNext,
+                    subtitlesEnabled = prefs[SUBTITLES] ?: defaults.subtitlesEnabled,
+                    subtitleLanguage = prefs[SUBTITLE_LANGUAGE]?.takeIf { it.isNotBlank() },
+                    subtitleScale = prefs[SUBTITLE_SCALE] ?: defaults.subtitleScale,
+                    subtitleBackground = prefs[SUBTITLE_BACKGROUND] ?: defaults.subtitleBackground,
                 )
             }.distinctUntilChanged()
 
@@ -69,6 +78,35 @@ class PlaybackSettingsRepository(
         store.edit { it[RESUME] = enabled }
     }
 
+    suspend fun setSkipSilence(enabled: Boolean) {
+        store.edit { it[SKIP_SILENCE] = enabled }
+    }
+
+    suspend fun setNormalizeVolume(enabled: Boolean) {
+        store.edit { it[NORMALIZE] = enabled }
+    }
+
+    suspend fun setAutoplayNext(enabled: Boolean) {
+        store.edit { it[AUTOPLAY] = enabled }
+    }
+
+    suspend fun setSubtitlesEnabled(enabled: Boolean) {
+        store.edit { it[SUBTITLES] = enabled }
+    }
+
+    /** `null` goes back to the app's language. */
+    suspend fun setSubtitleLanguage(tag: String?) {
+        store.edit { it[SUBTITLE_LANGUAGE] = tag.orEmpty() }
+    }
+
+    suspend fun setSubtitleScale(scale: Float) {
+        store.edit { it[SUBTITLE_SCALE] = scale }
+    }
+
+    suspend fun setSubtitleBackground(enabled: Boolean) {
+        store.edit { it[SUBTITLE_BACKGROUND] = enabled }
+    }
+
     private fun Int?.limitOr(default: Int?): Int? =
         when (this) {
             null -> default
@@ -87,5 +125,12 @@ class PlaybackSettingsRepository(
         val SEEK_STEP = intPreferencesKey("playback_seek_step_seconds")
         val HISTORY = booleanPreferencesKey("history_enabled")
         val RESUME = booleanPreferencesKey("playback_resume")
+        val SKIP_SILENCE = booleanPreferencesKey("playback_skip_silence")
+        val NORMALIZE = booleanPreferencesKey("playback_normalize_volume")
+        val AUTOPLAY = booleanPreferencesKey("playback_autoplay_next")
+        val SUBTITLES = booleanPreferencesKey("playback_subtitles")
+        val SUBTITLE_LANGUAGE = stringPreferencesKey("playback_subtitle_language")
+        val SUBTITLE_SCALE = floatPreferencesKey("playback_subtitle_scale")
+        val SUBTITLE_BACKGROUND = booleanPreferencesKey("playback_subtitle_background")
     }
 }

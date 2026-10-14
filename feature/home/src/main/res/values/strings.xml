@@ -10,4 +10,13 @@
     <string name="explore_movies">Movies &amp; shows</string>
     <string name="home_subscriptions">Subscriptions</string>
     <string name="home_feed_empty">No new videos from your subscriptions yet</string>
+    <string name="home_for_you">For you</string>
+    <string name="home_for_you_note">Picked on your phone from your history and subscriptions. Nothing is sent anywhere.</string>
+    <string name="home_for_you_empty_title">Nothing to base picks on yet</string>
+    <string name="home_for_you_empty_body">Watch a few videos or follow channels, and picks appear here. They are made on your phone, without an account.</string>
+    <string name="home_show_trends">Show what is trending</string>
+    <string name="home_reason_watched">Because you watched “%s”</string>
+    <string name="home_reason_subscription">From your subscriptions</string>
+    <string name="home_reason_frequent">A channel you often watch</string>
+    <string name="home_group_all">All</string>
 </resources>

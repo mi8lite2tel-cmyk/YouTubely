@@ -5,6 +5,8 @@
 package app.youtubely.feature.downloads
 
 import android.text.format.Formatter
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +44,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.toShape
@@ -91,6 +94,7 @@ fun DownloadsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val storage by viewModel.storage.collectAsStateWithLifecycle()
+    val waitingForWifi by viewModel.waitingForWifi.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -149,6 +153,11 @@ fun DownloadsScreen(
                         ),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    if (waitingForWifi) {
+                        item(key = "wifi") {
+                            WifiOnlyCard(onDownloadNow = viewModel::downloadNow, modifier = Modifier.animateItem())
+                        }
+                    }
                     storage?.let { usage -> item(key = "storage") { StorageCard(usage) } }
                     item(key = "filters") { Filters(state.filter, viewModel::setFilter) }
                     if (list.isEmpty()) {
@@ -174,6 +183,28 @@ fun DownloadsScreen(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+/** Explains why downloads do not start on mobile data and lets the user go ahead anyway. */
+@Composable
+private fun WifiOnlyCard(
+    onDownloadNow: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.downloads_wifi_title), style = MaterialTheme.typography.titleSmallEmphasized)
+            Text(stringResource(R.string.downloads_wifi_body), style = MaterialTheme.typography.bodyMedium)
+            TextButton(onClick = onDownloadNow, modifier = Modifier.align(Alignment.End)) {
+                Text(stringResource(R.string.downloads_wifi_action))
             }
         }
     }
@@ -299,14 +330,19 @@ private fun DownloadRow(
                             },
                         maxLines = 2,
                     )
-                    if (download.state == DownloadState.Downloading || download.state == DownloadState.Merging) {
+                    val busy = download.state == DownloadState.Downloading || download.state == DownloadState.Merging
+                    // The bar grows and shrinks with the row instead of popping in and out.
+                    AnimatedVisibility(visible = busy) {
                         if (download.state == DownloadState.Merging) {
                             LinearWavyProgressIndicator(Modifier.fillMaxWidth())
                         } else {
-                            LinearWavyProgressIndicator(
-                                progress = { download.progress },
-                                modifier = Modifier.fillMaxWidth(),
+                            // Progress arrives in whole percents; glide between them.
+                            val progress by animateFloatAsState(
+                                targetValue = download.progress,
+                                animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                                label = "downloadProgress",
                             )
+                            LinearWavyProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                         }
                     }
                 }
@@ -437,7 +473,7 @@ private fun statusText(download: Download): String {
         }
 
         DownloadState.Failed -> {
-            stringResource(R.string.downloads_state_failed)
+            stringResource(R.string.downloads_state_failed) + download.error?.let { "\n$it" }.orEmpty()
         }
 
         DownloadState.Completed -> {

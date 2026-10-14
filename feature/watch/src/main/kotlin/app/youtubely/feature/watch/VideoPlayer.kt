@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import androidx.media3.common.util.ExperimentalApi
@@ -67,6 +68,9 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 
 private const val CONTROLS_TIMEOUT_MS = 3_000L
+private val SUBTITLES_LIFTED = 96.dp
+private val SUBTITLES_LOW = 12.dp
+private val SKIP_NOTICE_BOTTOM = 112.dp
 
 /**
  * Video surface with expressive controls: tap to show/hide, auto-hide while playing, shape-
@@ -87,6 +91,7 @@ internal fun VideoPlayer(
     audioOnly: Boolean = false,
     onToggleAudioOnly: (() -> Unit)? = null,
     artworkUrl: String? = null,
+    extras: PlayerExtras = PlayerExtras(),
 ) {
     var controlsVisible by remember { mutableStateOf(true) }
     val gestures = rememberPlayerGestureState()
@@ -116,6 +121,7 @@ internal fun VideoPlayer(
             modifier
                 .background(Color.Black)
                 .clipToBounds()
+                .playerKeys(player, onToggleFullscreen) { controlsVisible = true }
                 .playerGestures(
                     player = player,
                     state = gestures,
@@ -139,6 +145,22 @@ internal fun VideoPlayer(
             LoadingIndicator(color = Color.White, modifier = Modifier.align(Alignment.Center).size(64.dp))
         }
         GestureFeedbackOverlay(gestures)
+        SubtitleOverlay(
+            player = player,
+            settings = extras.settings,
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = if (controlsVisible) SUBTITLES_LIFTED else SUBTITLES_LOW),
+        )
+        extras.skipNotice?.let { notice ->
+            SkipNoticeChip(
+                notice = notice,
+                onUndo = extras.onUndoSkip,
+                modifier = Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = SKIP_NOTICE_BOTTOM),
+            )
+        }
 
         AnimatedVisibility(
             visible = controlsVisible,
@@ -156,6 +178,7 @@ internal fun VideoPlayer(
                     onOpenSettings = onOpenSettings,
                     audioOnly = audioOnly,
                     onToggleAudioOnly = onToggleAudioOnly,
+                    extras = extras,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
@@ -234,12 +257,24 @@ private fun BottomControls(
     onOpenSettings: () -> Unit,
     audioOnly: Boolean,
     onToggleAudioOnly: (() -> Unit)?,
+    extras: PlayerExtras,
     modifier: Modifier,
 ) {
     val scope = rememberCoroutineScope()
+    val (position, duration) = rememberPlaybackClock(player)
     Column(modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             PositionAndDurationText(player, color = Color.White, scope = scope)
+            extras.chapters.titleAt(position)?.let { title ->
+                Text(
+                    "· $title",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false).padding(start = 6.dp),
+                )
+            }
             Spacer(Modifier.weight(1f))
             if (onToggleAudioOnly != null) {
                 IconToggleButton(
@@ -271,6 +306,7 @@ private fun BottomControls(
                 }
             }
         }
+        SeekMarkers(duration, extras.chapters, extras.segments, Modifier.padding(horizontal = 8.dp))
         ProgressSlider(
             player = player,
             modifier = Modifier.fillMaxWidth(),

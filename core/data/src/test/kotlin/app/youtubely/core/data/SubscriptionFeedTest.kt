@@ -25,6 +25,7 @@ import app.youtubely.core.model.StreamType
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.provider.ProviderError
 import app.youtubely.core.provider.StreamProvider
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -45,7 +46,7 @@ class SubscriptionFeedTest {
             .inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), YouTubelyDatabase::class.java)
             .setDriver(AndroidSQLiteDriver())
             .build()
-    private val subscriptions = SubscriptionRepository(database.subscriptionDao())
+    private val subscriptions = SubscriptionRepository(database.subscriptionDao(), database.feedDao())
 
     @After
     fun close() = database.close()
@@ -58,17 +59,17 @@ class SubscriptionFeedTest {
             val broken = channel("C")
             listOf(a, b, broken).forEach { subscriptions.subscribe(it) }
             val provider =
-                FakeProvider(
+                FakeStreamProvider(
                     mapOf(
                         a.id to listOf(item("a1", day = 1), item("a3", day = 3)),
                         b.id to listOf(item("b2", day = 2)),
                     ),
                 )
-            val feed = SubscriptionFeed(provider, subscriptions)
+            val feed = SubscriptionFeed(provider, database.subscriptionDao(), database.feedDao())
 
             feed.refresh()
 
-            val state = feed.state.value
+            val state = feed.state.first()
             assertEquals(listOf("a3", "b2", "a1"), state.items.map { it.id.value })
             assertEquals(listOf("C"), state.failed.map { it.name })
             assertNull(state.error)
@@ -85,9 +86,9 @@ class SubscriptionFeedTest {
     fun everyChannelFailingIsAnError() =
         runTest {
             subscriptions.subscribe(channel("A"))
-            val feed = SubscriptionFeed(FakeProvider(emptyMap()), subscriptions)
+            val feed = SubscriptionFeed(FakeStreamProvider(emptyMap()), database.subscriptionDao(), database.feedDao())
             feed.refresh()
-            assertNotNull(feed.state.value.error)
+            assertNotNull(feed.state.first().error)
         }
 
     private fun channel(name: String) = ChannelRef(ChannelId("UC$name"), name, emptyList(), isVerified = false)
@@ -106,42 +107,4 @@ class SubscriptionFeedTest {
         uploadedAt = Instant.ofEpochSecond(day * 86_400),
         uploadedAtText = null,
     )
-
-    private class FakeProvider(
-        private val feeds: Map<ChannelId, List<StreamItem>>,
-    ) : StreamProvider {
-        override suspend fun channelFeed(id: ChannelId): List<StreamItem> =
-            feeds[id] ?: throw ProviderError.Network(java.io.IOException("offline"))
-
-        override suspend fun search(
-            query: String,
-            filter: SearchFilter,
-            page: Page?,
-        ): Paged<SearchItem> = error("unused")
-
-        override suspend fun suggestions(query: String): List<String> = error("unused")
-
-        override suspend fun streamInfo(videoId: VideoId): StreamInfo = error("unused")
-
-        override suspend fun channel(
-            id: ChannelId,
-            tab: ChannelTab,
-            page: Page?,
-        ): ChannelPage = error("unused")
-
-        override suspend fun playlist(
-            id: PlaylistId,
-            page: Page?,
-        ): PlaylistPage = error("unused")
-
-        override suspend fun comments(
-            videoId: VideoId,
-            sort: CommentSort,
-            page: Page?,
-        ): Paged<Comment> = error("unused")
-
-        override suspend fun trending(region: Region): List<StreamItem> = error("unused")
-
-        override suspend fun explore(region: Region): List<ExploreSection> = error("unused")
-    }
 }

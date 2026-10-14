@@ -23,4 +23,7 @@
     <string name="downloads_filter_in_progress">In progress</string>
     <string name="downloads_more">More options</string>
     <string name="downloads_open_online">Open video page</string>
+    <string name="downloads_wifi_title">Waiting for Wi-Fi</string>
+    <string name="downloads_wifi_body">Downloads only use Wi-Fi (see Settings). You are on mobile data now, so they are paused.</string>
+    <string name="downloads_wifi_action">Download over mobile data</string>
 </resources>

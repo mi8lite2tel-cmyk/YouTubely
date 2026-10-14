@@ -3,6 +3,7 @@
 plugins {
     alias(libs.plugins.youtubely.android.library)
     alias(libs.plugins.youtubely.android.hilt)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 dependencies {
@@ -12,6 +13,7 @@ dependencies {
     implementation(projects.core.datastore)
     implementation(projects.core.provider)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)

@@ -51,3 +51,13 @@ data class PlaylistRoute(
 data class OfflineWatchRoute(
     val downloadId: String,
 ) : Route
+
+/** A playlist made on this device. */
+@Serializable
+data class LocalPlaylistRoute(
+    val playlistId: Long,
+) : Route
+
+/** Import, export and QR transfer of subscriptions and playlists. */
+@Serializable
+data object TransferRoute : Route

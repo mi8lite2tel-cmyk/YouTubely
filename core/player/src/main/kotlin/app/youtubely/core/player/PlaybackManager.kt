@@ -7,6 +7,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
+import android.os.SystemClock
 import androidx.annotation.MainThread
 import androidx.annotation.OptIn
 import androidx.core.content.getSystemService
@@ -42,6 +43,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -49,7 +51,8 @@ import javax.inject.Singleton
  * The app's single player. Screens load videos into it and [PlaybackService] wraps it in a
  * media session, so playback continues in the background, in picture-in-picture and on the lock
  * screen. Quality is capped per network type from [PlaybackSettings] unless the user picked one.
- * In audio-only mode the video track is disabled, so the player doesn't download it at all.
+ * In audio-only mode the video track is disabled, so the player doesn't download it at all, and
+ * the lowest video quality is selected in case it is enabled again.
  * The position of the current video is saved to the local history while it plays.
  */
 @OptIn(UnstableApi::class)
@@ -79,6 +82,17 @@ class PlaybackManager
             private set
 
         private var controller: ListenableFuture<MediaController>? = null
+
+        private val _sleepTimer = MutableStateFlow<SleepTimer>(SleepTimer.Off)
+        val sleepTimer: StateFlow<SleepTimer> = _sleepTimer.asStateFlow()
+        private var sleepJob: Job? = null
+
+        private val _abLoop = MutableStateFlow(AbLoop())
+        val abLoop: StateFlow<AbLoop> = _abLoop.asStateFlow()
+        private var loopJob: Job? = null
+
+        /** Volume of the current video after normalization, before any fade-out. */
+        private var baseVolume = 1f
 
         /** What is playing, for the history. */
         private var currentItem: StreamItem? = null
@@ -113,6 +127,9 @@ class PlaybackManager
             val source = factory.mediaSource(info) ?: return false
             savePosition()
             pinnedHeight = null
+            clearLoop()
+            baseVolume = VolumeNormalizer.volumeFor(info.loudnessDb).takeIf { _settings.value.normalizeVolume } ?: 1f
+            if (sleepJob?.isActive != true) player.volume = baseVolume
             applyLimits(_settings.value, unmetered.value)
             player.setMediaSource(source, positionMs)
             start(info.item)
@@ -131,6 +148,9 @@ class PlaybackManager
         ) {
             savePosition()
             pinnedHeight = null
+            clearLoop()
+            baseVolume = 1f
+            if (sleepJob?.isActive != true) player.volume = baseVolume
             applyLimits(_settings.value, unmetered.value)
             val mediaItem =
                 MediaItem
@@ -154,6 +174,11 @@ class PlaybackManager
             connectSession()
         }
 
+        /** Applies one change to the stored playback settings; the player follows through the settings flow. */
+        fun updateSettings(change: suspend PlaybackSettingsRepository.() -> Unit) {
+            scope.launch { settingsRepository.change() }
+        }
+
         /** Sound only, without downloading the picture. Kept for the next videos too. */
         fun setAudioOnly(enabled: Boolean) {
             _settings.value = _settings.value.copy(audioOnly = enabled)
@@ -165,12 +190,13 @@ class PlaybackManager
         @MainThread
         fun setQuality(height: Int?) {
             pinnedHeight = height
-            if (height == null) applyLimits(_settings.value, unmetered.value) else player.setVideoHeight(height)
+            applyLimits(_settings.value, unmetered.value)
         }
 
         @MainThread
         fun stop() {
             savePosition()
+            clearLoop()
             currentItem = null
             player.removeListener(historyListener)
             player.stop()
@@ -186,13 +212,105 @@ class PlaybackManager
                 player.trackSelectionParameters
                     .buildUpon()
                     .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, settings.audioOnly)
+                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !settings.subtitlesEnabled)
+                    .setPreferredTextLanguage(settings.subtitleLanguage ?: Locale.getDefault().language)
                     .setPreferredAudioRoleFlags(C.ROLE_FLAG_MAIN)
-            if (pinnedHeight == null) {
-                val limit = if (isUnmetered) settings.maxHeightUnmetered else settings.maxHeightMetered
-                parameters.setMinVideoSize(0, 0).setMaxVideoSize(Int.MAX_VALUE, limit ?: Int.MAX_VALUE)
+            val pinned = pinnedHeight
+            when {
+                // Sound only: besides not loading the picture, fall back to the smallest video
+                // rendition so that switching back to video never starts with a heavy stream.
+                settings.audioOnly -> {
+                    parameters.setMinVideoSize(0, 0).setMaxVideoSize(Int.MAX_VALUE, LOWEST_HEIGHT)
+                }
+
+                pinned != null -> {
+                    parameters.setMinVideoSize(0, pinned).setMaxVideoSize(Int.MAX_VALUE, pinned)
+                }
+
+                else -> {
+                    val limit = if (isUnmetered) settings.maxHeightUnmetered else settings.maxHeightMetered
+                    parameters.setMinVideoSize(0, 0).setMaxVideoSize(Int.MAX_VALUE, limit ?: Int.MAX_VALUE)
+                }
             }
             player.trackSelectionParameters = parameters.build()
+            player.skipSilenceEnabled = settings.skipSilence
+            if (sleepJob?.isActive != true) player.volume = if (settings.normalizeVolume) baseVolume else 1f
         }
+
+        /** Pauses after [minutes], turning the volume down over the last few seconds. */
+        fun startSleepTimer(minutes: Int) {
+            cancelSleepTimer()
+            val endsAt = SystemClock.elapsedRealtime() + minutes * MILLIS_PER_MINUTE
+            _sleepTimer.value = SleepTimer.In(endsAt)
+            sleepJob =
+                scope.launch {
+                    delay((minutes * MILLIS_PER_MINUTE - FADE_MS).coerceAtLeast(0))
+                    fadeOutAndPause()
+                    _sleepTimer.value = SleepTimer.Off
+                }
+        }
+
+        /** Pauses when the current video ends instead of going on to the next one. */
+        fun sleepAtEndOfVideo() {
+            cancelSleepTimer()
+            _sleepTimer.value = SleepTimer.AtEndOfVideo
+        }
+
+        fun cancelSleepTimer() {
+            sleepJob?.cancel()
+            sleepJob = null
+            if (_sleepTimer.value != SleepTimer.Off) player.volume = baseVolume
+            _sleepTimer.value = SleepTimer.Off
+        }
+
+        /** `true` once when the video that was playing at "sleep at the end" has ended: do not go on. */
+        fun consumeSleepAtEnd(): Boolean {
+            if (_sleepTimer.value != SleepTimer.AtEndOfVideo) return false
+            _sleepTimer.value = SleepTimer.Off
+            return true
+        }
+
+        private suspend fun fadeOutAndPause() {
+            val steps = (FADE_MS / FADE_STEP_MS).toInt()
+            for (step in 1..steps) {
+                player.volume = baseVolume * (1f - step.toFloat() / steps)
+                delay(FADE_STEP_MS)
+            }
+            player.pause()
+            player.volume = baseVolume
+        }
+
+        /** Marks the current position as the start of a stretch to repeat. */
+        fun markLoopStart() {
+            _abLoop.value = AbLoop(startMs = player.currentPosition, endMs = null)
+            loopJob?.cancel()
+        }
+
+        /** Marks the current position as the end and starts repeating from the start mark. */
+        fun markLoopEnd() {
+            val start = _abLoop.value.startMs ?: return
+            val end = player.currentPosition
+            if (end <= start + MIN_LOOP_MS) return
+            _abLoop.value = AbLoop(start, end)
+            loopJob?.cancel()
+            loopJob =
+                scope.launch {
+                    while (isActive) {
+                        delay(LOOP_CHECK_MS)
+                        if (player.isPlaying && player.currentPosition >= end) player.seekTo(start)
+                    }
+                }
+            player.seekTo(start)
+        }
+
+        fun clearLoop() {
+            loopJob?.cancel()
+            loopJob = null
+            _abLoop.value = AbLoop()
+        }
+
+        /** For the system equalizer. */
+        val audioSessionId: Int get() = player.audioSessionId
 
         private fun startSavingPosition() {
             positionSaver?.cancel()
@@ -216,6 +334,12 @@ class PlaybackManager
 
         private companion object {
             const val SAVE_INTERVAL_MS = 10_000L
+            const val LOWEST_HEIGHT = 144
+            const val MILLIS_PER_MINUTE = 60_000L
+            const val FADE_MS = 8_000L
+            const val FADE_STEP_MS = 250L
+            const val MIN_LOOP_MS = 1_000L
+            const val LOOP_CHECK_MS = 100L
         }
 
         /** Binding a controller starts [PlaybackService], which then shows the media notification. */
@@ -250,3 +374,39 @@ internal fun StreamItem.toMediaMetadata(): MediaMetadata =
         .build()
 
 private const val ARTWORK_WIDTH = 720
+
+/** The sleep timer: off, after a time, or when the current video ends. */
+sealed interface SleepTimer {
+    data object Off : SleepTimer
+
+    /** [endsAtElapsedMs] is on the [SystemClock.elapsedRealtime] clock. */
+    data class In(
+        val endsAtElapsedMs: Long,
+    ) : SleepTimer
+
+    data object AtEndOfVideo : SleepTimer
+}
+
+/** The stretch to repeat (A–B repeat); [endMs] is `null` until the end mark is set. */
+data class AbLoop(
+    val startMs: Long? = null,
+    val endMs: Long? = null,
+) {
+    val isActive: Boolean get() = startMs != null && endMs != null
+}
+
+/** Turns loud videos down to a common level; quiet ones are left alone. */
+object VolumeNormalizer {
+    private const val MIN_VOLUME = 0.25f
+    private const val DB_PER_DECADE = 20.0
+    private const val DECIBEL_BASE = 10.0
+
+    /** [loudnessDb] is how much louder than YouTube's reference level the video is (`null` = unknown). */
+    fun volumeFor(loudnessDb: Float?): Float {
+        if (loudnessDb == null || loudnessDb <= 0f) return 1f
+        return Math
+            .pow(DECIBEL_BASE, -loudnessDb / DB_PER_DECADE)
+            .toFloat()
+            .coerceIn(MIN_VOLUME, 1f)
+    }
+}

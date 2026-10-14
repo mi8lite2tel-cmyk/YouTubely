@@ -6,6 +6,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -63,20 +64,43 @@ class RangeDownloader(
                 .apply { headers.forEach { (name, value) -> header(name, value) } }
                 .header("Range", "bytes=$offset-$end")
                 .build()
-        client.newCall(request).execute().use { response ->
-            if (response.code == HTTP_RANGE_NOT_SATISFIABLE) return null
-            val total = response.header("Content-Range")?.substringAfter('/')?.toLongOrNull()
-            if (response.code != HTTP_PARTIAL_CONTENT || total == null) {
-                throw IOException("Unexpected HTTP ${response.code} for range $offset-$end")
+        return client.newCall(request).execute().use { response ->
+            when {
+                response.code == HTTP_RANGE_NOT_SATISFIABLE -> null
+                response.code == HTTP_OK && offset == 0L -> wholeFile(response, target)
+                else -> appendRange(response, target, offset, end)
             }
-            val written = FileOutputStream(target, true).use { out -> response.body.byteStream().copyTo(out) }
-            if (written == 0L) throw IOException("Empty range response at $offset")
-            return Chunk(written, total)
         }
+    }
+
+    /** The server ignored the Range header and sent the whole file in one response. */
+    private fun wholeFile(
+        response: Response,
+        target: File,
+    ): Chunk {
+        val written = FileOutputStream(target, false).use { out -> response.body.byteStream().copyTo(out) }
+        if (written == 0L) throw IOException("Empty response")
+        return Chunk(written, written)
+    }
+
+    private fun appendRange(
+        response: Response,
+        target: File,
+        offset: Long,
+        end: Long,
+    ): Chunk {
+        val total = response.header("Content-Range")?.substringAfter('/')?.toLongOrNull()
+        if (response.code != HTTP_PARTIAL_CONTENT || total == null) {
+            throw IOException("Unexpected HTTP ${response.code} for range $offset-$end")
+        }
+        val written = FileOutputStream(target, true).use { out -> response.body.byteStream().copyTo(out) }
+        if (written == 0L) throw IOException("Empty range response at $offset")
+        return Chunk(written, total)
     }
 
     companion object {
         const val DEFAULT_CHUNK_SIZE = 4L * 1024 * 1024
+        private const val HTTP_OK = 200
         private const val HTTP_PARTIAL_CONTENT = 206
         private const val HTTP_RANGE_NOT_SATISFIABLE = 416
     }

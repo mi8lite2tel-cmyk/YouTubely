@@ -12,8 +12,8 @@ android {
 
     defaultConfig {
         applicationId = "app.youtubely"
-        versionCode = 4
-        versionName = "0.4.0"
+        versionCode = 6
+        versionName = "0.5.0"
     }
 
     flavorDimensions += "distribution"
@@ -80,7 +80,9 @@ dependencies {
     implementation(projects.core.network)
     implementation(projects.core.player)
     implementation(projects.core.provider)
+    implementation(projects.core.sync)
     implementation(projects.core.ui)
+    implementation(projects.feature.actions)
     implementation(projects.feature.channel)
     implementation(projects.feature.downloads)
     implementation(projects.feature.home)
@@ -88,6 +90,7 @@ dependencies {
     implementation(projects.feature.playlist)
     implementation(projects.feature.search)
     implementation(projects.feature.settings)
+    implementation(projects.feature.transfer)
     implementation(projects.feature.watch)
 
     implementation(libs.androidx.activity.compose)

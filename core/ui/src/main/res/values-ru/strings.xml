@@ -41,4 +41,5 @@
         <item quantity="many">%d видео</item>
         <item quantity="other">%d видео</item>
     </plurals>
+    <string name="video_more">Дополнительные действия</string>
 </resources>

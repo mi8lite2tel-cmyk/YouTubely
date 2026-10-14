@@ -18,10 +18,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -95,6 +97,8 @@ class OfflineWatchViewModel
 
         fun setAudioOnly(enabled: Boolean) = playback.setAudioOnly(enabled)
 
+        val playbackManager: PlaybackManager get() = playback
+
         override fun onCleared() {
             if (isCurrent) playback.stop()
         }
@@ -130,6 +134,9 @@ fun OfflineWatchScreen(
         }
     val download by viewModel.download.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val sleepTimer by viewModel.playbackManager.sleepTimer.collectAsStateWithLifecycle()
+    val abLoop by viewModel.playbackManager.abLoop.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val player = viewModel.player
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val inPip = rememberIsInPictureInPicture()
@@ -192,6 +199,10 @@ fun OfflineWatchScreen(
             player = player,
             pinnedHeight = null,
             networkLimit = null,
+            settings = settings,
+            sleepTimer = sleepTimer,
+            abLoop = abLoop,
+            actions = remember(viewModel) { viewModel.playbackManager.sheetActions(context) },
             onQuality = viewModel::setQuality,
             onDismiss = { showSettings = false },
         )

@@ -9,9 +9,12 @@ import app.youtubely.core.datastore.AppPreferences
 import app.youtubely.core.datastore.ThemeSettingsRepository
 import app.youtubely.core.model.ThemeSettings
 import app.youtubely.core.model.VideoId
+import app.youtubely.core.model.YouTubeLink
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -34,6 +37,19 @@ class MainViewModel
 
         val noticeAccepted: StateFlow<Boolean?> =
             preferences.noticeAccepted.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+        private val _pendingLink = MutableStateFlow<YouTubeLink?>(null)
+
+        /** A link or notification the app was opened with, until the UI has navigated to it. */
+        val pendingLink: StateFlow<YouTubeLink?> = _pendingLink.asStateFlow()
+
+        fun open(link: YouTubeLink) {
+            _pendingLink.value = link
+        }
+
+        fun linkHandled() {
+            _pendingLink.value = null
+        }
 
         fun acceptNotice() {
             viewModelScope.launch { preferences.acceptNotice() }

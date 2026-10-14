@@ -9,31 +9,40 @@ import androidx.media3.common.Player
 import app.youtubely.core.common.Outcome
 import app.youtubely.core.common.outcomeOf
 import app.youtubely.core.data.HistoryRepository
+import app.youtubely.core.data.PlaylistRepository
 import app.youtubely.core.data.SubscriptionRepository
+import app.youtubely.core.data.WatchLaterRepository
+import app.youtubely.core.datastore.SponsorBlockSettingsRepository
 import app.youtubely.core.download.DownloadManager
 import app.youtubely.core.model.ChannelRef
 import app.youtubely.core.model.Download
 import app.youtubely.core.model.DownloadFormat
+import app.youtubely.core.model.LocalQueue
 import app.youtubely.core.model.PlaybackSettings
 import app.youtubely.core.model.Playlist
 import app.youtubely.core.model.PlaylistId
+import app.youtubely.core.model.SponsorSegment
 import app.youtubely.core.model.StreamInfo
 import app.youtubely.core.model.StreamItem
+import app.youtubely.core.model.StreamType
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.player.PlaybackManager
 import app.youtubely.core.provider.ProviderError
 import app.youtubely.core.provider.StreamProvider
+import app.youtubely.core.sponsorblock.SponsorBlockClient
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -50,6 +59,11 @@ sealed interface WatchUiState {
         val info: StreamInfo,
     ) : WatchUiState
 }
+
+/** A stretch that was just skipped automatically. */
+data class SkipNotice(
+    val segment: SponsorSegment,
+)
 
 /** The playlist a video was opened from; [index] is the item playing now. */
 data class PlaylistQueue(
@@ -78,6 +92,10 @@ class WatchViewModel
         private val downloadManager: DownloadManager,
         private val history: HistoryRepository,
         private val subscriptions: SubscriptionRepository,
+        private val watchLater: WatchLaterRepository,
+        private val localPlaylists: PlaylistRepository,
+        private val sponsorBlock: SponsorBlockClient,
+        private val sponsorSettings: SponsorBlockSettingsRepository,
     ) : ViewModel() {
         private val currentId = MutableStateFlow(VideoId(videoId))
         private val id: VideoId get() = currentId.value
@@ -121,6 +139,74 @@ class WatchViewModel
 
         fun setAudioOnly(enabled: Boolean) = playback.setAudioOnly(enabled)
 
+        val playbackManager: PlaybackManager get() = playback
+        val sleepTimer get() = playback.sleepTimer
+        val abLoop get() = playback.abLoop
+
+        private val _sponsorSegments = MutableStateFlow<List<SponsorSegment>>(emptyList())
+
+        /** Stretches SponsorBlock marks in the current video (empty while it is off or nothing is marked). */
+        val sponsorSegments: StateFlow<List<SponsorSegment>> = _sponsorSegments.asStateFlow()
+
+        private val _skipNotice = MutableStateFlow<SkipNotice?>(null)
+
+        /** The last automatic skip, shown for a few seconds with an undo button. */
+        val skipNotice: StateFlow<SkipNotice?> = _skipNotice.asStateFlow()
+
+        private var segmentsJob: Job? = null
+        private var skipper: Job? = null
+        private val ignoredSegments = mutableSetOf<SponsorSegment>()
+
+        /** Puts the player back where the skipped stretch began and leaves that stretch alone from now on. */
+        fun undoSkip() {
+            val notice = _skipNotice.value ?: return
+            ignoredSegments += notice.segment
+            player.seekTo(notice.segment.startMs)
+            _skipNotice.value = null
+        }
+
+        private fun loadSegments(video: VideoId) {
+            segmentsJob?.cancel()
+            skipper?.cancel()
+            _sponsorSegments.value = emptyList()
+            ignoredSegments.clear()
+            segmentsJob =
+                viewModelScope.launch {
+                    val settings = sponsorSettings.settings.first()
+                    if (!settings.enabled) return@launch
+                    val found =
+                        outcomeOf { sponsorBlock.segments(video, settings) } as? Outcome.Success ?: return@launch
+                    _sponsorSegments.value = found.value
+                    if (found.value.isNotEmpty()) skipper = viewModelScope.launch { skipSegments(found.value) }
+                }
+        }
+
+        /** Jumps over each marked stretch as playback reaches it. */
+        private suspend fun skipSegments(segments: List<SponsorSegment>) {
+            while (true) {
+                delay(SKIP_CHECK_MS)
+                val position = player.currentPosition
+                val hit =
+                    segments.firstOrNull {
+                        isCurrent &&
+                            player.isPlaying &&
+                            it !in ignoredSegments &&
+                            position >= it.startMs &&
+                            position < it.endMs - SKIP_END_MARGIN_MS
+                    }
+                if (hit != null) skip(hit)
+            }
+        }
+
+        private fun skip(segment: SponsorSegment) {
+            player.seekTo(segment.endMs)
+            _skipNotice.value = SkipNotice(segment)
+            viewModelScope.launch {
+                delay(SKIP_NOTICE_MS)
+                if (_skipNotice.value?.segment == segment) _skipNotice.value = null
+            }
+        }
+
         /** Media URLs are signed for a few hours; one expired-URL error triggers a silent reload. */
         private var reloadedAfterHttpError = false
 
@@ -135,7 +221,7 @@ class WatchViewModel
                 }
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
-                    if (playbackState == Player.STATE_ENDED && isCurrent) playNextInQueue()
+                    if (playbackState == Player.STATE_ENDED && isCurrent && !playback.consumeSleepAtEnd()) playNext()
                 }
             }
 
@@ -178,18 +264,72 @@ class WatchViewModel
             load()
         }
 
-        private fun playNextInQueue() {
-            val queue = _queue.value ?: return
-            if (queue.next != null && player.repeatMode == Player.REPEAT_MODE_OFF) playQueueItem(queue.index + 1)
+        /** The next video of the queue, or the first suggested one when autoplay is on. */
+        private fun playNext() {
+            val queue = _queue.value
+            val related = (_state.value as? WatchUiState.Content)?.info?.related.orEmpty()
+            when {
+                player.repeatMode != Player.REPEAT_MODE_OFF -> {
+                    Unit
+                }
+
+                queue?.next != null -> {
+                    playQueueItem(queue.index + 1)
+                }
+
+                settings.value.autoplayNext -> {
+                    related.firstOrNull { it.id != id && it.type == StreamType.Video }?.let(::playSuggested)
+                }
+            }
+        }
+
+        /** Plays [item] on this screen, like the next video of a queue. */
+        private fun playSuggested(item: StreamItem) {
+            currentId.value = item.id
+            savedPositionMs = null
+            reloadedAfterHttpError = false
+            _state.value = WatchUiState.Loading
+            load()
         }
 
         private fun loadQueue(playlistId: PlaylistId) {
+            if (LocalQueue.isLocal(playlistId.value)) {
+                loadLocalQueue(playlistId)
+                return
+            }
             viewModelScope.launch {
                 val page = outcomeOf { provider.playlist(playlistId, null) } as? Outcome.Success ?: return@launch
                 val items = page.value.items.items
                 _queue.value =
                     PlaylistQueue(
                         playlist = page.value.playlist,
+                        items = items,
+                        index = items.indexOfFirst { it.id == id }.coerceAtLeast(0),
+                    )
+            }
+        }
+
+        /** "Watch later" or a playlist of this device, as it is when playback starts. */
+        private fun loadLocalQueue(queueId: PlaylistId) {
+            viewModelScope.launch {
+                val localId = LocalQueue.playlistIdOf(queueId.value)
+                val items =
+                    if (localId == null) {
+                        watchLater.videos.first().map { it.item }
+                    } else {
+                        localPlaylists.itemsOnce(localId)
+                    }
+                val name = localId?.let { localPlaylists.playlist(it).first() }.orEmpty()
+                _queue.value =
+                    PlaylistQueue(
+                        playlist =
+                            Playlist(
+                                queueId,
+                                name,
+                                uploader = null,
+                                thumbnails = emptyList(),
+                                streamCount = items.size.toLong(),
+                            ),
                         items = items,
                         index = items.indexOfFirst { it.id == id }.coerceAtLeast(0),
                     )
@@ -225,6 +365,7 @@ class WatchViewModel
                     savedPositionMs = start
                     _state.value =
                         if (playback.play(info, start)) {
+                            loadSegments(requested)
                             WatchUiState.Content(info)
                         } else {
                             // Extraction succeeded but produced nothing playable: the extractor needs an update.
@@ -241,6 +382,9 @@ class WatchViewModel
 
         private companion object {
             const val STOP_TIMEOUT_MS = 5_000L
+            const val SKIP_CHECK_MS = 250L
+            const val SKIP_END_MARGIN_MS = 500L
+            const val SKIP_NOTICE_MS = 6_000L
         }
 
         @AssistedFactory
