@@ -80,6 +80,7 @@ dependencies {
     implementation(projects.core.network)
     implementation(projects.core.player)
     implementation(projects.core.provider)
+    implementation(projects.core.sync)
     implementation(projects.core.ui)
     implementation(projects.feature.channel)
     implementation(projects.feature.downloads)

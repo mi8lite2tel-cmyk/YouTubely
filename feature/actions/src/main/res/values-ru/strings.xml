@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="actions_watch_later">Смотреть позже</string>
+    <string name="actions_remove_watch_later">Убрать из «Смотреть позже»</string>
+    <string name="actions_save_to_playlist">Сохранить в плейлист</string>
+    <string name="actions_open_channel">Перейти на канал</string>
+    <string name="actions_share">Поделиться ссылкой</string>
+    <string name="actions_new_playlist">Новый плейлист</string>
+    <string name="actions_playlist_name">Название</string>
+    <string name="actions_create">Создать</string>
+    <string name="actions_cancel">Отмена</string>
+    <string name="actions_back">Назад</string>
+    <string name="actions_videos_count">Видео: %d</string>
+</resources>

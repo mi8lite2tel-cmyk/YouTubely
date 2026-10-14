@@ -55,17 +55,21 @@ import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.designsystem.theme.isDynamicColorSupported
 import app.youtubely.core.model.DarkMode
 import app.youtubely.core.model.PlaybackSettings
+import app.youtubely.core.ui.rememberNotificationPermissionRequest
 
 private const val SOURCE_URL = "https://github.com/mi8lite2tel-cmyk/YouTubely"
 
 @Composable
 fun SettingsScreen(
     versionName: String,
+    onOpenTransfer: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val theme by viewModel.themeSettings.collectAsStateWithLifecycle()
     val playback by viewModel.playbackSettings.collectAsStateWithLifecycle()
+    val sync by viewModel.syncSettings.collectAsStateWithLifecycle()
+    val askNotificationPermission = rememberNotificationPermissionRequest()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val context = LocalContext.current
 
@@ -209,6 +213,19 @@ fun SettingsScreen(
                     ),
                 ),
             )
+
+            header(R.string.settings_subscriptions)
+            item(key = "refresh") { RefreshSettings(sync, viewModel::sync, askNotificationPermission) }
+            header(R.string.settings_auto_download)
+            item(key = "auto-download") { AutoDownloadSettings(sync, viewModel::sync) }
+            item(key = "transfer") {
+                SegmentedListItem(
+                    onClick = onOpenTransfer,
+                    shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+                    leadingContent = { Icon(painterResource(YouTubelyIcons.QrCode), contentDescription = null) },
+                    supportingContent = { Text(stringResource(R.string.settings_transfer_summary)) },
+                ) { Text(stringResource(R.string.settings_transfer)) }
+            }
 
             header(R.string.settings_about)
             item {
@@ -383,31 +400,19 @@ private fun QualityLimitRow(
     index: Int,
     onChange: (Int?) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
     val noLimit = stringResource(R.string.settings_quality_no_limit)
-    Box {
-        SegmentedListItem(
-            onClick = { expanded = true },
-            shapes = ListItemDefaults.segmentedShapes(index = index, count = 2),
-            leadingContent = { Icon(painterResource(YouTubelyIcons.Tune), contentDescription = null) },
-            supportingContent = { Text(value?.let { "${it}p" } ?: noLimit) },
-        ) { Text(stringResource(title)) }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            (listOf<Int?>(null) + PlaybackSettings.HEIGHT_CHOICES).forEach { height ->
-                DropdownMenuItem(
-                    text = { Text(height?.let { "${it}p" } ?: noLimit) },
-                    trailingIcon =
-                        if (height == value) {
-                            { Icon(painterResource(YouTubelyIcons.Check), contentDescription = null) }
-                        } else {
-                            null
-                        },
-                    onClick = {
-                        onChange(height)
-                        expanded = false
-                    },
-                )
-            }
+    val options =
+        (listOf<Int?>(null) + PlaybackSettings.HEIGHT_CHOICES).map {
+            it to
+                (it?.let { h -> "${h}p" } ?: noLimit)
         }
-    }
+    ChoiceRow(
+        title = title,
+        icon = YouTubelyIcons.Tune,
+        options = options,
+        selected = value,
+        index = index,
+        count = 2,
+        onChange = onChange,
+    )
 }

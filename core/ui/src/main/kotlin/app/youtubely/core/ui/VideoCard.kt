@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package app.youtubely.core.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -123,11 +125,16 @@ fun VideoCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val actions = LocalVideoActions.current
+    val shape = MaterialTheme.shapes.extraLarge
     Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.extraLarge,
+        shape = shape,
         color = MaterialTheme.colorScheme.surface,
-        modifier = modifier.semantics { role = Role.Button },
+        modifier =
+            modifier
+                .clip(shape)
+                .combinedClickable(onClick = onClick, onLongClick = actions?.let { { it(item) } })
+                .semantics { role = Role.Button },
     ) {
         Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             VideoThumbnail(item, sharedKey, Modifier.fillMaxWidth(), minWidth = 720)
@@ -148,6 +155,7 @@ fun VideoCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                VideoMoreButton(item)
             }
         }
     }
@@ -164,11 +172,15 @@ fun VideoRow(
     containerColor: Color = MaterialTheme.colorScheme.surface,
     trailing: @Composable (() -> Unit)? = null,
 ) {
+    val actions = LocalVideoActions.current
+    val shape = MaterialTheme.shapes.large
     Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.large,
+        shape = shape,
         color = containerColor,
-        modifier = modifier,
+        modifier =
+            modifier
+                .clip(shape)
+                .combinedClickable(onClick = onClick, onLongClick = actions?.let { { it(item) } }),
     ) {
         Row(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             VideoThumbnail(item, sharedKey, Modifier.width(thumbnailWidth), minWidth = 336)
@@ -206,7 +218,7 @@ fun VideoRow(
                     )
                 }
             }
-            trailing?.invoke()
+            if (trailing != null) trailing() else VideoMoreButton(item)
         }
     }
 }

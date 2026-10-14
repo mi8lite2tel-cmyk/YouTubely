@@ -38,4 +38,24 @@
     <string name="settings_privacy">Privacy</string>
     <string name="settings_history">Watch history</string>
     <string name="settings_history_summary">Kept only on this device. Needed to continue videos</string>
+    <string name="settings_subscriptions">Subscriptions</string>
+    <string name="settings_refresh">Refresh in the background</string>
+    <string name="settings_refresh_summary">Look for new videos of your channels even when the app is closed</string>
+    <string name="settings_refresh_interval">How often</string>
+    <string name="settings_every_hours">Every %d h</string>
+    <string name="settings_refresh_wifi">Wi-Fi only</string>
+    <string name="settings_refresh_wifi_summary">Do not refresh on mobile data</string>
+    <string name="settings_notifications">Announce new videos</string>
+    <string name="settings_notifications_summary">Notify about channels that have notifications turned on</string>
+    <string name="settings_auto_download">Automatic downloads</string>
+    <string name="settings_auto_quality">Quality</string>
+    <string name="settings_auto_audio_only">Audio only</string>
+    <string name="settings_auto_keep">Keep per channel</string>
+    <string name="settings_auto_keep_count">Latest %d</string>
+    <string name="settings_auto_limit">Storage limit</string>
+    <string name="settings_gb">%d GB</string>
+    <string name="settings_auto_charging">Only while charging</string>
+    <string name="settings_auto_charging_summary">Always on Wi-Fi. Turn on automatic downloads for a channel in Library</string>
+    <string name="settings_transfer">Import, export and QR</string>
+    <string name="settings_transfer_summary">Move subscriptions and playlists between devices</string>
 </resources>

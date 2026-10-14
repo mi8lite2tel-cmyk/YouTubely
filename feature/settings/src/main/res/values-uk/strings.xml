@@ -38,4 +38,24 @@
     <string name="settings_privacy">Конфіденційність</string>
     <string name="settings_history">Історія переглядів</string>
     <string name="settings_history_summary">Зберігається лише на пристрої. Потрібна, щоб продовжувати відео</string>
+    <string name="settings_subscriptions">Підписки</string>
+    <string name="settings_refresh">Оновлювати у фоні</string>
+    <string name="settings_refresh_summary">Шукати нові відео каналів, навіть коли застосунок закрито</string>
+    <string name="settings_refresh_interval">Як часто</string>
+    <string name="settings_every_hours">Кожні %d год</string>
+    <string name="settings_refresh_wifi">Лише через Wi-Fi</string>
+    <string name="settings_refresh_wifi_summary">Не оновлювати через мобільну мережу</string>
+    <string name="settings_notifications">Повідомляти про нові відео</string>
+    <string name="settings_notifications_summary">Сповіщати про канали, у яких увімкнено сповіщення</string>
+    <string name="settings_auto_download">Автозавантаження</string>
+    <string name="settings_auto_quality">Якість</string>
+    <string name="settings_auto_audio_only">Лише звук</string>
+    <string name="settings_auto_keep">Зберігати на канал</string>
+    <string name="settings_auto_keep_count">Останні %d</string>
+    <string name="settings_auto_limit">Ліміт місця</string>
+    <string name="settings_gb">%d ГБ</string>
+    <string name="settings_auto_charging">Лише під час заряджання</string>
+    <string name="settings_auto_charging_summary">Завжди через Wi-Fi. Автозавантаження вмикається у каналу в «Бібліотеці»</string>
+    <string name="settings_transfer">Імпорт, експорт і QR</string>
+    <string name="settings_transfer_summary">Перенесення підписок і плейлистів між пристроями</string>
 </resources>

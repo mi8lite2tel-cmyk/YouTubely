@@ -5,9 +5,11 @@ package app.youtubely.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.youtubely.core.datastore.PlaybackSettingsRepository
+import app.youtubely.core.datastore.SyncSettingsRepository
 import app.youtubely.core.datastore.ThemeSettingsRepository
 import app.youtubely.core.model.DarkMode
 import app.youtubely.core.model.PlaybackSettings
+import app.youtubely.core.model.SyncSettings
 import app.youtubely.core.model.ThemeSettings
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,6 +24,7 @@ class SettingsViewModel
     constructor(
         private val theme: ThemeSettingsRepository,
         private val playback: PlaybackSettingsRepository,
+        private val sync: SyncSettingsRepository,
     ) : ViewModel() {
         private val sharing = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS)
 
@@ -29,6 +32,11 @@ class SettingsViewModel
 
         val playbackSettings: StateFlow<PlaybackSettings> =
             playback.settings.stateIn(viewModelScope, sharing, PlaybackSettings())
+
+        val syncSettings: StateFlow<SyncSettings> = sync.settings.stateIn(viewModelScope, sharing, SyncSettings())
+
+        /** Applies one change to the sync settings, e.g. `sync { setRefreshEnabled(true) }`. */
+        fun sync(change: suspend SyncSettingsRepository.() -> Unit) = launch { sync.change() }
 
         fun setDarkMode(mode: DarkMode) = launch { theme.setDarkMode(mode) }
 

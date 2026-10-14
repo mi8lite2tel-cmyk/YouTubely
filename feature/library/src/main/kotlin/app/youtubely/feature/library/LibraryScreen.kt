@@ -62,13 +62,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.model.ChannelId
-import app.youtubely.core.model.ChannelRef
 import app.youtubely.core.model.HistoryEntry
 import app.youtubely.core.model.VideoId
-import app.youtubely.core.ui.ChannelListItem
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.VideoRow
 import app.youtubely.core.ui.currentLocale
+import app.youtubely.core.ui.rememberNotificationPermissionRequest
 import app.youtubely.core.ui.videoFrameKey
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.launch
@@ -84,6 +83,8 @@ private enum class LibraryTab(
 ) {
     History(R.string.library_history),
     Subscriptions(R.string.library_subscriptions),
+    WatchLater(R.string.library_watch_later),
+    Playlists(R.string.library_playlists),
 }
 
 /** Local history (with resume positions) and local subscriptions, side by side in swipeable tabs. */
@@ -91,11 +92,18 @@ private enum class LibraryTab(
 fun LibraryScreen(
     onOpenVideo: (VideoId, sharedKey: String) -> Unit,
     onOpenChannel: (ChannelId) -> Unit,
+    onOpenPlaylist: (Long) -> Unit,
+    onPlayAllLater: (VideoId, sharedKey: String) -> Unit,
+    onOpenTransfer: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val history by viewModel.historyEntries.collectAsStateWithLifecycle()
     val channels by viewModel.channels.collectAsStateWithLifecycle()
+    val groups by viewModel.groups.collectAsStateWithLifecycle()
+    val saved by viewModel.savedVideos.collectAsStateWithLifecycle()
+    val playlists by viewModel.localPlaylists.collectAsStateWithLifecycle()
+    val askNotificationPermission = rememberNotificationPermissionRequest()
     val historyEnabled by viewModel.historyEnabled.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val pager = rememberPagerState { LibraryTab.entries.size }
@@ -126,14 +134,20 @@ fun LibraryScreen(
                 title = { Text(stringResource(R.string.library_title)) },
                 subtitle = { Text(stringResource(R.string.library_subtitle)) },
                 actions = {
-                    if (pager.currentPage == LibraryTab.History.ordinal) {
-                        HistoryMenu(
-                            historyEnabled = historyEnabled,
-                            canClear = !history.isNullOrEmpty(),
-                            onToggleHistory = { viewModel.setHistoryEnabled(!historyEnabled) },
-                            onClear = { confirmClear = true },
-                        )
-                    }
+                    LibraryMenu(
+                        onTransfer = onOpenTransfer,
+                        history =
+                            if (pager.currentPage == LibraryTab.History.ordinal) {
+                                HistoryActions(
+                                    historyEnabled = historyEnabled,
+                                    canClear = !history.isNullOrEmpty(),
+                                    onToggleHistory = { viewModel.setHistoryEnabled(!historyEnabled) },
+                                    onClear = { confirmClear = true },
+                                )
+                            } else {
+                                null
+                            },
+                    )
                 },
                 scrollBehavior = scrollBehavior,
             )
@@ -171,12 +185,41 @@ fun LibraryScreen(
 
                     LibraryTab.Subscriptions -> {
                         SubscriptionsPage(
-                            channels = channels,
+                            subscriptions = channels,
+                            groups = groups,
                             onOpenChannel = onOpenChannel,
-                            onUnsubscribe = { channel ->
-                                viewModel.unsubscribe(channel)
-                                offerUndo(unsubscribedMessage.format(channel.name)) { viewModel.resubscribe(channel) }
+                            onToggleNotify = { subscription ->
+                                if (!subscription.notify) askNotificationPermission()
+                                viewModel.setNotify(subscription, !subscription.notify)
                             },
+                            onToggleAutoDownload = { viewModel.setAutoDownload(it, !it.autoDownload) },
+                            onSetGroup = viewModel::setGroup,
+                            onUnsubscribe = { subscription ->
+                                viewModel.unsubscribe(subscription.channel)
+                                offerUndo(unsubscribedMessage.format(subscription.channel.name)) {
+                                    viewModel.resubscribe(subscription.channel)
+                                }
+                            },
+                        )
+                    }
+
+                    LibraryTab.WatchLater -> {
+                        WatchLaterPage(
+                            videos = saved,
+                            onOpenVideo = onOpenVideo,
+                            onPlayAll = onPlayAllLater,
+                            onRemove = { video ->
+                                viewModel.removeSaved(video)
+                                offerUndo(removedMessage.format(video.item.title)) { viewModel.restoreSaved(video) }
+                            },
+                        )
+                    }
+
+                    LibraryTab.Playlists -> {
+                        PlaylistsPage(
+                            playlists = playlists,
+                            onOpen = onOpenPlaylist,
+                            onCreate = viewModel::createPlaylist,
                         )
                     }
                 }
@@ -203,12 +246,18 @@ fun LibraryScreen(
     }
 }
 
+private class HistoryActions(
+    val historyEnabled: Boolean,
+    val canClear: Boolean,
+    val onToggleHistory: () -> Unit,
+    val onClear: () -> Unit,
+)
+
+/** The overflow menu: import/export everywhere, history options on the history tab. */
 @Composable
-private fun HistoryMenu(
-    historyEnabled: Boolean,
-    canClear: Boolean,
-    onToggleHistory: () -> Unit,
-    onClear: () -> Unit,
+private fun LibraryMenu(
+    onTransfer: () -> Unit,
+    history: HistoryActions?,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
@@ -216,32 +265,41 @@ private fun HistoryMenu(
             Icon(painterResource(YouTubelyIcons.MoreVert), stringResource(R.string.library_more))
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            if (history != null) {
+                DropdownMenuItem(
+                    text = {
+                        val enabled = history.historyEnabled
+                        Text(
+                            stringResource(
+                                if (enabled) R.string.library_pause_history else R.string.library_resume_history,
+                            ),
+                        )
+                    },
+                    leadingIcon = {
+                        val icon = if (history.historyEnabled) YouTubelyIcons.HistoryOff else YouTubelyIcons.History
+                        Icon(painterResource(icon), contentDescription = null)
+                    },
+                    onClick = {
+                        expanded = false
+                        history.onToggleHistory()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.library_clear_title)) },
+                    leadingIcon = { Icon(painterResource(YouTubelyIcons.DeleteSweep), contentDescription = null) },
+                    enabled = history.canClear,
+                    onClick = {
+                        expanded = false
+                        history.onClear()
+                    },
+                )
+            }
             DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(
-                            if (historyEnabled) R.string.library_pause_history else R.string.library_resume_history,
-                        ),
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        painterResource(if (historyEnabled) YouTubelyIcons.HistoryOff else YouTubelyIcons.History),
-                        contentDescription = null,
-                    )
-                },
+                text = { Text(stringResource(R.string.library_transfer)) },
+                leadingIcon = { Icon(painterResource(YouTubelyIcons.QrCode), contentDescription = null) },
                 onClick = {
                     expanded = false
-                    onToggleHistory()
-                },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.library_clear_title)) },
-                leadingIcon = { Icon(painterResource(YouTubelyIcons.DeleteSweep), contentDescription = null) },
-                enabled = canClear,
-                onClick = {
-                    expanded = false
-                    onClear()
+                    onTransfer()
                 },
             )
         }
@@ -328,45 +386,7 @@ private fun PausedCard(onEnable: () -> Unit) {
 }
 
 @Composable
-private fun SubscriptionsPage(
-    channels: ImmutableList<ChannelRef>?,
-    onOpenChannel: (ChannelId) -> Unit,
-    onUnsubscribe: (ChannelRef) -> Unit,
-) {
-    when {
-        channels == null -> {
-            LoadingState()
-        }
-
-        channels.isEmpty() -> {
-            EmptyPage(YouTubelyIcons.Subscriptions.filled, R.string.library_subscriptions_empty)
-        }
-
-        else -> {
-            LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
-                items(channels, key = { it.id.value }) { channel ->
-                    ChannelListItem(
-                        channel = channel,
-                        onClick = { onOpenChannel(channel.id) },
-                        trailing = {
-                            IconButton(onClick = { onUnsubscribe(channel) }) {
-                                Icon(
-                                    painterResource(YouTubelyIcons.Subscribed),
-                                    stringResource(R.string.library_unsubscribe, channel.name),
-                                    tint = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-                        },
-                        modifier = Modifier.animateItem(),
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SwipeToRemove(
+internal fun SwipeToRemove(
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
@@ -397,7 +417,7 @@ private fun SwipeToRemove(
 }
 
 @Composable
-private fun EmptyPage(
+internal fun EmptyPage(
     icon: Int,
     text: Int,
 ) {

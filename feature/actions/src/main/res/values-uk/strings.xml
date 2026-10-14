@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="actions_watch_later">Дивитися пізніше</string>
+    <string name="actions_remove_watch_later">Прибрати з «Дивитися пізніше»</string>
+    <string name="actions_save_to_playlist">Зберегти в плейлист</string>
+    <string name="actions_open_channel">Перейти на канал</string>
+    <string name="actions_share">Поділитися посиланням</string>
+    <string name="actions_new_playlist">Новий плейлист</string>
+    <string name="actions_playlist_name">Назва</string>
+    <string name="actions_create">Створити</string>
+    <string name="actions_cancel">Скасувати</string>
+    <string name="actions_back">Назад</string>
+    <string name="actions_videos_count">Відео: %d</string>
+</resources>

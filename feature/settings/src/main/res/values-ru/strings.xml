@@ -38,4 +38,24 @@
     <string name="settings_privacy">Конфиденциальность</string>
     <string name="settings_history">История просмотра</string>
     <string name="settings_history_summary">Хранится только на устройстве. Нужна, чтобы продолжать видео</string>
+    <string name="settings_subscriptions">Подписки</string>
+    <string name="settings_refresh">Обновлять в фоне</string>
+    <string name="settings_refresh_summary">Искать новые видео каналов, даже когда приложение закрыто</string>
+    <string name="settings_refresh_interval">Как часто</string>
+    <string name="settings_every_hours">Каждые %d ч</string>
+    <string name="settings_refresh_wifi">Только по Wi-Fi</string>
+    <string name="settings_refresh_wifi_summary">Не обновлять по мобильной сети</string>
+    <string name="settings_notifications">Сообщать о новых видео</string>
+    <string name="settings_notifications_summary">Уведомлять о каналах, у которых включены уведомления</string>
+    <string name="settings_auto_download">Автозагрузка</string>
+    <string name="settings_auto_quality">Качество</string>
+    <string name="settings_auto_audio_only">Только звук</string>
+    <string name="settings_auto_keep">Хранить на канал</string>
+    <string name="settings_auto_keep_count">Последние %d</string>
+    <string name="settings_auto_limit">Лимит места</string>
+    <string name="settings_gb">%d ГБ</string>
+    <string name="settings_auto_charging">Только при зарядке</string>
+    <string name="settings_auto_charging_summary">Всегда по Wi-Fi. Автозагрузка включается у канала в «Библиотеке»</string>
+    <string name="settings_transfer">Импорт, экспорт и QR</string>
+    <string name="settings_transfer_summary">Перенос подписок и плейлистов между устройствами</string>
 </resources>

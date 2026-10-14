@@ -5,6 +5,7 @@ package app.youtubely
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import app.youtubely.core.sync.SyncScheduler
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -24,6 +25,15 @@ class YouTubelyApplication :
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
+
+    @Inject
+    lateinit var syncScheduler: SyncScheduler
+
+    override fun onCreate() {
+        super.onCreate()
+        // Keeps the background refresh of subscriptions in line with the settings.
+        syncScheduler.start()
+    }
 
     /** Lets WorkManager create Hilt-injected workers (downloads). */
     override val workManagerConfiguration: Configuration

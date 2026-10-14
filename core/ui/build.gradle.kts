@@ -11,6 +11,8 @@ dependencies {
     implementation(projects.core.provider)
     api(libs.coil.compose)
     api(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.collections.immutable)
 
     testImplementation(libs.junit4)
