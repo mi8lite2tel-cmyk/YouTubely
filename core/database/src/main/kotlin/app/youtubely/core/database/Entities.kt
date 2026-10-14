@@ -54,6 +54,20 @@ data class SubscriptionEntity(
     @ColumnInfo(defaultValue = "0") val adDeleteWatched: Boolean = false,
 )
 
+/** The automatic-download rule of [channelId], for a partial update of its subscription row. */
+data class AutoDownloadRuleColumns(
+    val channelId: String,
+    val adQuality: Int?,
+    val adKeepLast: Int?,
+    val adSkipShorts: Boolean,
+    val adSkipLive: Boolean,
+    val adMinMinutes: Int,
+    val adMaxMinutes: Int,
+    val adIncludeWords: String?,
+    val adExcludeWords: String?,
+    val adDeleteWatched: Boolean,
+)
+
 /** Watched share of a video, for the progress bar on thumbnails. */
 data class WatchProgressRow(
     val videoId: String,

@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 /** Persists [PlaybackSettings]. A stored height of 0 means "no limit". */
+@Suppress("TooManyFunctions") // One small setter per setting, which keeps every write explicit.
 class PlaybackSettingsRepository(
     private val store: DataStore<Preferences>,
 ) {

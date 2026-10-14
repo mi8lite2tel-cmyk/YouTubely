@@ -137,7 +137,8 @@ class QualityController
             size: Viewport?,
             pinned: Boolean,
         ) {
-            if (!settings.fitToPlayerSize || pinned || size == null || size.width <= 0 || size.height <= 0) {
+            val window = size?.takeIf { it.width > 0 && it.height > 0 }
+            if (!settings.fitToPlayerSize || pinned || window == null) {
                 parameters.setViewportSizeToPhysicalDisplaySize(context, true)
                 return
             }
@@ -145,8 +146,8 @@ class QualityController
             val longSide = max(display.widthPixels, display.heightPixels)
             val shortSide = min(display.widthPixels, display.heightPixels)
             parameters.setViewportSize(
-                min((size.width * VIEWPORT_MARGIN).toInt(), longSide),
-                min((size.height * VIEWPORT_MARGIN).toInt(), shortSide),
+                min((window.width * VIEWPORT_MARGIN).toInt(), longSide),
+                min((window.height * VIEWPORT_MARGIN).toInt(), shortSide),
                 true,
             )
         }

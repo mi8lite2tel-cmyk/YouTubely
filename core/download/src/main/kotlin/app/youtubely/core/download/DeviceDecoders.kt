@@ -36,10 +36,12 @@ object DeviceDecoders {
         mime: String,
         stream: VideoStream,
     ): Boolean {
-        if (supportedTypes.none { it.equals(mime, ignoreCase = true) }) return false
-        val video = getCapabilitiesForType(mime).videoCapabilities ?: return false
-        val fps = stream.fps.coerceAtLeast(1)
-        val fits = video.areSizeAndRateSupported(stream.width, stream.height, fps.toDouble())
+        val video =
+            getCapabilitiesForType(mime)
+                .takeIf { supportedTypes.any { it.equals(mime, ignoreCase = true) } }
+                ?.videoCapabilities
+        val fps = stream.fps.coerceAtLeast(1).toDouble()
+        val fits = video?.areSizeAndRateSupported(stream.width, stream.height, fps) == true
         // A software AV1 decoder cannot keep up with sharp pictures on a phone.
         val fast = mime != "video/av01" || isHardware()
         return fits && fast

@@ -49,6 +49,7 @@ import app.youtubely.core.model.PlaylistId
 import app.youtubely.core.model.StreamItem
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.model.YouTubeLink
+import app.youtubely.core.player.NowPlaying
 import app.youtubely.core.ui.LocalSharedTransitionScope
 import app.youtubely.core.ui.LocalVideoActions
 import app.youtubely.feature.actions.VideoActionsSheet
@@ -298,10 +299,7 @@ fun YouTubelyApp(
             navigation(Modifier.weight(1f))
             MiniPlayer(
                 visible = !watching,
-                onOpen = { playing ->
-                    val id = playing.item.id.value
-                    backStack.add(playing.downloadId?.let(::OfflineWatchRoute) ?: WatchRoute(id, "mini-$id"))
-                },
+                onOpen = { backStack.add(it.route()) },
             )
         }
     }
@@ -309,6 +307,10 @@ fun YouTubelyApp(
         VideoActionsSheet(item = item, onDismiss = { actionsFor = null }, onOpenChannel = ::openChannel)
     }
 }
+
+/** The screen of what the mini player plays: the download or the online video. */
+private fun NowPlaying.route(): NavKey =
+    downloadId?.let(::OfflineWatchRoute) ?: WatchRoute(item.id.value, "mini-${item.id.value}")
 
 /** Opens what a YouTube link points at on top of this back stack. */
 private fun NavBackStack<NavKey>.show(link: YouTubeLink) {

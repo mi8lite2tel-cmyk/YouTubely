@@ -40,5 +40,9 @@ fun ComposeContentTestRule.setScreen(
 fun ComposeContentTestRule.saveScreenshot(name: String) {
     val bitmap = onRoot().captureToImage().asAndroidBitmap()
     outputDirectory.mkdirs()
-    FileOutputStream(File(outputDirectory, "$name.png")).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    FileOutputStream(
+        File(outputDirectory, "$name.png"),
+    ).use { bitmap.compress(Bitmap.CompressFormat.PNG, PNG_QUALITY, it) }
 }
+
+private const val PNG_QUALITY = 100

@@ -7,6 +7,7 @@ import androidx.room3.Insert
 import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
 import androidx.room3.Transaction
+import androidx.room3.Update
 import androidx.room3.Upsert
 import kotlinx.coroutines.flow.Flow
 
@@ -84,24 +85,9 @@ interface SubscriptionDao {
         group: String?,
     )
 
-    @Query(
-        "UPDATE subscriptions SET adQuality = :quality, adKeepLast = :keepLast, adSkipShorts = :skipShorts, " +
-            "adSkipLive = :skipLive, adMinMinutes = :minMinutes, adMaxMinutes = :maxMinutes, " +
-            "adIncludeWords = :include, adExcludeWords = :exclude, adDeleteWatched = :deleteWatched " +
-            "WHERE channelId = :channelId",
-    )
-    suspend fun setAutoDownloadRule(
-        channelId: String,
-        quality: Int?,
-        keepLast: Int?,
-        skipShorts: Boolean,
-        skipLive: Boolean,
-        minMinutes: Int,
-        maxMinutes: Int,
-        include: String?,
-        exclude: String?,
-        deleteWatched: Boolean,
-    )
+    /** Writes only the automatic-download rule columns of one subscription. */
+    @Update(entity = SubscriptionEntity::class)
+    suspend fun setAutoDownloadRule(rule: AutoDownloadRuleColumns)
 
     @Query("UPDATE subscriptions SET lastRefreshedAt = :at WHERE channelId = :channelId")
     suspend fun markRefreshed(

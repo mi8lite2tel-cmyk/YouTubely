@@ -28,16 +28,31 @@ data class AutoDownloadRule(
     val deleteWatched: Boolean = false,
 ) {
     /** `null` when [item] should be saved, otherwise the first rule it breaks. */
-    fun skipReason(item: StreamItem): SkipReason? {
-        val minutes = item.duration?.toMinutes()
-        val title = item.title.lowercase()
+    fun skipReason(item: StreamItem): SkipReason? =
+        typeReason(item.type) ?: lengthReason(item) ?: wordReason(item.title)
+
+    private fun typeReason(type: StreamType): SkipReason? =
+        when {
+            skipShorts && type == StreamType.Short -> SkipReason.Short
+            skipLive && (type == StreamType.Live || type == StreamType.Upcoming) -> SkipReason.Live
+            else -> null
+        }
+
+    /** A video of unknown length passes; the full info checked before saving knows it. */
+    private fun lengthReason(item: StreamItem): SkipReason? {
+        val minutes = item.duration?.toMinutes() ?: return null
         return when {
-            skipShorts && item.type == StreamType.Short -> SkipReason.Short
-            skipLive && (item.type == StreamType.Live || item.type == StreamType.Upcoming) -> SkipReason.Live
-            minMinutes > 0 && minutes != null && minutes < minMinutes -> SkipReason.TooShort
-            maxMinutes > 0 && minutes != null && minutes > maxMinutes -> SkipReason.TooLong
-            includeWords.isNotEmpty() && includeWords.none { it.lowercase() in title } -> SkipReason.MissingWord
-            excludeWords.any { it.lowercase() in title } -> SkipReason.ExcludedWord
+            minMinutes > 0 && minutes < minMinutes -> SkipReason.TooShort
+            maxMinutes > 0 && minutes > maxMinutes -> SkipReason.TooLong
+            else -> null
+        }
+    }
+
+    private fun wordReason(title: String): SkipReason? {
+        val text = title.lowercase()
+        return when {
+            includeWords.isNotEmpty() && includeWords.none { it.lowercase() in text } -> SkipReason.MissingWord
+            excludeWords.any { it.lowercase() in text } -> SkipReason.ExcludedWord
             else -> null
         }
     }

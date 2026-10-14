@@ -187,7 +187,7 @@ fun WatchScreen(
             modifier =
                 playerModifier
                     .pictureInPicture(pipEnabled)
-                    .then(if (!landscape && onCollapse != null) Modifier.swipeDownToCollapse(onCollapse) else Modifier),
+                    .swipeDownToCollapse(onCollapse.takeIf { !landscape }),
             seekStepSeconds = settings.seekStepSeconds,
             audioOnly = settings.audioOnly,
             onToggleAudioOnly = { viewModel.setAudioOnly(!settings.audioOnly) },
@@ -575,16 +575,20 @@ private fun rememberIsPlaying(player: Player): Boolean {
     return playing
 }
 
-/** A downward swipe over the player shrinks it into the mini player. */
-private fun Modifier.swipeDownToCollapse(onCollapse: () -> Unit): Modifier =
-    pointerInput(onCollapse) {
-        var total = 0f
-        detectVerticalDragGestures(
-            onDragStart = { total = 0f },
-            onDragEnd = { if (total > size.height * COLLAPSE_SHARE) onCollapse() },
-        ) { change, amount ->
-            total += amount
-            if (total > 0f) change.consume()
+/** A downward swipe over the player shrinks it into the mini player; `null` turns this off. */
+private fun Modifier.swipeDownToCollapse(onCollapse: (() -> Unit)?): Modifier =
+    if (onCollapse == null) {
+        this
+    } else {
+        pointerInput(onCollapse) {
+            var total = 0f
+            detectVerticalDragGestures(
+                onDragStart = { total = 0f },
+                onDragEnd = { if (total > size.height * COLLAPSE_SHARE) onCollapse() },
+            ) { change, amount ->
+                total += amount
+                if (total > 0f) change.consume()
+            }
         }
     }
 

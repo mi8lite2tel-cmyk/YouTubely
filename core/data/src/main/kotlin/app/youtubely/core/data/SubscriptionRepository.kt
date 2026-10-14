@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package app.youtubely.core.data
 
+import app.youtubely.core.database.AutoDownloadRuleColumns
 import app.youtubely.core.database.FeedDao
 import app.youtubely.core.database.SubscriptionDao
 import app.youtubely.core.database.SubscriptionEntity
@@ -74,16 +75,18 @@ class SubscriptionRepository
             id: ChannelId,
             rule: AutoDownloadRule,
         ) = dao.setAutoDownloadRule(
-            channelId = id.value,
-            quality = if (rule.audioOnly) 0 else rule.maxHeight,
-            keepLast = rule.keepLast,
-            skipShorts = rule.skipShorts,
-            skipLive = rule.skipLive,
-            minMinutes = rule.minMinutes,
-            maxMinutes = rule.maxMinutes,
-            include = AutoDownloadRule.joinWords(rule.includeWords),
-            exclude = AutoDownloadRule.joinWords(rule.excludeWords),
-            deleteWatched = rule.deleteWatched,
+            AutoDownloadRuleColumns(
+                channelId = id.value,
+                adQuality = if (rule.audioOnly) 0 else rule.maxHeight,
+                adKeepLast = rule.keepLast,
+                adSkipShorts = rule.skipShorts,
+                adSkipLive = rule.skipLive,
+                adMinMinutes = rule.minMinutes,
+                adMaxMinutes = rule.maxMinutes,
+                adIncludeWords = AutoDownloadRule.joinWords(rule.includeWords),
+                adExcludeWords = AutoDownloadRule.joinWords(rule.excludeWords),
+                adDeleteWatched = rule.deleteWatched,
+            ),
         )
 
         /** `null` or a blank [group] removes the channel from its group. */

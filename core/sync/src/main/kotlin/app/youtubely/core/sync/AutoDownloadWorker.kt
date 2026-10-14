@@ -63,31 +63,46 @@ internal class AutoDownloadWorker
             subscriptions.forEach { cleanUp(it, current, progress) }
 
             val videos = feed.freshToDownload().filter { it.subscription.autoDownload }
-            var saved = 0
-            var retry = false
-            var full = false
-            for (video in videos) {
-                full = AutoDownloadPolicy.runFull(saved, current.autoDownloadPerRun)
-                if (full) break
-                if (AutoDownloadPolicy.limitReached(downloads.storage().usedBytes, current.autoDownloadLimitGb)) break
-                when (save(video, current, progress)) {
-                    Outcome.Saved -> saved++
-                    Outcome.Skipped -> Unit
-                    Outcome.Retry -> retry = true
-                }
-            }
+            val run = saveAll(videos, current, progress)
             videos.map { it.subscription }.distinctBy { it.channel.id }.forEach { cleanUp(it, current, progress) }
             return when {
-                retry && runAttemptCount < MAX_ATTEMPTS -> Result.retry()
+                run.retry && runAttemptCount < MAX_ATTEMPTS -> Result.retry()
 
                 // The rest of a burst of uploads waits for the next run instead of filling the phone at once.
-                full -> Result.success().also { enqueue(applicationContext, current, NEXT_RUN_MINUTES) }
+                run.full -> Result.success().also { enqueue(applicationContext, current, NEXT_RUN_MINUTES) }
 
                 else -> Result.success()
             }
         }
 
         private enum class Outcome { Saved, Skipped, Retry }
+
+        /** How a run went: some saves should be tried again, or the per-run limit stopped it. */
+        private class RunResult(
+            val retry: Boolean,
+            val full: Boolean,
+        )
+
+        private suspend fun saveAll(
+            videos: List<FreshVideo>,
+            current: SyncSettings,
+            progress: Map<VideoId, Float>,
+        ): RunResult {
+            var saved = 0
+            var retry = false
+            for (video in videos) {
+                val stop =
+                    AutoDownloadPolicy.runFull(saved, current.autoDownloadPerRun) ||
+                        AutoDownloadPolicy.limitReached(downloads.storage().usedBytes, current.autoDownloadLimitGb)
+                if (stop) return RunResult(retry, full = AutoDownloadPolicy.runFull(saved, current.autoDownloadPerRun))
+                when (save(video, current, progress)) {
+                    Outcome.Saved -> saved++
+                    Outcome.Skipped -> Unit
+                    Outcome.Retry -> retry = true
+                }
+            }
+            return RunResult(retry, full = false)
+        }
 
         /** Saves [video] when the channel's rule wants it; a video it does not want is handled as well. */
         private suspend fun save(

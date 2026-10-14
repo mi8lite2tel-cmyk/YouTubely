@@ -45,7 +45,7 @@ object AutoDownloadPolicy {
         settings: SyncSettings,
     ): Int = rule.keepLast ?: settings.autoDownloadKeepLast
 
-    /** Automatic downloads that were watched (almost) to the end and should go when [AutoDownloadRule.deleteWatched]. */
+    /** Automatic downloads watched (almost) to the end; they go when [AutoDownloadRule.deleteWatched] is on. */
     fun watched(
         downloads: List<AutoDownload>,
         progress: Map<VideoId, Float>,

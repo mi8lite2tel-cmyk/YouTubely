@@ -38,6 +38,7 @@ class RangeDownloader(
      *   first response's Content-Range.
      * @param onProgress bytes on disk so far and the total.
      */
+    @Suppress("ReturnCount") // Early exits: nothing left to fetch, or the parallel path did the work.
     suspend fun download(
         url: String,
         headers: Map<String, String>,
@@ -153,27 +154,33 @@ class RangeDownloader(
                     .trafficKind(TrafficKind.Download)
                     .build()
             client.newCall(request).execute().use { response ->
-                if (response.code !=
-                    HTTP_PARTIAL_CONTENT
-                ) {
+                if (response.code != HTTP_PARTIAL_CONTENT) {
                     throw IOException("Unexpected HTTP ${response.code} for range $start-$end")
                 }
-                val buffer = ByteArray(COPY_BUFFER)
-                var position = start
-                response.body.byteStream().use { input ->
-                    while (true) {
-                        val read = input.read(buffer)
-                        if (read < 0) break
-                        synchronized(file) {
-                            file.seek(position)
-                            file.write(buffer, 0, read)
-                        }
-                        position += read
-                    }
-                }
-                if (position != end + 1) throw IOException("Short range $start-$end: got ${position - start} bytes")
+                val written = response.body.byteStream().use { copyAt(it, file, start) }
+                if (written != end - start + 1) throw IOException("Short range $start-$end: got $written bytes")
             }
         }
+    }
+
+    /** Writes [input] into [file] from [offset] on; returns the number of bytes. */
+    private fun copyAt(
+        input: java.io.InputStream,
+        file: RandomAccessFile,
+        offset: Long,
+    ): Long {
+        val buffer = ByteArray(COPY_BUFFER)
+        var position = offset
+        var read = input.read(buffer)
+        while (read >= 0) {
+            synchronized(file) {
+                file.seek(position)
+                file.write(buffer, 0, read)
+            }
+            position += read
+            read = input.read(buffer)
+        }
+        return position - offset
     }
 
     private class Chunk(

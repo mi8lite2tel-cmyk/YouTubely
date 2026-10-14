@@ -9,6 +9,7 @@ enum class DarkMode {
 }
 
 /** How long animations take, as a multiple of Material's expressive timing. */
+@Suppress("MagicNumber") // The multipliers are the definition of each speed.
 enum class AnimationSpeed(
     val durationScale: Float,
 ) {
