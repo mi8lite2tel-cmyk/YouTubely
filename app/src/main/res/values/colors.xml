@@ -2,5 +2,4 @@
 <resources>
     <!-- surface of seedLightColorScheme -->
     <color name="window_background">#FFFDF8FE</color>
-    <color name="ic_launcher_background">#FF7C4DFF</color>
 </resources>
