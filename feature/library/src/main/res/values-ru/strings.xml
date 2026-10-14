@@ -65,4 +65,20 @@
     <string name="library_rule_delete_watched">Удалять после просмотра</string>
     <string name="library_rule_delete_watched_summary">Когда видео досмотрено почти до конца</string>
     <string name="library_rule_badge">Автозагрузка</string>
+    <string name="stats_title">Моя статистика</string>
+    <string name="stats_note">Считается по истории на этом телефоне. Время примерное, ничего никуда не отправляется.</string>
+    <string name="stats_week">За неделю</string>
+    <string name="stats_month">За 30 дней</string>
+    <string name="stats_videos">%d видео</string>
+    <string name="stats_total">Всего в истории: %d видео</string>
+    <string name="stats_days">Видео по дням</string>
+    <string name="stats_top">Любимые каналы за 90 дней</string>
+    <string name="stats_channel_value">%1$s · %2$d видео</string>
+    <string name="stats_hour">Чаще всего вы смотрите около %02d:00</string>
+    <string name="stats_traffic">Трафик в этом месяце: %1$s, из них мобильный %2$s</string>
+    <string name="stats_empty">Посмотрите несколько видео, и здесь появится статистика.</string>
+    <string name="library_stats">Моя статистика</string>
+    <string name="stats_back">Назад</string>
+    <string name="stats_hours_minutes">%1$d ч %2$d мин</string>
+    <string name="stats_minutes">%d мин</string>
 </resources>

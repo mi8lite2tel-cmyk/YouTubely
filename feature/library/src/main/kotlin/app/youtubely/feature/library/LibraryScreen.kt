@@ -97,6 +97,7 @@ fun LibraryScreen(
     onOpenPlaylist: (Long) -> Unit,
     onPlayAllLater: (VideoId, sharedKey: String) -> Unit,
     onOpenTransfer: () -> Unit,
+    onOpenStats: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
@@ -137,6 +138,9 @@ fun LibraryScreen(
                 title = { Text(stringResource(R.string.library_title)) },
                 subtitle = { Text(stringResource(R.string.library_subtitle)) },
                 actions = {
+                    IconButton(onClick = onOpenStats) {
+                        Icon(painterResource(YouTubelyIcons.Insights), stringResource(R.string.library_stats))
+                    }
                     LibraryMenu(
                         onTransfer = onOpenTransfer,
                         history =

@@ -102,4 +102,5 @@ object YouTubelyIcons {
     val Savings = R.drawable.ic_savings
     val Repeat = R.drawable.ic_repeat
     val RepeatOne = R.drawable.ic_repeat_one
+    val Insights = R.drawable.ic_insights
 }

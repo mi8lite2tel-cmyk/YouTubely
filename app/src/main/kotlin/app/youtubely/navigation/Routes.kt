@@ -61,3 +61,7 @@ data class LocalPlaylistRoute(
 /** Import, export and QR transfer of subscriptions and playlists. */
 @Serializable
 data object TransferRoute : Route
+
+/** Watching statistics from the local history. */
+@Serializable
+data object StatsRoute : Route

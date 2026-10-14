@@ -65,4 +65,20 @@
     <string name="library_rule_delete_watched">Delete once watched</string>
     <string name="library_rule_delete_watched_summary">When the video was watched almost to the end</string>
     <string name="library_rule_badge">Automatic download</string>
+    <string name="stats_title">My statistics</string>
+    <string name="stats_note">Counted from the history on this phone. Times are estimates; nothing is sent anywhere.</string>
+    <string name="stats_week">This week</string>
+    <string name="stats_month">30 days</string>
+    <string name="stats_videos">%d videos</string>
+    <string name="stats_total">In total: %d videos in the history</string>
+    <string name="stats_days">Videos per day</string>
+    <string name="stats_top">Most watched channels, 90 days</string>
+    <string name="stats_channel_value">%1$s · %2$d videos</string>
+    <string name="stats_hour">You watch most around %02d:00</string>
+    <string name="stats_traffic">Data this month: %1$s, of it mobile %2$s</string>
+    <string name="stats_empty">Watch a few videos and your statistics appear here.</string>
+    <string name="library_stats">My statistics</string>
+    <string name="stats_back">Back</string>
+    <string name="stats_hours_minutes">%1$d h %2$d min</string>
+    <string name="stats_minutes">%d min</string>
 </resources>

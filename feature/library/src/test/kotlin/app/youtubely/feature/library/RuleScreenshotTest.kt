@@ -40,4 +40,54 @@ class RuleScreenshotTest {
         }
         compose.saveScreenshot("rule-editor")
     }
+
+    @Test
+    fun stats() {
+        val now = java.time.Instant.parse("2026-10-14T20:00:00Z")
+        val channel =
+            app.youtubely.core.model.ChannelRef(
+                app.youtubely.core.model
+                    .ChannelId("a"),
+                "Science Channel",
+                emptyList(),
+                false,
+            )
+        val history =
+            (0 until 30).map { i ->
+                app.youtubely.core.model.HistoryEntry(
+                    app.youtubely.core.model.StreamItem(
+                        app.youtubely.core.model
+                            .VideoId("v$i"),
+                        "Video $i",
+                        channel.copy(
+                            id =
+                                app.youtubely.core.model
+                                    .ChannelId("c${i % 4}"),
+                            name = "Channel ${i % 4}",
+                        ),
+                        emptyList(),
+                        app.youtubely.core.model.StreamType.Video,
+                        java.time.Duration.ofMinutes(20),
+                        null,
+                        null,
+                        null,
+                    ),
+                    positionMs = (i % 5 + 1) * 180_000L,
+                    watchedAt = now.minus(java.time.Duration.ofHours(i * 9L)),
+                )
+            }
+        val stats =
+            app.youtubely.core.model.WatchStats
+                .from(history, now)
+        compose.setScreen {
+            StatsContent(
+                stats,
+                app.youtubely.core.model
+                    .TrafficSummary(monthMobile = 900_000_000, monthWifi = 4_000_000_000),
+                androidx.compose.foundation.layout
+                    .PaddingValues(16.dp),
+            )
+        }
+        compose.saveScreenshot("stats")
+    }
 }
