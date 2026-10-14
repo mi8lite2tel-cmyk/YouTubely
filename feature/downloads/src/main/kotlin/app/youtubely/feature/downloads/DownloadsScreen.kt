@@ -5,6 +5,8 @@
 package app.youtubely.feature.downloads
 
 import android.text.format.Formatter
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -328,14 +330,19 @@ private fun DownloadRow(
                             },
                         maxLines = 2,
                     )
-                    if (download.state == DownloadState.Downloading || download.state == DownloadState.Merging) {
+                    val busy = download.state == DownloadState.Downloading || download.state == DownloadState.Merging
+                    // The bar grows and shrinks with the row instead of popping in and out.
+                    AnimatedVisibility(visible = busy) {
                         if (download.state == DownloadState.Merging) {
                             LinearWavyProgressIndicator(Modifier.fillMaxWidth())
                         } else {
-                            LinearWavyProgressIndicator(
-                                progress = { download.progress },
-                                modifier = Modifier.fillMaxWidth(),
+                            // Progress arrives in whole percents; glide between them.
+                            val progress by animateFloatAsState(
+                                targetValue = download.progress,
+                                animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                                label = "downloadProgress",
                             )
+                            LinearWavyProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                         }
                     }
                 }

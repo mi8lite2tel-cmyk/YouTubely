@@ -87,6 +87,7 @@ import app.youtubely.core.ui.ChannelAvatar
 import app.youtubely.core.ui.ErrorState
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.LocalVideoActions
+import app.youtubely.core.ui.StateTransition
 import app.youtubely.core.ui.SubscribeButton
 import app.youtubely.core.ui.VerifiedBadge
 import app.youtubely.core.ui.VideoRow
@@ -300,33 +301,35 @@ private fun WatchBody(
     queue: PlaylistQueue?,
     subscribed: Boolean,
 ) {
-    when (state) {
-        WatchUiState.Loading -> {
-            LoadingState()
-        }
+    StateTransition(state, label = "watchBody") { target ->
+        when (target) {
+            WatchUiState.Loading -> {
+                LoadingState()
+            }
 
-        is WatchUiState.Error -> {
-            ErrorState(state.error, onRetry)
-        }
+            is WatchUiState.Error -> {
+                ErrorState(target.error, onRetry)
+            }
 
-        is WatchUiState.Content -> {
-            LazyColumn(
-                contentPadding = PaddingValues(bottom = 24.dp),
-                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
-            ) {
-                item(key = "details") {
-                    Details(
-                        info = state.info,
-                        onSeek = { player.seekTo(it) },
-                        downloadFormats = remember(state.info) { actions.formatsFor(state.info) },
-                        downloads = downloads,
-                        actions = actions,
-                        subscribed = subscribed,
-                    )
-                }
-                if (includeRelated) {
-                    queue(queue, actions.onPlayQueueItem)
-                    related(state.info, actions.onOpenVideo)
+            is WatchUiState.Content -> {
+                LazyColumn(
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
+                ) {
+                    item(key = "details") {
+                        Details(
+                            info = target.info,
+                            onSeek = { player.seekTo(it) },
+                            downloadFormats = remember(target.info) { actions.formatsFor(target.info) },
+                            downloads = downloads,
+                            actions = actions,
+                            subscribed = subscribed,
+                        )
+                    }
+                    if (includeRelated) {
+                        queue(queue, actions.onPlayQueueItem)
+                        related(target.info, actions.onOpenVideo)
+                    }
                 }
             }
         }

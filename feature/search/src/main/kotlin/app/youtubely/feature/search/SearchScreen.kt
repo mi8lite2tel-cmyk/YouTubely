@@ -65,6 +65,7 @@ import app.youtubely.core.ui.ChannelListItem
 import app.youtubely.core.ui.ErrorState
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.PlaylistListItem
+import app.youtubely.core.ui.StateTransition
 import app.youtubely.core.ui.VideoRow
 import app.youtubely.core.ui.subscriberCountText
 import app.youtubely.core.ui.videoFrameKey
@@ -119,16 +120,48 @@ fun SearchScreen(
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             FilterRow(results.filter, onChange = viewModel::setFilter)
-            when {
-                results.isIdle -> IdleState()
-                results.loading -> LoadingState()
-                results.error != null -> ErrorState(results.error!!, onRetry = viewModel::retry)
-                results.items.isEmpty() -> EmptyState(results.query)
-                else -> ResultList(results, onOpenVideo, onOpenChannel, onOpenPlaylist, viewModel::loadMore)
+            val pane =
+                when {
+                    results.isIdle -> SearchPane.Idle
+                    results.loading -> SearchPane.Loading
+                    results.error != null -> SearchPane.Error
+                    results.items.isEmpty() -> SearchPane.Empty
+                    else -> SearchPane.Results
+                }
+            StateTransition(pane, label = "searchPane") {
+                when (it) {
+                    SearchPane.Idle -> {
+                        IdleState()
+                    }
+
+                    SearchPane.Loading -> {
+                        LoadingState()
+                    }
+
+                    SearchPane.Error -> {
+                        results.error?.let { error -> ErrorState(error, onRetry = viewModel::retry) }
+                    }
+
+                    SearchPane.Empty -> {
+                        EmptyState(results.query)
+                    }
+
+                    SearchPane.Results -> {
+                        ResultList(
+                            results,
+                            onOpenVideo,
+                            onOpenChannel,
+                            onOpenPlaylist,
+                            viewModel::loadMore,
+                        )
+                    }
+                }
             }
         }
     }
 }
+
+private enum class SearchPane { Idle, Loading, Error, Empty, Results }
 
 @Composable
 private fun SearchInputField(
@@ -169,7 +202,7 @@ private fun SuggestionList(
     onFill: (String) -> Unit,
 ) {
     LazyColumn {
-        items(suggestions) { suggestion ->
+        items(suggestions, key = { it }) { suggestion ->
             ListItem(
                 onClick = { onPick(suggestion) },
                 leadingContent = { Icon(painterResource(YouTubelyIcons.Search.outlined), contentDescription = null) },

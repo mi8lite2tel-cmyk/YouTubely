@@ -54,6 +54,7 @@ import app.youtubely.core.model.bestFor
 import app.youtubely.core.ui.ErrorState
 import app.youtubely.core.ui.LoadMoreEffect
 import app.youtubely.core.ui.LoadingState
+import app.youtubely.core.ui.StateTransition
 import app.youtubely.core.ui.VideoRow
 import app.youtubely.core.ui.videoFrameKey
 import coil3.compose.AsyncImage
@@ -93,56 +94,72 @@ fun PlaylistScreen(
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            when {
-                state.error != null -> {
-                    ErrorState(state.error!!, onRetry = viewModel::retry)
+            val pane =
+                when {
+                    state.error != null -> PlaylistPane.Error
+                    playlist == null -> PlaylistPane.Loading
+                    else -> PlaylistPane.Content
                 }
+            StateTransition(pane, label = "playlistPane") {
+                when (it) {
+                    PlaylistPane.Error -> {
+                        state.error?.let { error -> ErrorState(error, onRetry = viewModel::retry) }
+                    }
 
-                playlist == null -> {
-                    LoadingState()
-                }
+                    PlaylistPane.Loading -> {
+                        LoadingState()
+                    }
 
-                else -> {
-                    val listState = rememberLazyListState()
-                    LoadMoreEffect(listState, viewModel::loadMore)
-                    LazyColumn(
-                        state = listState,
-                        contentPadding = PaddingValues(start = 4.dp, end = 4.dp, bottom = 24.dp),
-                    ) {
-                        item(key = "header") {
-                            Header(
-                                playlist = playlist,
-                                onPlayAll = {
-                                    state.items.firstOrNull()?.let {
-                                        onPlay(it.id, videoFrameKey("playlist", it.id), playlist.id)
+                    PlaylistPane.Content -> {
+                        if (playlist != null) {
+                            val listState = rememberLazyListState()
+                            LoadMoreEffect(listState, viewModel::loadMore)
+                            LazyColumn(
+                                state = listState,
+                                contentPadding = PaddingValues(start = 4.dp, end = 4.dp, bottom = 24.dp),
+                            ) {
+                                item(key = "header") {
+                                    Header(
+                                        playlist = playlist,
+                                        onPlayAll = {
+                                            state.items.firstOrNull()?.let {
+                                                onPlay(it.id, videoFrameKey("playlist", it.id), playlist.id)
+                                            }
+                                        },
+                                        onOpenChannel = onOpenChannel,
+                                        canPlay = state.items.isNotEmpty(),
+                                    )
+                                }
+                                itemsIndexed(state.items, key = { _, item -> item.id.value }) { index, item ->
+                                    val key = videoFrameKey("playlist", item.id)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.animateItem(),
+                                    ) {
+                                        Text(
+                                            "${index + 1}",
+                                            style = MaterialTheme.typography.labelLargeEmphasized,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.widthIn(min = 32.dp).padding(start = 8.dp),
+                                        )
+                                        VideoRow(
+                                            item = item,
+                                            sharedKey = key,
+                                            onClick = { onPlay(item.id, key, playlist.id) },
+                                            thumbnailWidth = 144.dp,
+                                            modifier = Modifier.weight(1f),
+                                        )
                                     }
-                                },
-                                onOpenChannel = onOpenChannel,
-                                canPlay = state.items.isNotEmpty(),
-                            )
-                        }
-                        itemsIndexed(state.items, key = { _, item -> item.id.value }) { index, item ->
-                            val key = videoFrameKey("playlist", item.id)
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.animateItem()) {
-                                Text(
-                                    "${index + 1}",
-                                    style = MaterialTheme.typography.labelLargeEmphasized,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.widthIn(min = 32.dp).padding(start = 8.dp),
-                                )
-                                VideoRow(
-                                    item = item,
-                                    sharedKey = key,
-                                    onClick = { onPlay(item.id, key, playlist.id) },
-                                    thumbnailWidth = 144.dp,
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
-                        }
-                        if (state.loadingMore) {
-                            item(key = "loading-more") {
-                                Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                                    LoadingIndicator()
+                                }
+                                if (state.loadingMore) {
+                                    item(key = "loading-more") {
+                                        Box(
+                                            Modifier.fillMaxWidth().padding(24.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            LoadingIndicator()
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -152,6 +169,8 @@ fun PlaylistScreen(
         }
     }
 }
+
+private enum class PlaylistPane { Error, Loading, Content }
 
 @Composable
 private fun subtitle(playlist: Playlist): String =
