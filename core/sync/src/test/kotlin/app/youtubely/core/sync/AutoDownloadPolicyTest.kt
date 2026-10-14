@@ -3,7 +3,9 @@
 package app.youtubely.core.sync
 
 import app.youtubely.core.data.AutoDownload
+import app.youtubely.core.model.AutoDownloadRule
 import app.youtubely.core.model.DownloadFormat
+import app.youtubely.core.model.SyncSettings
 import app.youtubely.core.model.VideoId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -50,5 +52,30 @@ class AutoDownloadPolicyTest {
         assertFalse(AutoDownloadPolicy.limitReached(100 * gb, 0))
         assertFalse(AutoDownloadPolicy.limitReached(4 * gb, 5))
         assertTrue(AutoDownloadPolicy.limitReached(5 * gb, 5))
+    }
+
+    @Test
+    fun channelRuleOverridesGlobalQualityAndKeep() {
+        val global = SyncSettings(autoDownloadMaxHeight = 720, autoDownloadKeepLast = 3)
+        assertEquals(720, AutoDownloadPolicy.maxHeight(AutoDownloadRule(), global))
+        assertEquals(1080, AutoDownloadPolicy.maxHeight(AutoDownloadRule(maxHeight = 1080), global))
+        assertNull(AutoDownloadPolicy.maxHeight(AutoDownloadRule(maxHeight = 1080, audioOnly = true), global))
+        assertEquals(3, AutoDownloadPolicy.keepLast(AutoDownloadRule(), global))
+        assertEquals(10, AutoDownloadPolicy.keepLast(AutoDownloadRule(keepLast = 10), global))
+    }
+
+    @Test
+    fun watchedDownloadsAreThoseNearlyFinished() {
+        val downloads =
+            listOf(AutoDownload(VideoId("a"), "1"), AutoDownload(VideoId("b"), "2"), AutoDownload(VideoId("c"), "3"))
+        val progress = mapOf(VideoId("a") to 0.95f, VideoId("b") to 0.5f)
+        assertEquals(listOf("1"), AutoDownloadPolicy.watched(downloads, progress).map { it.downloadId })
+    }
+
+    @Test
+    fun perRunLimitStopsTheRun() {
+        assertFalse(AutoDownloadPolicy.runFull(saved = 4, perRun = 5))
+        assertTrue(AutoDownloadPolicy.runFull(saved = 5, perRun = 5))
+        assertFalse(AutoDownloadPolicy.runFull(saved = 100, perRun = 0))
     }
 }

@@ -12,12 +12,15 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import app.youtubely.core.data.AutoDownloadLog
+import app.youtubely.core.data.HistoryRepository
 import app.youtubely.core.data.SubscriptionFeed
+import app.youtubely.core.data.SubscriptionRepository
 import app.youtubely.core.datastore.SyncSettingsRepository
 import app.youtubely.core.download.DownloadManager
-import app.youtubely.core.model.ChannelId
 import app.youtubely.core.model.FreshVideo
+import app.youtubely.core.model.Subscription
 import app.youtubely.core.model.SyncSettings
+import app.youtubely.core.model.VideoId
 import app.youtubely.core.provider.ProviderError
 import app.youtubely.core.provider.StreamProvider
 import dagger.assisted.Assisted
@@ -25,10 +28,14 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import java.io.IOException
+import java.time.LocalTime
+import java.util.concurrent.TimeUnit
 
 /**
  * Saves new videos of channels with automatic download for offline viewing, on Wi-Fi (and while
- * charging when asked to), within the storage limit, keeping only each channel's latest few.
+ * charging when asked to), inside the chosen time window, within the storage limit and the
+ * per-run limit. Each channel's rule decides what is wanted (quality, length, words, Shorts, live)
+ * and how many to keep; watched videos go away when the rule says so.
  */
 @HiltWorker
 internal class AutoDownloadWorker
@@ -41,31 +48,69 @@ internal class AutoDownloadWorker
         private val downloads: DownloadManager,
         private val log: AutoDownloadLog,
         private val settings: SyncSettingsRepository,
+        private val subscriptionRepository: SubscriptionRepository,
+        private val history: HistoryRepository,
     ) : CoroutineWorker(context, params) {
         override suspend fun doWork(): Result {
             val current = settings.settings.first()
+            val wait = minutesUntilWindow(current)
+            if (wait > 0) {
+                enqueue(applicationContext, current, delayMinutes = wait)
+                return Result.success()
+            }
+            val subscriptions = subscriptionRepository.details.first().filter { it.autoDownload }
+            val progress = history.progress.first()
+            subscriptions.forEach { cleanUp(it, current, progress) }
+
             val videos = feed.freshToDownload().filter { it.subscription.autoDownload }
+            var saved = 0
             var retry = false
+            var full = false
             for (video in videos) {
+                full = AutoDownloadPolicy.runFull(saved, current.autoDownloadPerRun)
+                if (full) break
                 if (AutoDownloadPolicy.limitReached(downloads.storage().usedBytes, current.autoDownloadLimitGb)) break
-                when (save(video, current)) {
-                    Outcome.Saved, Outcome.Skipped -> feed.markDownloadHandled(listOf(video))
+                when (save(video, current, progress)) {
+                    Outcome.Saved -> saved++
+                    Outcome.Skipped -> Unit
                     Outcome.Retry -> retry = true
                 }
             }
-            videos.map { it.subscription.channel.id }.distinct().forEach { trim(it, current) }
-            return if (retry && runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.success()
+            videos.map { it.subscription }.distinctBy { it.channel.id }.forEach { cleanUp(it, current, progress) }
+            return when {
+                retry && runAttemptCount < MAX_ATTEMPTS -> Result.retry()
+                // The rest of a burst of uploads waits for the next run instead of filling the phone at once.
+                full -> Result.success().also { enqueue(applicationContext, current, NEXT_RUN_MINUTES) }
+                else -> Result.success()
+            }
         }
 
         private enum class Outcome { Saved, Skipped, Retry }
 
+        /** Saves [video] when the channel's rule wants it; a video it does not want is handled as well. */
         private suspend fun save(
+            video: FreshVideo,
+            current: SyncSettings,
+            progress: Map<VideoId, Float>,
+        ): Outcome {
+            val rule = video.subscription.autoRule
+            val watched = current.autoDownloadSkipWatched && video.item.id in progress
+            val outcome =
+                if (rule.skipReason(video.item) != null || watched) Outcome.Skipped else fetch(video, current)
+            if (outcome != Outcome.Retry) feed.markDownloadHandled(listOf(video))
+            return outcome
+        }
+
+        private suspend fun fetch(
             video: FreshVideo,
             current: SyncSettings,
         ): Outcome =
             try {
                 val info = provider.streamInfo(video.item.id)
-                val format = AutoDownloadPolicy.choose(downloads.formats(info), current.autoDownloadMaxHeight)
+                // The feed may not know the length or type yet; the full info does.
+                if (video.subscription.autoRule.skipReason(info.item) != null) return Outcome.Skipped
+                val height = AutoDownloadPolicy.maxHeight(video.subscription.autoRule, current)
+                val format = AutoDownloadPolicy.choose(downloads.formats(info), height)
                 if (format == null) {
                     Outcome.Skipped
                 } else {
@@ -77,8 +122,8 @@ internal class AutoDownloadWorker
                 throw e
             } catch (_: IOException) {
                 Outcome.Retry
-            } catch (e: ProviderError.Network) {
-                Outcome.Retry.also { e.cause }
+            } catch (_: ProviderError.Network) {
+                Outcome.Retry
             } catch (
                 @Suppress("TooGenericExceptionCaught") _: Exception,
             ) {
@@ -86,36 +131,56 @@ internal class AutoDownloadWorker
                 Outcome.Skipped
             }
 
-        /** Removes the automatic downloads of [channel] beyond the number to keep. */
-        private suspend fun trim(
-            channel: ChannelId,
+        /** Removes watched downloads (when the rule says so) and those beyond the number to keep. */
+        private suspend fun cleanUp(
+            subscription: Subscription,
             current: SyncSettings,
+            progress: Map<VideoId, Float>,
         ) {
-            AutoDownloadPolicy.expired(log.forChannel(channel), current.autoDownloadKeepLast).forEach {
+            val channel = subscription.channel.id
+            val rule = subscription.autoRule
+            val all = log.forChannel(channel)
+            val watched = if (rule.deleteWatched) AutoDownloadPolicy.watched(all, progress) else emptyList()
+            val expired = AutoDownloadPolicy.expired(all - watched.toSet(), AutoDownloadPolicy.keepLast(rule, current))
+            (watched + expired).forEach {
                 downloads.delete(it.downloadId)
                 log.forget(it.videoId)
             }
         }
 
+        private fun minutesUntilWindow(current: SyncSettings): Int {
+            val window = current.autoDownloadWindow ?: return 0
+            val now = LocalTime.now()
+            return window.minutesUntilOpen(now.hour, now.minute)
+        }
+
         companion object {
             private const val NAME = "auto-download"
             private const val MAX_ATTEMPTS = 3
+            private const val NEXT_RUN_MINUTES = 60
 
             fun enqueue(
                 context: Context,
                 settings: SyncSettings,
+                delayMinutes: Int = 0,
             ) {
+                val now = LocalTime.now()
+                val wait = maxOf(delayMinutes, settings.autoDownloadWindow?.minutesUntilOpen(now.hour, now.minute) ?: 0)
                 val request =
                     OneTimeWorkRequestBuilder<AutoDownloadWorker>()
+                        .setInitialDelay(wait.toLong(), TimeUnit.MINUTES)
                         .setConstraints(
                             Constraints
                                 .Builder()
                                 .setRequiredNetworkType(NetworkType.UNMETERED)
                                 .setRequiresCharging(settings.autoDownloadOnlyCharging)
                                 .setRequiresStorageNotLow(true)
+                                .setRequiresBatteryNotLow(true)
                                 .build(),
                         ).build()
-                WorkManager.getInstance(context).enqueueUniqueWork(NAME, ExistingWorkPolicy.KEEP, request)
+                // A delayed run replaces a waiting one; a running one keeps going and re-schedules itself.
+                val policy = if (wait > 0) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.KEEP
+                WorkManager.getInstance(context).enqueueUniqueWork(NAME, policy, request)
             }
         }
     }
