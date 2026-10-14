@@ -8,4 +8,12 @@
     <string name="nav_downloads">Скачанные</string>
     <string name="nav_settings">Настройки</string>
     <string name="nav_library">Библиотека</string>
+    <string name="widget_now_playing">Сейчас играет</string>
+    <string name="widget_now_playing_description">Текущее видео с кнопкой паузы</string>
+    <string name="widget_new_videos">Новое от подписок</string>
+    <string name="widget_new_videos_description">Свежие видео ваших каналов</string>
+    <string name="widget_nothing_playing">Ничего не играет</string>
+    <string name="widget_no_new_videos">Новых видео пока нет</string>
+    <string name="widget_play">Воспроизвести</string>
+    <string name="widget_pause">Пауза</string>
 </resources>

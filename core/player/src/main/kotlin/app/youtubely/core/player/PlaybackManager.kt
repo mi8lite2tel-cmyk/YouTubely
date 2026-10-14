@@ -88,6 +88,11 @@ class PlaybackManager
         /** What is loaded in the player, for the mini player; `null` after [stop]. */
         val nowPlaying: StateFlow<NowPlaying?> = _nowPlaying.asStateFlow()
 
+        private val _isPlaying = MutableStateFlow(false)
+
+        /** Whether sound is coming out right now; for the home-screen widget. */
+        val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
+
         /** Stream info of the online video in the player; reopening it must not load it again. */
         var currentInfo: StreamInfo? = null
             private set
@@ -151,6 +156,7 @@ class PlaybackManager
         private val historyListener =
             object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    _isPlaying.value = isPlaying
                     if (isPlaying) startSavingPosition() else savePosition()
                 }
 
@@ -286,6 +292,7 @@ class PlaybackManager
             player.clearMediaItems()
             _currentVideo.value = null
             _nowPlaying.value = null
+            _isPlaying.value = false
             currentInfo = null
         }
 
