@@ -17,6 +17,8 @@ import app.youtubely.core.provider.StreamProvider
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -66,7 +68,9 @@ internal class DownloadWorker
         }
 
         private suspend fun fail(e: Exception): Result {
-            store.update(id) { it.copy(state = DownloadState.Failed, error = e.message) }
+            store.update(id) {
+                it.copy(state = DownloadState.Failed, error = e.message ?: e::class.java.simpleName)
+            }
             return Result.failure()
         }
 
@@ -92,7 +96,7 @@ internal class DownloadWorker
             val output =
                 if (streams.video != null) {
                     setState(download, DownloadState.Merging, 1f, total)
-                    File(dir, "$name.mp4").also { MediaMerger(applicationContext).merge(videoPart, audioPart, it) }
+                    File(dir, "$name.mp4").also { merge(videoPart, audioPart, it) }
                 } else {
                     File(dir, "$name.m4a").also { audioPart.renameTo(it) }
                 }
@@ -109,6 +113,19 @@ internal class DownloadWorker
                     error = null,
                 )
             }
+        }
+
+        /** Copies the samples into one MP4 first (instant, lossless); Media3 Transformer is the fallback. */
+        private suspend fun merge(
+            video: File,
+            audio: File,
+            output: File,
+        ) {
+            val remuxed =
+                withContext(Dispatchers.IO) {
+                    runCatching { Mp4Remuxer.remux(video, audio, output) }.isSuccess && output.length() > 0
+                }
+            if (!remuxed) MediaMerger(applicationContext).merge(video, audio, output)
         }
 
         /** Fetches video (if any) then audio, reporting combined progress in whole percents. Returns the total size. */
@@ -154,7 +171,17 @@ internal class DownloadWorker
             total: Long? = null,
         ) {
             store.update(id) { it.copy(state = state, progress = progress, totalBytes = total ?: it.totalBytes) }
-            setForeground(foregroundInfo(download.title, progress, merging = state == DownloadState.Merging))
+            // Android refuses to start a foreground service from the background for work that runs
+            // outside the expedited quota; the download itself must not fail because of that.
+            try {
+                setForeground(foregroundInfo(download.title, progress, merging = state == DownloadState.Merging))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (
+                @Suppress("TooGenericExceptionCaught") _: Exception,
+            ) {
+                // Keep downloading without the notification.
+            }
         }
 
         private fun foregroundInfo(

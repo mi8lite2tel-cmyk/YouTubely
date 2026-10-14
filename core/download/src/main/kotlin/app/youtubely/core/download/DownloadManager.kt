@@ -3,6 +3,9 @@
 package app.youtubely.core.download
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.os.storage.StorageManager
 import androidx.core.content.getSystemService
 import androidx.work.BackoffPolicy
@@ -21,7 +24,11 @@ import app.youtubely.core.model.StorageUsage
 import app.youtubely.core.model.StreamInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -43,6 +50,18 @@ class DownloadManager
         private val workManager get() = WorkManager.getInstance(context)
 
         val downloads: Flow<List<Download>> = store.downloads
+
+        /**
+         * Queued downloads exist but wait because they may only use Wi-Fi and the device is on
+         * mobile data. The UI offers [downloadNow] for that case.
+         */
+        val waitingForWifi: Flow<Boolean> =
+            combine(
+                settings.settings.map { it.downloadOnWifiOnly },
+                unmeteredNetwork(),
+                store.downloads.map { all -> all.any { it.state == DownloadState.Queued } },
+            ) { wifiOnly, unmetered, anyQueued -> wifiOnly && !unmetered && anyQueued }
+                .distinctUntilChanged()
 
         fun download(id: String): Flow<Download?> = store.downloads.map { all -> all.firstOrNull { it.id == id } }
 
@@ -109,6 +128,14 @@ class DownloadManager
             enqueue(id)
         }
 
+        /** Lets the downloads that wait for Wi-Fi use mobile data this once. */
+        suspend fun downloadNow() {
+            store.downloads
+                .first()
+                .filter { it.state == DownloadState.Queued }
+                .forEach { enqueue(it.id, allowMetered = true) }
+        }
+
         /** Removes the record and every file of the download, finished or not. */
         suspend fun delete(id: String) {
             workManager.cancelUniqueWork(workName(id))
@@ -116,8 +143,37 @@ class DownloadManager
             File(DownloadWorker.downloadsRoot(context), id).deleteRecursively()
         }
 
-        private suspend fun enqueue(id: String) {
-            val wifiOnly = settings.settings.first().downloadOnWifiOnly
+        private fun unmeteredNetwork(): Flow<Boolean> =
+            callbackFlow {
+                val connectivity = context.getSystemService<ConnectivityManager>()
+                if (connectivity == null) {
+                    trySend(true)
+                    awaitClose()
+                    return@callbackFlow
+                }
+                val callback =
+                    object : ConnectivityManager.NetworkCallback() {
+                        override fun onCapabilitiesChanged(
+                            network: Network,
+                            capabilities: NetworkCapabilities,
+                        ) {
+                            trySend(capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED))
+                        }
+
+                        // Offline is not a reason to blame Wi-Fi-only mode.
+                        override fun onLost(network: Network) {
+                            trySend(true)
+                        }
+                    }
+                connectivity.registerDefaultNetworkCallback(callback)
+                awaitClose { connectivity.unregisterNetworkCallback(callback) }
+            }.distinctUntilChanged()
+
+        private suspend fun enqueue(
+            id: String,
+            allowMetered: Boolean = false,
+        ) {
+            val wifiOnly = settings.settings.first().downloadOnWifiOnly && !allowMetered
             val request =
                 OneTimeWorkRequestBuilder<DownloadWorker>()
                     .setInputData(workDataOf(DownloadWorker.KEY_ID to id))

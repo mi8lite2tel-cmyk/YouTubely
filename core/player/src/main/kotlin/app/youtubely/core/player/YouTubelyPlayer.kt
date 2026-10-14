@@ -124,14 +124,3 @@ fun Player.qualityOptions(): List<QualityOption> =
                 bitrate = best.bitrate.takeIf { it > 0 },
             )
         }.sortedByDescending { it.height }
-
-/** Pins playback to [height]. */
-@OptIn(UnstableApi::class)
-internal fun Player.setVideoHeight(height: Int) {
-    trackSelectionParameters =
-        trackSelectionParameters
-            .buildUpon()
-            .setMaxVideoSize(Int.MAX_VALUE, height)
-            .setMinVideoSize(0, height)
-            .build()
-}

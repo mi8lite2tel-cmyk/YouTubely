@@ -149,7 +149,12 @@ fun LibraryScreen(
                     )
                 }
             }
-            HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { page ->
+            // The pager centres its pages vertically by default, which floated short lists to mid-screen.
+            HorizontalPager(
+                state = pager,
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.Top,
+            ) { page ->
                 when (LibraryTab.entries[page]) {
                     LibraryTab.History -> {
                         HistoryPage(
@@ -263,7 +268,10 @@ private fun HistoryPage(
     val today = LocalDate.now()
     val dateFormat = remember(locale) { DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale) }
     val groups = remember(entries) { entries.groupBy { it.watchedAt.atZone(ZoneId.systemDefault()).toLocalDate() } }
-    LazyColumn(contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 24.dp)) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 24.dp),
+    ) {
         if (!historyEnabled) {
             item(key = "paused") { PausedCard(onEnableHistory) }
         }
@@ -335,7 +343,7 @@ private fun SubscriptionsPage(
         }
 
         else -> {
-            LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
+            LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
                 items(channels, key = { it.id.value }) { channel ->
                     ChannelListItem(
                         channel = channel,

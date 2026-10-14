@@ -49,7 +49,8 @@ import javax.inject.Singleton
  * The app's single player. Screens load videos into it and [PlaybackService] wraps it in a
  * media session, so playback continues in the background, in picture-in-picture and on the lock
  * screen. Quality is capped per network type from [PlaybackSettings] unless the user picked one.
- * In audio-only mode the video track is disabled, so the player doesn't download it at all.
+ * In audio-only mode the video track is disabled, so the player doesn't download it at all, and
+ * the lowest video quality is selected in case it is enabled again.
  * The position of the current video is saved to the local history while it plays.
  */
 @OptIn(UnstableApi::class)
@@ -165,7 +166,7 @@ class PlaybackManager
         @MainThread
         fun setQuality(height: Int?) {
             pinnedHeight = height
-            if (height == null) applyLimits(_settings.value, unmetered.value) else player.setVideoHeight(height)
+            applyLimits(_settings.value, unmetered.value)
         }
 
         @MainThread
@@ -187,9 +188,22 @@ class PlaybackManager
                     .buildUpon()
                     .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, settings.audioOnly)
                     .setPreferredAudioRoleFlags(C.ROLE_FLAG_MAIN)
-            if (pinnedHeight == null) {
-                val limit = if (isUnmetered) settings.maxHeightUnmetered else settings.maxHeightMetered
-                parameters.setMinVideoSize(0, 0).setMaxVideoSize(Int.MAX_VALUE, limit ?: Int.MAX_VALUE)
+            val pinned = pinnedHeight
+            when {
+                // Sound only: besides not loading the picture, fall back to the smallest video
+                // rendition so that switching back to video never starts with a heavy stream.
+                settings.audioOnly -> {
+                    parameters.setMinVideoSize(0, 0).setMaxVideoSize(Int.MAX_VALUE, LOWEST_HEIGHT)
+                }
+
+                pinned != null -> {
+                    parameters.setMinVideoSize(0, pinned).setMaxVideoSize(Int.MAX_VALUE, pinned)
+                }
+
+                else -> {
+                    val limit = if (isUnmetered) settings.maxHeightUnmetered else settings.maxHeightMetered
+                    parameters.setMinVideoSize(0, 0).setMaxVideoSize(Int.MAX_VALUE, limit ?: Int.MAX_VALUE)
+                }
             }
             player.trackSelectionParameters = parameters.build()
         }
@@ -216,6 +230,7 @@ class PlaybackManager
 
         private companion object {
             const val SAVE_INTERVAL_MS = 10_000L
+            const val LOWEST_HEIGHT = 144
         }
 
         /** Binding a controller starts [PlaybackService], which then shows the media notification. */
