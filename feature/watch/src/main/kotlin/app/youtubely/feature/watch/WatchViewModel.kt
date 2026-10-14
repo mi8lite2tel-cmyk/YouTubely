@@ -27,6 +27,8 @@ import app.youtubely.core.model.StreamItem
 import app.youtubely.core.model.StreamType
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.player.PlaybackManager
+import app.youtubely.core.player.SegmentSkipper
+import app.youtubely.core.player.SkipNotice
 import app.youtubely.core.provider.ProviderError
 import app.youtubely.core.provider.StreamProvider
 import app.youtubely.core.sponsorblock.SponsorBlockClient
@@ -60,11 +62,6 @@ sealed interface WatchUiState {
     ) : WatchUiState
 }
 
-/** A stretch that was just skipped automatically. */
-data class SkipNotice(
-    val segment: SponsorSegment,
-)
-
 /** The playlist a video was opened from; [index] is the item playing now. */
 data class PlaylistQueue(
     val playlist: Playlist,
@@ -96,6 +93,7 @@ class WatchViewModel
         private val localPlaylists: PlaylistRepository,
         private val sponsorBlock: SponsorBlockClient,
         private val sponsorSettings: SponsorBlockSettingsRepository,
+        private val skipper: SegmentSkipper,
     ) : ViewModel() {
         private val currentId = MutableStateFlow(VideoId(videoId))
         private val id: VideoId get() = currentId.value
@@ -143,83 +141,34 @@ class WatchViewModel
         val sleepTimer get() = playback.sleepTimer
         val abLoop get() = playback.abLoop
 
-        private val _sponsorSegments = MutableStateFlow<List<SponsorSegment>>(emptyList())
-
         /** Stretches SponsorBlock marks in the current video (empty while it is off or nothing is marked). */
-        val sponsorSegments: StateFlow<List<SponsorSegment>> = _sponsorSegments.asStateFlow()
-
-        private val _skipNotice = MutableStateFlow<SkipNotice?>(null)
+        val sponsorSegments: StateFlow<List<SponsorSegment>> get() = skipper.segments
 
         /** The last automatic skip, shown for a few seconds with an undo button. */
-        val skipNotice: StateFlow<SkipNotice?> = _skipNotice.asStateFlow()
+        val skipNotice: StateFlow<SkipNotice?> get() = skipper.notice
 
         private var segmentsJob: Job? = null
-        private var skipper: Job? = null
-        private val ignoredSegments = mutableSetOf<SponsorSegment>()
 
         /** Puts the player back where the skipped stretch began and leaves that stretch alone from now on. */
-        fun undoSkip() {
-            val notice = _skipNotice.value ?: return
-            ignoredSegments += notice.segment
-            player.seekTo(notice.segment.startMs)
-            _skipNotice.value = null
-        }
+        fun undoSkip() = skipper.undo()
 
+        /** Looks up the SponsorBlock stretches of [video]; the skipper keeps them while it plays. */
         private fun loadSegments(video: VideoId) {
+            if (skipper.video == video) return
             segmentsJob?.cancel()
-            skipper?.cancel()
-            _sponsorSegments.value = emptyList()
-            ignoredSegments.clear()
+            skipper.clear()
             segmentsJob =
                 viewModelScope.launch {
                     val settings = sponsorSettings.settings.first()
                     if (!settings.enabled) return@launch
                     val found =
                         outcomeOf { sponsorBlock.segments(video, settings) } as? Outcome.Success ?: return@launch
-                    _sponsorSegments.value = found.value
-                    if (found.value.isNotEmpty()) skipper = viewModelScope.launch { skipSegments(found.value) }
+                    if (playback.currentVideo.value == video) skipper.start(video, found.value)
                 }
         }
-
-        /** Jumps over each marked stretch as playback reaches it. */
-        private suspend fun skipSegments(segments: List<SponsorSegment>) {
-            while (true) {
-                delay(SKIP_CHECK_MS)
-                val position = player.currentPosition
-                val hit =
-                    segments.firstOrNull {
-                        isCurrent &&
-                            player.isPlaying &&
-                            it !in ignoredSegments &&
-                            position >= it.startMs &&
-                            position < it.endMs - SKIP_END_MARGIN_MS
-                    }
-                if (hit != null) skip(hit)
-            }
-        }
-
-        private fun skip(segment: SponsorSegment) {
-            player.seekTo(segment.endMs)
-            _skipNotice.value = SkipNotice(segment)
-            viewModelScope.launch {
-                delay(SKIP_NOTICE_MS)
-                if (_skipNotice.value?.segment == segment) _skipNotice.value = null
-            }
-        }
-
-        /** Media URLs are signed for a few hours; one expired-URL error triggers a silent reload. */
-        private var reloadedAfterHttpError = false
 
         private val listener =
             object : Player.Listener {
-                override fun onPlayerError(error: PlaybackException) {
-                    val expiredUrl = error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
-                    if (isCurrent && expiredUrl && !reloadedAfterHttpError) {
-                        reloadedAfterHttpError = true
-                        load(positionMs = player.currentPosition, refetch = true)
-                    }
-                }
-
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     if (playbackState == Player.STATE_ENDED && isCurrent && !playback.consumeSleepAtEnd()) playNext()
                 }
@@ -259,7 +208,6 @@ class WatchViewModel
             _queue.value = queue.copy(index = index)
             currentId.value = item.id
             savedPositionMs = null
-            reloadedAfterHttpError = false
             _state.value = WatchUiState.Loading
             load()
         }
@@ -287,7 +235,6 @@ class WatchViewModel
         private fun playSuggested(item: StreamItem) {
             currentId.value = item.id
             savedPositionMs = null
-            reloadedAfterHttpError = false
             _state.value = WatchUiState.Loading
             load()
         }
@@ -389,9 +336,6 @@ class WatchViewModel
 
         private companion object {
             const val STOP_TIMEOUT_MS = 5_000L
-            const val SKIP_CHECK_MS = 250L
-            const val SKIP_END_MARGIN_MS = 500L
-            const val SKIP_NOTICE_MS = 6_000L
         }
 
         @AssistedFactory

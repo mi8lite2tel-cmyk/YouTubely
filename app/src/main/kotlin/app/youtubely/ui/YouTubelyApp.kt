@@ -314,7 +314,7 @@ fun YouTubelyApp(
             navigation(Modifier.weight(1f))
             MiniPlayer(
                 visible = !watching,
-                onOpen = { backStack.add(it.route()) },
+                onOpen = { backStack.reopen(it) },
             )
         }
     }
@@ -323,9 +323,26 @@ fun YouTubelyApp(
     }
 }
 
-/** The screen of what the mini player plays: the download or the online video. */
-private fun NowPlaying.route(): NavKey =
-    downloadId?.let(::OfflineWatchRoute) ?: WatchRoute(item.id.value, "mini-${item.id.value}")
+/**
+ * Shows the screen of what the mini player plays. When that screen is still deeper in this back
+ * stack it is brought back instead of opened twice (two equal keys would share their state).
+ */
+private fun NavBackStack<NavKey>.reopen(playing: NowPlaying) {
+    val id = playing.item.id.value
+    val existing =
+        indexOfLast { key ->
+            when (key) {
+                is WatchRoute -> key.videoId == id
+                is OfflineWatchRoute -> key.downloadId == playing.downloadId
+                else -> false
+            }
+        }
+    if (existing >= 0) {
+        while (size > existing + 1) removeLastOrNull()
+    } else {
+        add(playing.downloadId?.let(::OfflineWatchRoute) ?: WatchRoute(id, "mini-$id"))
+    }
+}
 
 /** Opens what a YouTube link points at on top of this back stack. */
 private fun NavBackStack<NavKey>.show(link: YouTubeLink) {

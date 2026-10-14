@@ -2,10 +2,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package app.youtubely.core.data
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
+import android.os.Build
 import android.os.PowerManager
 import androidx.core.content.getSystemService
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -38,6 +42,10 @@ class NetworkMonitor
         val isMetered: Boolean get() = _state.value.metered
 
         private val connectivity = context.getSystemService<ConnectivityManager>()
+        private val power = context.getSystemService<PowerManager>()
+
+        @Volatile
+        private var metered = false
 
         init {
             connectivity?.registerDefaultNetworkCallback(
@@ -45,30 +53,47 @@ class NetworkMonitor
                     override fun onCapabilitiesChanged(
                         network: Network,
                         capabilities: NetworkCapabilities,
-                    ) = refresh(capabilities)
+                    ) {
+                        metered = !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+                        refresh()
+                    }
 
-                    override fun onLost(network: Network) = refresh(null)
+                    override fun onLost(network: Network) {
+                        metered = false
+                        refresh()
+                    }
                 },
             )
+            // Battery Saver and Android's Data Saver change without any network event.
+            val modes =
+                IntentFilter().apply {
+                    addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
+                    addAction(ConnectivityManager.ACTION_RESTRICT_BACKGROUND_CHANGED)
+                }
+            val receiver =
+                object : BroadcastReceiver() {
+                    override fun onReceive(
+                        context: Context,
+                        intent: Intent,
+                    ) = refresh()
+                }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.registerReceiver(receiver, modes, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                @Suppress("UnspecifiedRegisterReceiverFlag") // Only system broadcasts; the flag exists from 33.
+                context.registerReceiver(receiver, modes)
+            }
+            refresh()
         }
 
-        private fun refresh(capabilities: NetworkCapabilities?) {
-            val metered =
-                capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)?.not() ?: false
+        private fun refresh() {
+            val restricted =
+                connectivity?.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
             _state.value =
                 NetworkState(
                     metered = metered,
-                    systemDataSaver =
-                        metered &&
-                            connectivity?.restrictBackgroundStatus ==
-                            ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED,
-                    powerSave = context.getSystemService<PowerManager>()?.isPowerSaveMode == true,
+                    systemDataSaver = metered && restricted,
+                    powerSave = power?.isPowerSaveMode == true,
                 )
-        }
-
-        /** Re-reads the power-save mode, which changes without a network event. */
-        fun refreshPower() {
-            _state.value =
-                _state.value.copy(powerSave = context.getSystemService<PowerManager>()?.isPowerSaveMode == true)
         }
     }

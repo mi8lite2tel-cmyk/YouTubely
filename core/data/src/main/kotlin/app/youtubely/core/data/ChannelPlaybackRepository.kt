@@ -5,6 +5,8 @@ package app.youtubely.core.data
 import app.youtubely.core.database.ChannelPlaybackDao
 import app.youtubely.core.database.ChannelPlaybackEntity
 import app.youtubely.core.model.ChannelId
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -39,10 +41,13 @@ class ChannelPlaybackRepository
 
         suspend fun clear() = dao.clear()
 
+        /** Read and write one at a time, so a speed and a quality saved together do not undo each other. */
+        private val writes = Mutex()
+
         private suspend fun update(
             channel: ChannelId,
             change: (ChannelPlaybackEntity) -> ChannelPlaybackEntity,
-        ) {
+        ) = writes.withLock {
             val current = dao.get(channel.value) ?: ChannelPlaybackEntity(channel.value, null, null, 0)
             val next = change(current).copy(updatedAt = System.currentTimeMillis())
             if (next.height == null && next.speed == null) dao.delete(channel.value) else dao.upsert(next)

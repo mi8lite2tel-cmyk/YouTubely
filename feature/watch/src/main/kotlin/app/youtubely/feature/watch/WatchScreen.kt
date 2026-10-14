@@ -144,7 +144,7 @@ fun WatchScreen(
         viewModel.onVisible()
         onStopOrDispose {
             // Without background playback, leaving the app pauses (PiP keeps the activity started).
-            if (!settings.backgroundPlayback && activity?.isChangingConfigurations != true) player.pause()
+            if (shouldPauseForBackground(activity, settings.backgroundPlayback)) player.pause()
         }
     }
     DisposableEffect(viewModel) { onDispose { viewModel.onHidden() } }
@@ -200,6 +200,7 @@ fun WatchScreen(
                     onUndoSkip = viewModel::undoSkip,
                     settings = settings,
                     onViewport = viewModel.playbackManager::setViewport,
+                    onRetry = viewModel.playbackManager::reload,
                     onCollapse = onCollapse.takeIf { !landscape },
                 ),
         )

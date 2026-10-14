@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package app.youtubely.feature.watch
 
+import androidx.activity.compose.LocalActivity
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -135,6 +136,7 @@ fun OfflineWatchScreen(
     val sleepTimer by viewModel.playbackManager.sleepTimer.collectAsStateWithLifecycle()
     val abLoop by viewModel.playbackManager.abLoop.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val activity = LocalActivity.current
     val player = viewModel.player
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val inPip = rememberIsInPictureInPicture()
@@ -144,7 +146,7 @@ fun OfflineWatchScreen(
     LifecycleStartEffect(item?.id) {
         viewModel.onVisible()
         onStopOrDispose {
-            if (!settings.backgroundPlayback) player.pause()
+            if (shouldPauseForBackground(activity, settings.backgroundPlayback)) player.pause()
         }
     }
     DisposableEffect(viewModel) { onDispose { viewModel.onHidden() } }

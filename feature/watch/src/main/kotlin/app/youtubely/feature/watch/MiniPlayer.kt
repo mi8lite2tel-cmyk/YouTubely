@@ -4,6 +4,7 @@
 
 package app.youtubely.feature.watch
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -88,8 +89,11 @@ fun MiniPlayer(
     val motion = MaterialTheme.motionScheme
     val current = nowPlaying
     // Without background playback, leaving the app pauses like the video screen does.
+    val activity = LocalActivity.current
     LifecycleStartEffect(viewModel) {
-        onStopOrDispose { if (!viewModel.backgroundPlayback) viewModel.player.pause() }
+        onStopOrDispose {
+            if (shouldPauseForBackground(activity, viewModel.backgroundPlayback)) viewModel.player.pause()
+        }
     }
     AnimatedVisibility(
         visible = visible && current != null,

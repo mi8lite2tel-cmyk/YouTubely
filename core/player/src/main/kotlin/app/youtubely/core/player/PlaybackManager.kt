@@ -11,6 +11,7 @@ import androidx.core.net.toUri
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -29,6 +30,7 @@ import app.youtubely.core.model.StreamInfo
 import app.youtubely.core.model.StreamItem
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.model.bestFor
+import app.youtubely.core.provider.StreamProvider
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -70,14 +72,15 @@ class PlaybackManager
         private val channelPlayback: ChannelPlaybackRepository,
         private val bandwidth: BandwidthStore,
         private val network: NetworkMonitor,
+        private val provider: StreamProvider,
     ) {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
         val player: ExoPlayer by lazy {
-            factory
-                .createPlayer(
-                    context,
-                ).also { it.addAnalyticsListener(bandwidthListener) }
+            factory.createPlayer(context).also {
+                it.addAnalyticsListener(bandwidthListener)
+                it.addListener(recoveryListener)
+            }
         }
 
         private val _currentVideo = MutableStateFlow<VideoId?>(null)
@@ -133,6 +136,50 @@ class PlaybackManager
                     situation = now
                     applyLimits(settings)
                 }.launchIn(scope)
+        }
+
+        /** When the last automatic reload of expired media URLs happened, to never loop on them. */
+        private var lastReloadAt = 0L
+
+        /** Works whether or not a video screen is open: the mini player and background playback rely on it. */
+        private val recoveryListener =
+            object : Player.Listener {
+                override fun onPlayerError(error: PlaybackException) {
+                    val expired = error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
+                    val now = SystemClock.elapsedRealtime()
+                    // Media URLs are signed for a few hours; after a long pause they need fetching again.
+                    if (expired && currentInfo != null && now - lastReloadAt > RELOAD_GUARD_MS) {
+                        lastReloadAt = now
+                        reload()
+                    }
+                }
+
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState != Player.STATE_ENDED) return
+                    // Runs after the video screen had its say; without a screen nobody consumed
+                    // "sleep at the end", and it must not stop some later video instead.
+                    scope.launch(Dispatchers.Main) {
+                        if (_sleepTimer.value == SleepTimer.AtEndOfVideo) _sleepTimer.value = SleepTimer.Off
+                    }
+                }
+            }
+
+        /**
+         * Loads the online video again with fresh media URLs at the same position, or tries a
+         * download once more. Used after expired links and by the player's "Try again".
+         */
+        @MainThread
+        fun reload() {
+            val info = currentInfo
+            if (info == null) {
+                player.prepare()
+                return
+            }
+            val position = player.currentPosition
+            scope.launch {
+                val fresh = runCatching { provider.streamInfo(info.item.id) }.getOrNull()
+                if (fresh != null && currentInfo?.item?.id == info.item.id) play(fresh, position) else player.prepare()
+            }
         }
 
         private val bandwidthListener =
@@ -253,8 +300,16 @@ class PlaybackManager
         @MainThread
         fun setSpeed(speed: Float) {
             player.setPlaybackSpeed(speed)
-            remember { channelPlayback.setSpeed(it, speed) }
+            // A slider sends many values; only the one it settles on is stored.
+            speedSave?.cancel()
+            speedSave =
+                remember {
+                    delay(SPEED_SAVE_DELAY_MS)
+                    channelPlayback.setSpeed(it, speed)
+                }
         }
+
+        private var speedSave: Job? = null
 
         /** The video is shown in a window of this size; a small window does not need the sharpest picture. */
         fun setViewport(
@@ -266,20 +321,23 @@ class PlaybackManager
         private fun restoreChannelChoices(channel: ChannelId?) {
             if (channel == null || !_settings.value.rememberPerChannel) return
             scope.launch {
-                val saved = channelPlayback.get(channel) ?: return@launch
+                val saved = channelPlayback.get(channel)
                 if (currentItem?.channel?.id != channel) return@launch
-                saved.height?.let {
+                // A channel without a remembered speed plays at normal speed, not at the last channel's.
+                player.setPlaybackSpeed(saved?.speed ?: 1f)
+                // The remembered quality never goes above what the network, data saver or battery allow now.
+                val ceiling = quality.cap.value?.maxHeight
+                saved?.height?.takeIf { ceiling == null || it <= ceiling }?.let {
                     pinnedHeight = it
                     applyLimits(_settings.value)
                 }
-                saved.speed?.let(player::setPlaybackSpeed)
             }
         }
 
-        private fun remember(save: suspend (ChannelId) -> Unit) {
-            val channel = currentItem?.channel?.id ?: return
-            if (!_settings.value.rememberPerChannel) return
-            scope.launch { save(channel) }
+        private fun remember(save: suspend (ChannelId) -> Unit): Job? {
+            val channel = currentItem?.channel?.id ?: return null
+            if (!_settings.value.rememberPerChannel) return null
+            return scope.launch { save(channel) }
         }
 
         @MainThread
@@ -418,6 +476,8 @@ class PlaybackManager
         private companion object {
             const val SAVE_INTERVAL_MS = 10_000L
             const val BANDWIDTH_SAVE_INTERVAL_MS = 30_000L
+            const val SPEED_SAVE_DELAY_MS = 600L
+            const val RELOAD_GUARD_MS = 60_000L
             const val SAVER_BUFFER_MS = 20_000L
             const val MILLIS_PER_MINUTE = 60_000L
             const val FADE_MS = 8_000L

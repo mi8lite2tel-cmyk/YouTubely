@@ -195,8 +195,8 @@ internal class AutoDownloadWorker
                                 .setRequiresBatteryNotLow(true)
                                 .build(),
                         ).build()
-                // A delayed run replaces a waiting one; a running one keeps going and re-schedules itself.
-                val policy = if (wait > 0) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.KEEP
+                // A delayed run queues behind a running one instead of cancelling it half-way.
+                val policy = if (wait > 0) ExistingWorkPolicy.APPEND_OR_REPLACE else ExistingWorkPolicy.KEEP
                 WorkManager.getInstance(context).enqueueUniqueWork(NAME, policy, request)
             }
         }

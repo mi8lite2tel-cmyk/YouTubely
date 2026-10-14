@@ -65,6 +65,7 @@ import androidx.media3.ui.compose.state.rememberSeekBackButtonState
 import androidx.media3.ui.compose.state.rememberSeekForwardButtonState
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.model.PlaybackSettings
+import app.youtubely.core.player.SkipNotice
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.delay
 
@@ -147,7 +148,7 @@ internal fun VideoPlayer(
         if (problem != null) {
             PlayerErrorOverlay(
                 problem = problem,
-                onRetry = { player.prepare() },
+                onRetry = extras.onRetry ?: { player.prepare() },
                 modifier = Modifier.align(Alignment.Center),
             )
         } else if (buffering) {
