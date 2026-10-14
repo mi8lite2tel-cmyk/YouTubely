@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // Generates docs/assets/logo.svg (full colour) and docs/assets/logo-mark.svg (one colour).
-// The mark is the letter Y whose fork holds a play button. Nothing here resembles the logo or
+// The mark is the letter Y on a violet cookie-shaped badge. Nothing here resembles the logo or
 // colours of YouTube: the palette comes from the app's seed colour #7C4DFF.
 //
 // Usage: node tools/logo/generate-logo.mjs
@@ -43,12 +43,10 @@ const stroke = 46
 const yPath =
   `M${arms.left.join(',')}L${arms.fork.join(',')}L${arms.right.join(',')}` +
   `M${arms.fork.join(',')}L${arms.foot.join(',')}`
-// A rounded play triangle resting in the fork.
-const play = 'M246,164L246,214L292,189Z'
 
 const full = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="t d">
   <title id="t">YouTubely</title>
-  <desc id="d">The letter Y with a play button in its fork, on a violet cookie-shaped badge.</desc>
+  <desc id="d">The letter Y on a violet cookie-shaped badge.</desc>
   <defs>
     <linearGradient id="body" x1="70" y1="40" x2="440" y2="480" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#B9A3FF"/>
@@ -80,11 +78,6 @@ const full = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" v
       <stop offset="0.6" stop-color="#F1EAFF"/>
       <stop offset="1" stop-color="#D2C2FF"/>
     </linearGradient>
-    <linearGradient id="accent" x1="246" y1="164" x2="292" y2="214" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFE082"/>
-      <stop offset="0.55" stop-color="#FFB74D"/>
-      <stop offset="1" stop-color="#FF7A59"/>
-    </linearGradient>
     <clipPath id="clip"><path d="${shape}"/></clipPath>
     <filter id="blur" x="-20%" y="-20%" width="140%" height="150%"><feGaussianBlur stdDeviation="14"/></filter>
     <filter id="soft" x="-20%" y="-20%" width="140%" height="150%"><feGaussianBlur stdDeviation="7"/></filter>
@@ -114,10 +107,6 @@ const full = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" v
   <!-- A thin light edge along the top of the left arm and the stem. -->
   <path d="M${arms.left[0] - 6},${arms.left[1] - 18}L${arms.fork[0] - 6},${arms.fork[1] - 14}" fill="none" stroke="#FFFFFF" stroke-opacity="0.85" stroke-width="4" stroke-linecap="round"/>
 
-  <!-- Play button in the fork. -->
-  <path d="${play}" transform="translate(0 5)" fill="#5A2FD6" opacity="0.4" stroke="#5A2FD6" stroke-width="12" stroke-linejoin="round"/>
-  <path d="${play}" fill="url(#accent)" stroke="url(#accent)" stroke-width="12" stroke-linejoin="round"/>
-  <path d="M254,175L254,193L270,184Z" fill="#FFFFFF" opacity="0.55"/>
 
   <!-- Sparkles. -->
   <path d="${sparkle(402, 112, 22)}" fill="#FFFFFF" opacity="0.95"/>
@@ -132,7 +121,6 @@ const mark = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" v
   <g fill="none" stroke="currentColor" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round">
     <path d="${yPath}"/>
   </g>
-  <path d="${play}" fill="currentColor" stroke="currentColor" stroke-width="12" stroke-linejoin="round"/>
 </svg>
 `
 
