@@ -54,7 +54,7 @@ import app.youtubely.core.model.Playlist
 import app.youtubely.core.model.PlaylistId
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.model.bestFor
-import app.youtubely.core.ui.DownloadAllDialog
+import app.youtubely.core.ui.DownloadAllButton
 import app.youtubely.core.ui.ErrorState
 import app.youtubely.core.ui.LoadMoreEffect
 import app.youtubely.core.ui.LoadingState
@@ -63,7 +63,6 @@ import app.youtubely.core.ui.VideoRow
 import app.youtubely.core.ui.motionItem
 import app.youtubely.core.ui.videoFrameKey
 import coil3.compose.AsyncImage
-import app.youtubely.core.ui.R as UiR
 
 private const val COVER_ASPECT = 16f / 9f
 
@@ -83,17 +82,7 @@ fun PlaylistScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val playlist = state.playlist
-    var downloadingAll by rememberSaveable { mutableStateOf(false) }
-    if (downloadingAll) {
-        DownloadAllDialog(
-            count = (playlist?.streamCount?.toInt()?.takeIf { it > 0 } ?: state.items.size).coerceAtMost(BATCH_LIMIT),
-            onDismiss = { downloadingAll = false },
-            onConfirm = {
-                downloadingAll = false
-                viewModel.downloadAll(it)
-            },
-        )
-    }
+    val batchSize = (playlist?.streamCount?.toInt()?.takeIf { it > 0 } ?: state.items.size).coerceAtMost(BATCH_LIMIT)
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -107,11 +96,7 @@ fun PlaylistScreen(
                     }
                 },
                 actions = {
-                    if (state.items.isNotEmpty()) {
-                        IconButton(onClick = { downloadingAll = true }) {
-                            Icon(painterResource(YouTubelyIcons.Download), stringResource(UiR.string.download_all))
-                        }
-                    }
+                    if (state.items.isNotEmpty()) DownloadAllButton(batchSize, viewModel::downloadAll)
                 },
                 scrollBehavior = scrollBehavior,
             )

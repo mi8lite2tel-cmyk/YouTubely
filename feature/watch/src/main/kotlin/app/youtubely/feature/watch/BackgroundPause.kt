@@ -14,7 +14,7 @@ internal fun shouldPauseForBackground(
     activity: Activity?,
     backgroundPlayback: Boolean,
 ): Boolean {
-    if (backgroundPlayback || activity == null || activity.isChangingConfigurations) return false
-    val state = (activity as? LifecycleOwner)?.lifecycle?.currentState ?: return true
-    return !state.isAtLeast(Lifecycle.State.STARTED)
+    val leaving = activity != null && !backgroundPlayback && !activity.isChangingConfigurations
+    val started = (activity as? LifecycleOwner)?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.STARTED) == true
+    return leaving && !started
 }

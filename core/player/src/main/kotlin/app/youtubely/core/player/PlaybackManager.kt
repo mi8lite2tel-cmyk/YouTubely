@@ -335,9 +335,8 @@ class PlaybackManager
         }
 
         private fun remember(save: suspend (ChannelId) -> Unit): Job? {
-            val channel = currentItem?.channel?.id ?: return null
-            if (!_settings.value.rememberPerChannel) return null
-            return scope.launch { save(channel) }
+            val channel = currentItem?.channel?.id?.takeIf { _settings.value.rememberPerChannel }
+            return channel?.let { scope.launch { save(it) } }
         }
 
         @MainThread

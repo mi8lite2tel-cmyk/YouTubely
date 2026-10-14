@@ -61,7 +61,8 @@ class MigrationTest {
             createVersion(file, 2) { db ->
                 db.execSQL(
                     "INSERT INTO subscriptions (channelId, name, avatarUrl, isVerified, subscribedAt, notify, " +
-                        "autoDownload, groupName, lastRefreshedAt) VALUES ('UCa', 'Name', NULL, 1, 100, 1, 1, 'News', 300)",
+                        "autoDownload, groupName, lastRefreshedAt) " +
+                        "VALUES ('UCa', 'Name', NULL, 1, 100, 1, 1, 'News', 300)",
                 )
             }
             val database =

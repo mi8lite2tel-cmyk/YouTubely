@@ -136,7 +136,7 @@ class NowPlayingWidget : GlanceAppWidget() {
                 ImageRequest
                     .Builder(context)
                     .data(url)
-                    .size(ARTWORK_WIDTH, ARTWORK_WIDTH * 9 / 16)
+                    .size(ARTWORK_WIDTH, ARTWORK_HEIGHT)
                     .allowHardware(false)
                     .build()
             SingletonImageLoader
@@ -148,6 +148,7 @@ class NowPlayingWidget : GlanceAppWidget() {
 
     private companion object {
         const val ARTWORK_WIDTH = 320
+        const val ARTWORK_HEIGHT = 180
     }
 }
 
