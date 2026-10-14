@@ -62,6 +62,7 @@ object Recommender {
     private const val HISTORY_HALF_LIFE_DAYS = 14.0
     private const val FRESH_HALF_LIFE_DAYS = 10.0
     private const val UNKNOWN_PROGRESS = 0.3f
+    private const val FINISHED_BASE = 0.5
     private const val SUBSCRIBED_AFFINITY = 1.0
     private const val RELATED_CAP = 2.0
     private const val AFFINITY_WEIGHT = 1.5
@@ -76,8 +77,8 @@ object Recommender {
         now: Instant,
     ): Double {
         val ageDays = Duration.between(signal.watchedAt, now).toHours().coerceAtLeast(0) / HOURS_PER_DAY
-        val finished = 0.5 + (signal.progress ?: UNKNOWN_PROGRESS).coerceIn(0f, 1f)
-        return 0.5.pow(ageDays / HISTORY_HALF_LIFE_DAYS) * finished
+        val finished = FINISHED_BASE + (signal.progress ?: UNKNOWN_PROGRESS).coerceIn(0f, 1f)
+        return HALF.pow(ageDays / HISTORY_HALF_LIFE_DAYS) * finished
     }
 
     fun rank(
@@ -89,14 +90,20 @@ object Recommender {
     ): List<Recommendation> {
         val watched = history.mapTo(HashSet()) { it.item.id }
         val affinity = affinityOf(history, subscribed, now)
-        val strongest = affinity.values.maxOrNull()?.takeIf { it > 0 } ?: 1.0
-        val weights = history.associate { it.item.id to weight(it, now) }
+        val profile =
+            Profile(
+                affinity = affinity,
+                strongest = affinity.values.maxOrNull()?.takeIf { it > 0 } ?: 1.0,
+                weights = history.associate { it.item.id to weight(it, now) },
+                subscribed = subscribed,
+                now = now,
+            )
 
         val scored =
             candidates
                 .filterNot { it.item.id in watched }
                 .groupBy { it.item.id }
-                .map { (_, group) -> score(group, affinity, strongest, weights, subscribed, now) }
+                .map { (_, group) -> score(group, profile) }
                 .sortedByDescending { it.score }
         return diversify(scored, limit)
     }
@@ -115,14 +122,24 @@ object Recommender {
         return result
     }
 
+    /** What is known about the user's taste, computed once per ranking. */
+    private class Profile(
+        val affinity: Map<ChannelId, Double>,
+        val strongest: Double,
+        val weights: Map<VideoId, Double>,
+        val subscribed: Set<ChannelId>,
+        val now: Instant,
+    )
+
     private fun score(
         group: List<Candidate>,
-        affinity: Map<ChannelId, Double>,
-        strongest: Double,
-        weights: Map<VideoId, Double>,
-        subscribed: Set<ChannelId>,
-        now: Instant,
+        profile: Profile,
     ): Recommendation {
+        val affinity = profile.affinity
+        val strongest = profile.strongest
+        val weights = profile.weights
+        val subscribed = profile.subscribed
+        val now = profile.now
         val item = group.first().item
         val channel = item.channel?.id
         val related = group.mapNotNull { it.source as? CandidateSource.Related }
@@ -132,7 +149,7 @@ object Recommender {
         val relatedShare = (relatedSum / RELATED_CAP).coerceIn(0.0, 1.0)
         val fresh =
             item.uploadedAt?.let {
-                0.5.pow(Duration.between(it, now).toHours().coerceAtLeast(0) / HOURS_PER_DAY / FRESH_HALF_LIFE_DAYS)
+                HALF.pow(Duration.between(it, now).toHours().coerceAtLeast(0) / HOURS_PER_DAY / FRESH_HALF_LIFE_DAYS)
             } ?: 0.0
         val isSubscribed = channel != null && channel in subscribed
         val score =
@@ -182,4 +199,5 @@ object Recommender {
     }
 
     private const val HOURS_PER_DAY = 24.0
+    private const val HALF = 0.5
 }

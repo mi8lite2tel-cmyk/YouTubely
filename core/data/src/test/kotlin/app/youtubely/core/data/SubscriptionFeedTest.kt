@@ -65,7 +65,7 @@ class SubscriptionFeedTest {
                         b.id to listOf(item("b2", day = 2)),
                     ),
                 )
-            val feed = SubscriptionFeed(provider, subscriptions, database.subscriptionDao(), database.feedDao())
+            val feed = SubscriptionFeed(provider, database.subscriptionDao(), database.feedDao())
 
             feed.refresh()
 
@@ -86,13 +86,7 @@ class SubscriptionFeedTest {
     fun everyChannelFailingIsAnError() =
         runTest {
             subscriptions.subscribe(channel("A"))
-            val feed =
-                SubscriptionFeed(
-                    FakeStreamProvider(emptyMap()),
-                    subscriptions,
-                    database.subscriptionDao(),
-                    database.feedDao(),
-                )
+            val feed = SubscriptionFeed(FakeStreamProvider(emptyMap()), database.subscriptionDao(), database.feedDao())
             feed.refresh()
             assertNotNull(feed.state.first().error)
         }

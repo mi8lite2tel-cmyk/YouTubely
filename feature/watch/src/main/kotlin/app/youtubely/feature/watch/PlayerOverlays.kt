@@ -61,17 +61,19 @@ internal class PlayerExtras(
 )
 
 /** The standard SponsorBlock colours of the categories. */
-internal fun categoryColor(category: String): Color =
-    when (category) {
-        "sponsor" -> Color(0xFF00D400)
-        "selfpromo" -> Color(0xFFFFFF00)
-        "interaction" -> Color(0xFFCC00FF)
-        "intro" -> Color(0xFF00FFFF)
-        "outro" -> Color(0xFF0202ED)
-        "preview" -> Color(0xFF008FD6)
-        "filler" -> Color(0xFF7300FF)
-        else -> Color(0xFFFF9900)
-    }
+private val CategoryColors =
+    mapOf(
+        "sponsor" to Color(0xFF00D400),
+        "selfpromo" to Color(0xFFFFFF00),
+        "interaction" to Color(0xFFCC00FF),
+        "intro" to Color(0xFF00FFFF),
+        "outro" to Color(0xFF0202ED),
+        "preview" to Color(0xFF008FD6),
+        "filler" to Color(0xFF7300FF),
+    )
+private val OtherCategoryColor = Color(0xFFFF9900)
+
+internal fun categoryColor(category: String): Color = CategoryColors[category] ?: OtherCategoryColor
 
 @Composable
 internal fun categoryLabel(category: String): String =

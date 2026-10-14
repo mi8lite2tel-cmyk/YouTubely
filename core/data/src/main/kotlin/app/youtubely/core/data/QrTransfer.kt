@@ -49,6 +49,10 @@ object QrTransfer {
         GZIPInputStream(ByteArrayInputStream(bytes)).use { it.readBytes() }
 
     private const val SESSION_LENGTH = 6
+    private const val FIELD_COUNT = 5
+    private const val INDEX_FIELD = 2
+    private const val TOTAL_FIELD = 3
+    private const val DATA_FIELD = 4
 
     /** Collects the frames of one transfer. Frames of another transfer are ignored once one has started. */
     class Receiver {
@@ -62,17 +66,32 @@ object QrTransfer {
 
         /** Whether [frame] belongs to a YouTubely transfer and was accepted. */
         fun accept(frame: String): Boolean {
-            val fields = frame.split(SEPARATOR, limit = FIELD_COUNT)
-            if (fields.size != FIELD_COUNT || fields[0] != PREFIX) return false
-            val index = fields[INDEX_FIELD].toIntOrNull()
-            val count = fields[TOTAL_FIELD].toIntOrNull()
-            val valid = index != null && count != null && count > 0 && index in 0 until count
-            val sameTransfer = session == null || session == fields[1]
-            if (!valid || !sameTransfer) return false
-            session = fields[1]
-            total = count!!
-            parts[index!!] = fields[DATA_FIELD]
+            val frameInfo = Frame.parse(frame)
+            val sameTransfer = session == null || session == frameInfo?.session
+            if (frameInfo == null || !sameTransfer) return false
+            session = frameInfo.session
+            total = frameInfo.count
+            parts[frameInfo.index] = frameInfo.data
             return true
+        }
+
+        private class Frame(
+            val session: String,
+            val index: Int,
+            val count: Int,
+            val data: String,
+        ) {
+            companion object {
+                fun parse(frame: String): Frame? {
+                    val fields = frame.split(SEPARATOR, limit = FIELD_COUNT)
+                    val index = fields.getOrNull(INDEX_FIELD)?.toIntOrNull()
+                    val count = fields.getOrNull(TOTAL_FIELD)?.toIntOrNull()
+                    val valid =
+                        fields.size == FIELD_COUNT && fields[0] == PREFIX &&
+                            index != null && count != null && count > 0 && index in 0 until count
+                    return if (valid) Frame(fields[1], index!!, count!!, fields[DATA_FIELD]) else null
+                }
+            }
         }
 
         /** The transferred text once [isComplete], `null` before that or when the data is damaged. */
@@ -80,13 +99,6 @@ object QrTransfer {
             if (!isComplete) return null
             val data = (0 until total).joinToString("") { parts.getValue(it) }
             return runCatching { String(gunzip(decoder.decode(data)), Charsets.UTF_8) }.getOrNull()
-        }
-
-        private companion object {
-            const val FIELD_COUNT = 5
-            const val INDEX_FIELD = 2
-            const val TOTAL_FIELD = 3
-            const val DATA_FIELD = 4
         }
     }
 }

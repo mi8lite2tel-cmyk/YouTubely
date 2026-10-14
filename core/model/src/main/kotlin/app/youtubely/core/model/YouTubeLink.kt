@@ -33,14 +33,21 @@ sealed interface YouTubeLink {
          * (handles, search pages, other sites) gives `null`.
          */
         fun parse(text: String): YouTubeLink? {
-            val uri = runCatching { URI(text.trim()) }.getOrNull() ?: return null
+            val uri = runCatching { URI(text.trim()) }.getOrNull()
             val host =
-                uri.host
+                uri
+                    ?.host
                     ?.lowercase()
                     ?.removePrefix("www.")
                     ?.removePrefix("m.")
                     ?.removePrefix("music.")
-            if (host == null || host !in HOSTS) return null
+            return if (uri == null || host == null || host !in HOSTS) null else parse(uri, host)
+        }
+
+        private fun parse(
+            uri: URI,
+            host: String,
+        ): YouTubeLink? {
             val segments =
                 uri.path
                     .orEmpty()

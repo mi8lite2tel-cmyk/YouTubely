@@ -18,12 +18,15 @@ private const val MAX_MINUTES_OR_SECONDS = 59
 
 /** The milliseconds a timecode like `1:02:03` or `12:34` stands for, or `null` when it is not one. */
 internal fun timecodeMillis(text: String): Long? {
-    val match = Timecode.matchEntire(text) ?: return null
-    val hours = match.groupValues[1].toIntOrNull() ?: 0
-    val minutes = match.groupValues[2].toInt()
-    val seconds = match.groupValues[3].toInt()
-    if (seconds > MAX_MINUTES_OR_SECONDS || (hours > 0 && minutes > MAX_MINUTES_OR_SECONDS)) return null
-    return (hours * SECONDS_PER_HOUR + minutes * SECONDS_PER_MINUTE + seconds) * MILLIS
+    val parts =
+        Timecode
+            .matchEntire(text)
+            ?.destructured
+            ?.toList()
+            ?.map { it.toIntOrNull() ?: 0 }
+    val (hours, minutes, seconds) = parts ?: return null
+    val valid = seconds <= MAX_MINUTES_OR_SECONDS && (hours == 0 || minutes <= MAX_MINUTES_OR_SECONDS)
+    return if (valid) (hours * SECONDS_PER_HOUR + minutes * SECONDS_PER_MINUTE + seconds) * MILLIS else null
 }
 
 /**

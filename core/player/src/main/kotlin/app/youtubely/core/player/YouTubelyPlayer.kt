@@ -62,6 +62,7 @@ class YouTubelyPlayer
                 }
 
         /** Returns `null` when the video has nothing playable (e.g. only formats the app can't handle). */
+        @Suppress("SpreadOperator") // Media3 takes the sources as a vararg; there are only a few.
         fun mediaSource(info: StreamInfo): MediaSource? {
             val main = videoSource(info) ?: return null
             val subtitles = subtitleSources(info)

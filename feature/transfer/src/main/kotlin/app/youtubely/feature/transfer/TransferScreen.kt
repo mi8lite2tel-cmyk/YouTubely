@@ -100,11 +100,9 @@ fun TransferScreen(
     val import =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) {
-                val text =
-                    context.contentResolver.openInputStream(uri)?.use {
-                        it.readNBytes(MAX_FILE_BYTES).toString(Charsets.UTF_8)
-                    }
-                viewModel.preview(text.orEmpty())
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                // A subscription list is a few hundred kilobytes at most; anything huge is not one.
+                viewModel.preview(bytes?.takeIf { it.size <= MAX_FILE_BYTES }?.toString(Charsets.UTF_8).orEmpty())
             }
         }
 

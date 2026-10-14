@@ -91,11 +91,10 @@ class SponsorBlockClient
             }
 
             private fun segmentOf(item: JsonObject?): SponsorSegment? {
-                item ?: return null
-                val range = item["segment"]?.jsonArray?.mapNotNull { it.jsonPrimitive.doubleOrNull } ?: return null
-                val category = item["category"]?.jsonPrimitive?.contentOrNull
-                val skips = item["actionType"]?.jsonPrimitive?.contentOrNull in setOf(null, "skip")
-                return if (range.size == 2 && category != null && skips) {
+                val range = item?.get("segment")?.jsonArray?.mapNotNull { it.jsonPrimitive.doubleOrNull }
+                val category = item?.get("category")?.jsonPrimitive?.contentOrNull
+                val skips = item?.get("actionType")?.jsonPrimitive?.contentOrNull in setOf(null, "skip")
+                return if (range?.size == 2 && category != null && skips) {
                     SponsorSegment(category, (range[0] * MILLIS).toLong(), (range[1] * MILLIS).toLong())
                 } else {
                     null

@@ -72,31 +72,34 @@ class RecommendationRepository
 
         suspend fun refresh() {
             if (refreshing.isLocked) return
-            refreshing.withLock {
-                val now = Instant.now()
-                val watched =
-                    history.history.first().map { WatchSignal(it.item, it.watchedAt, it.progress) }
-                val followed =
-                    subscriptions.subscriptions
-                        .first()
-                        .map { it.id }
-                        .toSet()
-                if (watched.isEmpty() && followed.isEmpty()) {
-                    _state.value = RecommendationState.NeedsData
-                    return
+            refreshing.withLock { compute() }
+        }
+
+        private suspend fun compute() {
+            val now = Instant.now()
+            val watched = history.history.first().map { WatchSignal(it.item, it.watchedAt, it.progress) }
+            val followed =
+                subscriptions.subscriptions
+                    .first()
+                    .map { it.id }
+                    .toSet()
+            if (watched.isEmpty() && followed.isEmpty()) {
+                _state.value = RecommendationState.NeedsData
+                return
+            }
+            if (_state.value !is RecommendationState.Ready) _state.value = RecommendationState.Loading
+            val candidates = candidates(watched, followed, now)
+            when {
+                // Most likely offline: keep what was shown before, if anything.
+                candidates.isEmpty() && _state.value !is RecommendationState.Ready -> {
+                    _state.value = RecommendationState.Failed(java.io.IOException("No videos to rank"))
                 }
-                if (_state.value !is RecommendationState.Ready) _state.value = RecommendationState.Loading
-                val candidates = candidates(watched, followed, now)
-                if (candidates.isEmpty()) {
-                    // Most likely offline: keep what was shown before, if anything.
-                    if (_state.value !is RecommendationState.Ready) {
-                        _state.value = RecommendationState.Failed(java.io.IOException("No videos to rank"))
-                    }
-                    return
+
+                candidates.isNotEmpty() -> {
+                    _state.value =
+                        RecommendationState.Ready(Recommender.rank(candidates, watched, followed, now, MAX_ITEMS))
+                    computedAt = now
                 }
-                _state.value =
-                    RecommendationState.Ready(Recommender.rank(candidates, watched, followed, now, MAX_ITEMS))
-                computedAt = now
             }
         }
 

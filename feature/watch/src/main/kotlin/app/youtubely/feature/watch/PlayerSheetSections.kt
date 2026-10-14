@@ -45,6 +45,7 @@ private const val COUNTDOWN_TICK_MS = 15_000L
 private const val MILLIS_PER_MINUTE = 60_000L
 
 /** What the sheet can do to the player; the screen wires these to the view model. */
+@Suppress("LongParameterList") // A bundle of callbacks, one per button.
 internal class PlayerSheetActions(
     val onSkipSilence: (Boolean) -> Unit,
     val onNormalizeVolume: (Boolean) -> Unit,

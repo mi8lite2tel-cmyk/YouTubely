@@ -399,12 +399,13 @@ data class AbLoop(
 object VolumeNormalizer {
     private const val MIN_VOLUME = 0.25f
     private const val DB_PER_DECADE = 20.0
+    private const val DECIBEL_BASE = 10.0
 
     /** [loudnessDb] is how much louder than YouTube's reference level the video is (`null` = unknown). */
     fun volumeFor(loudnessDb: Float?): Float {
         if (loudnessDb == null || loudnessDb <= 0f) return 1f
         return Math
-            .pow(10.0, -loudnessDb / DB_PER_DECADE)
+            .pow(DECIBEL_BASE, -loudnessDb / DB_PER_DECADE)
             .toFloat()
             .coerceIn(MIN_VOLUME, 1f)
     }

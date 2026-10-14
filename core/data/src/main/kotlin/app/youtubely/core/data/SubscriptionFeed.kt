@@ -47,7 +47,6 @@ class SubscriptionFeed
     @Inject
     constructor(
         private val provider: StreamProvider,
-        private val subscriptions: SubscriptionRepository,
         private val subscriptionDao: SubscriptionDao,
         private val dao: FeedDao,
     ) {

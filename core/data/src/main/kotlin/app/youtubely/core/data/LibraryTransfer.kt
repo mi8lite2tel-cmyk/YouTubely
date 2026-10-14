@@ -101,7 +101,10 @@ class LibraryTransfer
                 id = VideoId(id),
                 title = title,
                 channel = channelId?.let { ChannelRef(ChannelId(it), channelName ?: it, emptyList(), false) },
-                thumbnails = listOf(Image("https://i.ytimg.com/vi/$id/mqdefault.jpg", 320, 180)),
+                thumbnails =
+                    listOf(
+                        Image("https://i.ytimg.com/vi/$id/mqdefault.jpg", THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT),
+                    ),
                 type = StreamType.Video,
                 duration = durationSeconds?.let(Duration::ofSeconds),
                 viewCount = null,
@@ -109,3 +112,6 @@ class LibraryTransfer
                 uploadedAtText = null,
             )
     }
+
+private const val THUMBNAIL_WIDTH = 320
+private const val THUMBNAIL_HEIGHT = 180

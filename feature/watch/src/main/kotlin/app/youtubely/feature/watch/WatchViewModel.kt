@@ -185,18 +185,25 @@ class WatchViewModel
         private suspend fun skipSegments(segments: List<SponsorSegment>) {
             while (true) {
                 delay(SKIP_CHECK_MS)
-                if (!isCurrent || !player.isPlaying) continue
                 val position = player.currentPosition
                 val hit =
                     segments.firstOrNull {
-                        it !in ignoredSegments && position >= it.startMs && position < it.endMs - SKIP_END_MARGIN_MS
-                    } ?: continue
-                player.seekTo(hit.endMs)
-                _skipNotice.value = SkipNotice(hit)
-                viewModelScope.launch {
-                    delay(SKIP_NOTICE_MS)
-                    if (_skipNotice.value?.segment == hit) _skipNotice.value = null
-                }
+                        isCurrent &&
+                            player.isPlaying &&
+                            it !in ignoredSegments &&
+                            position >= it.startMs &&
+                            position < it.endMs - SKIP_END_MARGIN_MS
+                    }
+                if (hit != null) skip(hit)
+            }
+        }
+
+        private fun skip(segment: SponsorSegment) {
+            player.seekTo(segment.endMs)
+            _skipNotice.value = SkipNotice(segment)
+            viewModelScope.launch {
+                delay(SKIP_NOTICE_MS)
+                if (_skipNotice.value?.segment == segment) _skipNotice.value = null
             }
         }
 
@@ -259,15 +266,21 @@ class WatchViewModel
 
         /** The next video of the queue, or the first suggested one when autoplay is on. */
         private fun playNext() {
-            if (player.repeatMode != Player.REPEAT_MODE_OFF) return
             val queue = _queue.value
-            if (queue?.next != null) {
-                playQueueItem(queue.index + 1)
-                return
-            }
-            if (!settings.value.autoplayNext) return
             val related = (_state.value as? WatchUiState.Content)?.info?.related.orEmpty()
-            related.firstOrNull { it.id != id && it.type == StreamType.Video }?.let(::playSuggested)
+            when {
+                player.repeatMode != Player.REPEAT_MODE_OFF -> {
+                    Unit
+                }
+
+                queue?.next != null -> {
+                    playQueueItem(queue.index + 1)
+                }
+
+                settings.value.autoplayNext -> {
+                    related.firstOrNull { it.id != id && it.type == StreamType.Video }?.let(::playSuggested)
+                }
+            }
         }
 
         /** Plays [item] on this screen, like the next video of a queue. */

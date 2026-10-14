@@ -139,24 +139,10 @@ fun YouTubelyApp(
 
     // A link or notification the app was opened with: show it on top of the current tab.
     LaunchedEffect(pendingLink) {
-        when (val link = pendingLink) {
-            null -> {
-                return@LaunchedEffect
-            }
-
-            is YouTubeLink.Video -> {
-                backStack.add(WatchRoute(link.id.value, "link-${link.id.value}", link.playlist?.value))
-            }
-
-            is YouTubeLink.Playlist -> {
-                backStack.add(PlaylistRoute(link.id.value))
-            }
-
-            is YouTubeLink.Channel -> {
-                backStack.add(ChannelRoute(link.id.value))
-            }
+        pendingLink?.let {
+            backStack.show(it)
+            onLinkHandled()
         }
-        onLinkHandled()
     }
     var actionsFor by remember { mutableStateOf<StreamItem?>(null) }
 
@@ -176,22 +162,7 @@ fun YouTubelyApp(
                             currentName = item.route.toString()
                         }
                     },
-                    icon = {
-                        // Outline morphs into the filled glyph on selection.
-                        AnimatedContent(
-                            targetState = selected,
-                            transitionSpec = {
-                                (fadeIn(motion.fastEffectsSpec()) + scaleIn(motion.fastSpatialSpec()))
-                                    .togetherWith(fadeOut(motion.fastEffectsSpec()))
-                            },
-                            label = "navIcon",
-                        ) { filled ->
-                            Icon(
-                                painterResource(if (filled) item.icon.filled else item.icon.outlined),
-                                contentDescription = null,
-                            )
-                        }
-                    },
+                    icon = { NavigationIcon(item, selected) },
                     label = { Text(stringResource(item.label)) },
                 )
             }
@@ -317,5 +288,35 @@ fun YouTubelyApp(
     }
     actionsFor?.let { item ->
         VideoActionsSheet(item = item, onDismiss = { actionsFor = null }, onOpenChannel = ::openChannel)
+    }
+}
+
+/** Opens what a YouTube link points at on top of this back stack. */
+private fun NavBackStack<NavKey>.show(link: YouTubeLink) {
+    add(
+        when (link) {
+            is YouTubeLink.Video -> WatchRoute(link.id.value, "link-${link.id.value}", link.playlist?.value)
+            is YouTubeLink.Playlist -> PlaylistRoute(link.id.value)
+            is YouTubeLink.Channel -> ChannelRoute(link.id.value)
+        },
+    )
+}
+
+/** Outline morphs into the filled glyph on selection. */
+@Composable
+private fun NavigationIcon(
+    item: TopLevelItem,
+    selected: Boolean,
+) {
+    val motion = MaterialTheme.motionScheme
+    AnimatedContent(
+        targetState = selected,
+        transitionSpec = {
+            (fadeIn(motion.fastEffectsSpec()) + scaleIn(motion.fastSpatialSpec()))
+                .togetherWith(fadeOut(motion.fastEffectsSpec()))
+        },
+        label = "navIcon",
+    ) { filled ->
+        Icon(painterResource(if (filled) item.icon.filled else item.icon.outlined), contentDescription = null)
     }
 }

@@ -13,6 +13,9 @@ complexity:
     ignoreAnnotated: ['Composable']
   TooManyFunctions:
     ignorePrivate: true
+    # Settings repositories and DAOs are lists of small setters and queries.
+    thresholdInClasses: 20
+    thresholdInInterfaces: 15
 
 naming:
   FunctionNaming:

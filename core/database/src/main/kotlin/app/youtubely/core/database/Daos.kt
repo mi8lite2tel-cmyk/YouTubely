@@ -56,7 +56,8 @@ interface SubscriptionDao {
     suspend fun insertIfAbsent(subscription: SubscriptionEntity): Long
 
     @Query(
-        "UPDATE subscriptions SET name = :name, avatarUrl = :avatarUrl, isVerified = :isVerified WHERE channelId = :channelId",
+        "UPDATE subscriptions SET name = :name, avatarUrl = :avatarUrl, isVerified = :isVerified " +
+            "WHERE channelId = :channelId",
     )
     suspend fun updateProfile(
         channelId: String,

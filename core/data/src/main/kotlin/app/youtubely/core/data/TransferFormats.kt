@@ -84,23 +84,30 @@ object TransferFormats {
     }
 
     private fun parseJson(text: String): TransferBundle? {
-        val root = runCatching { json.parseToJsonElement(text).jsonObject }.getOrNull() ?: return null
-        if (root["app"]?.jsonPrimitive?.contentOrNull == TransferBundle.APP_NAME) {
-            return runCatching { json.decodeFromString(TransferBundle.serializer(), text) }.getOrNull()
-        }
+        val root = runCatching { json.parseToJsonElement(text).jsonObject }.getOrNull()
+        val own = root?.get("app")?.jsonPrimitive?.contentOrNull == TransferBundle.APP_NAME
         // NewPipe ("url") and LibreTube ("url" or "channelId") list their channels under "subscriptions".
-        val channels = root["subscriptions"] as? JsonArray ?: return null
-        return TransferBundle(subscriptions = channels.mapNotNull { channelOf(it) }.distinctBy { it.id })
+        val channels = root?.get("subscriptions") as? JsonArray
+        return when {
+            root == null -> null
+            own -> runCatching { json.decodeFromString(TransferBundle.serializer(), text) }.getOrNull()
+            channels == null -> null
+            else -> TransferBundle(subscriptions = channels.mapNotNull { channelOf(it) }.distinctBy { it.id })
+        }
     }
 
     private fun channelOf(element: JsonElement): TransferChannel? {
-        val item = element as? JsonObject ?: return null
+        val item = element as? JsonObject
         val id =
-            item["channelId"]?.jsonPrimitive?.contentOrNull
-                ?: item["id"]?.jsonPrimitive?.contentOrNull
-                ?: item["url"]?.jsonPrimitive?.contentOrNull?.let(::channelIdOf)
-        val validId = id?.let(::channelIdOf) ?: return null
-        return TransferChannel(validId, item["name"]?.jsonPrimitive?.contentOrNull ?: validId)
+            listOf("channelId", "id", "url")
+                .firstNotNullOfOrNull { key ->
+                    item
+                        ?.get(key)
+                        ?.jsonPrimitive
+                        ?.contentOrNull
+                        ?.let(::channelIdOf)
+                }
+        return id?.let { TransferChannel(it, item?.get("name")?.jsonPrimitive?.contentOrNull ?: it) }
     }
 
     /** Google Takeout: `Channel ID,Channel URL,Channel title`. */

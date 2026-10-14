@@ -160,12 +160,7 @@ class LibraryRepositoriesTest {
         }
 
     private fun feedOf(feeds: Map<ChannelId, List<StreamItem>>) =
-        SubscriptionFeed(
-            FakeStreamProvider(feeds),
-            subscriptions,
-            database.subscriptionDao(),
-            database.feedDao(),
-        )
+        SubscriptionFeed(FakeStreamProvider(feeds), database.subscriptionDao(), database.feedDao())
 
     private fun channel(name: String) = ChannelRef(ChannelId("UC$name"), name, emptyList(), isVerified = false)
 
