@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import app.youtubely.core.common.Outcome
 import app.youtubely.core.common.outcomeOf
 import app.youtubely.core.data.FeedState
+import app.youtubely.core.data.HistoryRepository
 import app.youtubely.core.data.RecommendationRepository
 import app.youtubely.core.data.RecommendationState
 import app.youtubely.core.data.SubscriptionFeed
@@ -14,6 +15,7 @@ import app.youtubely.core.data.SubscriptionRepository
 import app.youtubely.core.datastore.SyncSettingsRepository
 import app.youtubely.core.model.ExploreKind
 import app.youtubely.core.model.ExploreSection
+import app.youtubely.core.model.HistoryEntry
 import app.youtubely.core.model.Region
 import app.youtubely.core.model.StreamItem
 import app.youtubely.core.provider.StreamProvider
@@ -83,6 +85,7 @@ class HomeViewModel
         private val recommendations: RecommendationRepository,
         subscriptions: SubscriptionRepository,
         private val sync: SyncSettingsRepository,
+        history: HistoryRepository,
     ) : ViewModel() {
         private val sharing = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS)
 
@@ -95,6 +98,12 @@ class HomeViewModel
         val explore: StateFlow<ExploreUiState> = _explore.asStateFlow()
 
         val forYou: StateFlow<RecommendationState> = recommendations.state
+
+        /** Started videos to pick up where they were left. */
+        val continueWatching: StateFlow<ImmutableList<HistoryEntry>> =
+            history.continueWatching
+                .map { it.toImmutableList() }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), persistentListOf())
 
         private val group = MutableStateFlow<String?>(null)
 

@@ -13,6 +13,7 @@ import app.youtubely.core.model.StreamItem
 import app.youtubely.core.model.StreamType
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.model.bestFor
+import app.youtubely.core.model.unfinished
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -30,6 +31,9 @@ class HistoryRepository
         private val settings: PlaybackSettingsRepository,
     ) {
         val history: Flow<List<HistoryEntry>> = dao.observeAll().map { rows -> rows.map { it.toEntry() } }
+
+        /** Started but unfinished videos of the last weeks, for "Continue watching". */
+        val continueWatching: Flow<List<HistoryEntry>> = history.map { it.unfinished(Instant.now()) }
 
         /** Watched share 0..1 per video, for progress bars on thumbnails. */
         val progress: Flow<Map<VideoId, Float>> =

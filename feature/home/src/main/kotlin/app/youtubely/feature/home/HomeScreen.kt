@@ -70,6 +70,7 @@ import app.youtubely.core.data.RecommendationState
 import app.youtubely.core.designsystem.component.ExpressiveFilterChip
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.model.ExploreKind
+import app.youtubely.core.model.HistoryEntry
 import app.youtubely.core.model.StreamItem
 import app.youtubely.core.model.VideoId
 import app.youtubely.core.model.bestFor
@@ -99,6 +100,7 @@ fun HomeScreen(
     val tab by viewModel.tab.collectAsStateWithLifecycle()
     val explore by viewModel.explore.collectAsStateWithLifecycle()
     val forYou by viewModel.forYou.collectAsStateWithLifecycle()
+    val continueWatching by viewModel.continueWatching.collectAsStateWithLifecycle()
     val feed by viewModel.feedUi.collectAsStateWithLifecycle()
     val newVideos by viewModel.newVideos.collectAsStateWithLifecycle()
     val hasSubscriptions by viewModel.hasSubscriptions.collectAsStateWithLifecycle()
@@ -152,6 +154,7 @@ fun HomeScreen(
                     HomeTab.ForYou -> {
                         ForYouTab(
                             state = forYou,
+                            continueWatching = continueWatching,
                             bottomPadding = bottom,
                             onRefresh = viewModel::refreshForYou,
                             onShowTrends = { viewModel.select(HomeTab.Explore(ExploreKind.Trending)) },
@@ -229,6 +232,7 @@ private fun Refreshable(
 @Composable
 private fun ForYouTab(
     state: RecommendationState,
+    continueWatching: List<HistoryEntry>,
     bottomPadding: Dp,
     onRefresh: () -> Unit,
     onShowTrends: () -> Unit,
@@ -240,7 +244,10 @@ private fun ForYouTab(
         }
 
         RecommendationState.NeedsData -> {
-            ForYouEmpty(onShowTrends)
+            Column(Modifier.fillMaxSize()) {
+                ContinueWatchingRow(continueWatching, onOpenVideo, Modifier.padding(top = 8.dp))
+                Box(Modifier.weight(1f)) { ForYouEmpty(onShowTrends) }
+            }
         }
 
         is RecommendationState.Failed -> {
@@ -250,6 +257,15 @@ private fun ForYouTab(
         is RecommendationState.Ready -> {
             Refreshable(refreshing = false, onRefresh = onRefresh) {
                 VideoGrid(bottomPadding) {
+                    if (continueWatching.isNotEmpty()) {
+                        item(key = "continue", span = { GridItemSpan(maxLineSpan) }) {
+                            ContinueWatchingRow(
+                                continueWatching,
+                                onOpenVideo,
+                                Modifier.padding(top = 8.dp, bottom = 12.dp).then(motionItem()),
+                            )
+                        }
+                    }
                     item(key = "for-you-note", span = { GridItemSpan(maxLineSpan) }) {
                         Text(
                             stringResource(R.string.home_for_you_note),

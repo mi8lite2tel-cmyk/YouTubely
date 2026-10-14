@@ -61,3 +61,42 @@ class AutoDownloadRuleTest {
         assertEquals(30, TimeWindow(9, 18).minutesUntilOpen(8, 30))
     }
 }
+
+class ContinueWatchingTest {
+    private val now = java.time.Instant.parse("2026-10-14T12:00:00Z")
+
+    private fun entry(
+        id: String,
+        positionS: Long,
+        lengthS: Long?,
+        daysAgo: Long = 1,
+    ) = HistoryEntry(
+        StreamItem(
+            VideoId(id),
+            id,
+            null,
+            emptyList(),
+            StreamType.Video,
+            lengthS?.let(Duration::ofSeconds),
+            null,
+            null,
+            null,
+        ),
+        positionMs = positionS * 1000,
+        watchedAt = now.minus(Duration.ofDays(daysAgo)),
+    )
+
+    @Test
+    fun `keeps started unfinished recent videos, newest first`() {
+        val list =
+            listOf(
+                entry("barely", 10, 600),
+                entry("half", 300, 600, daysAgo = 2),
+                entry("recent", 120, 600, daysAgo = 0),
+                entry("done", 590, 600),
+                entry("old", 300, 600, daysAgo = 40),
+                entry("live", 300, null),
+            ).unfinished(now)
+        assertEquals(listOf("recent", "half"), list.map { it.item.id.value })
+    }
+}
