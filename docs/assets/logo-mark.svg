@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="t">
+  <title id="t">YouTubely</title>
+  <!-- One colour (currentColor): for themed icons, stamps and single-colour print. -->
+  <g fill="none" stroke="currentColor" stroke-width="46" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M142,150L256,282L370,150M256,282L256,376"/>
+  </g>
+</svg>
