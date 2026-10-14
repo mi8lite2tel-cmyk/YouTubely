@@ -7,7 +7,6 @@ package app.youtubely.feature.watch
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
-import android.net.ConnectivityManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.animateContentSize
@@ -231,13 +230,10 @@ fun WatchScreen(
     )
 
     if (showSettings) {
+        val qualityCap by viewModel.playbackManager.qualityCap.collectAsStateWithLifecycle()
         PlayerSettingsSheet(
             player = player,
-            pinnedHeight = viewModel.pinnedQuality,
-            networkLimit = rememberNetworkLimit(settings),
-            settings = settings,
-            sleepTimer = sleepTimer,
-            abLoop = abLoop,
+            state = PlayerSheetState(viewModel.pinnedQuality, qualityCap, settings, sleepTimer, abLoop),
             actions = remember(viewModel) { viewModel.playbackManager.sheetActions(context) },
             onQuality = viewModel::setQuality,
             onDismiss = { showSettings = false },
@@ -570,17 +566,6 @@ private fun rememberIsPlaying(player: Player): Boolean {
         onDispose { player.removeListener(listener) }
     }
     return playing
-}
-
-/** The resolution cap that applies on the current network, shown next to "Auto". */
-@Composable
-private fun rememberNetworkLimit(settings: PlaybackSettings): Int? {
-    val context = LocalContext.current
-    val metered =
-        remember {
-            context.getSystemService(ConnectivityManager::class.java)?.isActiveNetworkMetered ?: false
-        }
-    return if (metered) settings.maxHeightMetered else settings.maxHeightUnmetered
 }
 
 /** Hides the system bars while the player fills the screen; swiping from an edge shows them briefly. */

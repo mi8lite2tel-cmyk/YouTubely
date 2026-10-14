@@ -65,6 +65,7 @@ import app.youtubely.core.model.AnimationSpeed
 import app.youtubely.core.model.DarkMode
 import app.youtubely.core.model.PlaybackSettings
 import app.youtubely.core.ui.groupedListItemColors
+import app.youtubely.core.ui.groupedListItemShapes
 import app.youtubely.core.ui.rememberNotificationPermissionRequest
 
 private const val SOURCE_URL = "https://github.com/mi8lite2tel-cmyk/YouTubely"
@@ -381,7 +382,7 @@ private fun SubscriptionsPage(
     SectionHeader(R.string.settings_transfer)
     SegmentedListItem(
         onClick = onOpenTransfer,
-        shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+        shapes = groupedListItemShapes(0, 1),
         colors = groupedListItemColors(),
         leadingContent = { Icon(painterResource(YouTubelyIcons.QrCode), contentDescription = null) },
         trailingContent = { Icon(painterResource(YouTubelyIcons.ChevronRight), contentDescription = null) },
@@ -395,7 +396,7 @@ private fun AboutPage(versionName: String) {
     SettingsGroup {
         SegmentedListItem(
             onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, SOURCE_URL.toUri())) },
-            shapes = ListItemDefaults.segmentedShapes(index = 0, count = 2),
+            shapes = groupedListItemShapes(0, 2),
             colors = groupedListItemColors(),
             leadingContent = { Icon(painterResource(YouTubelyIcons.Info), contentDescription = null) },
             supportingContent = { Text(stringResource(R.string.settings_version, versionName)) },
@@ -403,7 +404,7 @@ private fun AboutPage(versionName: String) {
         SegmentedListItem(
             onClick = {},
             enabled = false,
-            shapes = ListItemDefaults.segmentedShapes(index = 1, count = 2),
+            shapes = groupedListItemShapes(1, 2),
             colors = groupedListItemColors(),
             leadingContent = { Icon(painterResource(YouTubelyIcons.Language), contentDescription = null) },
             supportingContent = { Text(stringResource(R.string.settings_license_summary)) },

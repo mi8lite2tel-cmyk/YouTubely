@@ -59,6 +59,8 @@ internal class PlayerSheetActions(
     /** `null` turns subtitles off, otherwise the language to show. */
     val onSubtitles: (String?) -> Unit,
     val onEqualizer: (() -> Unit)?,
+    /** Sets the playback speed (and remembers it for the channel). */
+    val onSpeed: (Float) -> Unit,
 )
 
 @Composable
@@ -66,7 +68,7 @@ internal fun SleepTimerSection(
     timer: SleepTimer,
     actions: PlayerSheetActions,
 ) {
-    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val status =
             when (timer) {
                 SleepTimer.Off -> {
@@ -112,7 +114,7 @@ internal fun SleepTimerSection(
     }
 }
 
-private fun SleepTimer.In.minutesLeft(): Int =
+internal fun SleepTimer.In.minutesLeft(): Int =
     ((endsAtElapsedMs - SystemClock.elapsedRealtime()).coerceAtLeast(0) / MILLIS_PER_MINUTE).toInt() + 1
 
 /** A–B repeat: mark a start and an end, and the stretch in between repeats. */
@@ -123,7 +125,7 @@ internal fun LoopSection(
 ) {
     val start = loop.startMs
     val end = loop.endMs
-    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text =
                 when {
@@ -159,52 +161,6 @@ internal fun LoopSection(
     }
 }
 
-@Composable
-internal fun ToggleRow(
-    title: Int,
-    icon: Int,
-    checked: Boolean,
-    onChange: (Boolean) -> Unit,
-    summary: Int? = null,
-) {
-    ListItem(
-        checked = checked,
-        onCheckedChange = onChange,
-        leadingContent = { Icon(painterResource(icon), contentDescription = null) },
-        trailingContent = { Switch(checked = checked, onCheckedChange = null) },
-        supportingContent = summary?.let { { Text(stringResource(it)) } },
-        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) { Text(stringResource(title)) }
-}
-
-/** Subtitle languages of the video: off, or one of them. */
-@Composable
-internal fun SubtitleSection(
-    options: List<SubtitleOption>,
-    enabled: Boolean,
-    actions: PlayerSheetActions,
-) {
-    val selected = options.firstOrNull { it.selected }?.language.takeIf { enabled }
-    SubtitleRow(stringResource(R.string.watch_subtitles_off), selected == null) { actions.onSubtitles(null) }
-    options.forEach { option ->
-        SubtitleRow(option.label, selected == option.language) { actions.onSubtitles(option.language) }
-    }
-}
-
-@Composable
-private fun SubtitleRow(
-    title: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    ListItem(
-        selected = selected,
-        onClick = onClick,
-        leadingContent = { RadioButton(selected = selected, onClick = null) },
-        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) { Text(title, style = MaterialTheme.typography.run { if (selected) bodyLargeEmphasized else bodyLarge }) }
-}
-
 /** The sheet's actions wired to the player; [context] is used to find the system equalizer. */
 internal fun PlaybackManager.sheetActions(context: Context): PlayerSheetActions =
     PlayerSheetActions(
@@ -224,6 +180,7 @@ internal fun PlaybackManager.sheetActions(context: Context): PlayerSheetActions 
             }
         },
         onEqualizer = equalizerLauncher(context, audioSessionId),
+        onSpeed = ::setSpeed,
     )
 
 /** Opens the system equalizer for this player, or `null` when the device has none. */

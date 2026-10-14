@@ -69,4 +69,20 @@
     <string name="watch_error_network">Немає з’єднання. Перевірте мережу й повторіть.</string>
     <string name="watch_error_other">Не вдалося відтворити. Спробуйте ще раз.</string>
     <string name="watch_error_retry">Повторити</string>
+    <string name="watch_back">Назад</string>
+    <string name="watch_quality_now">Зараз %dp</string>
+    <string name="watch_quality_auto_value">Авто</string>
+    <string name="watch_reason_unlimited">Підлаштовується під швидкість мережі</string>
+    <string name="watch_reason_metered">Не вище %dp на мобільному інтернеті</string>
+    <string name="watch_reason_unmetered">Не вище %dp через Wi-Fi</string>
+    <string name="watch_reason_saver">Економія трафіку: не вище %dp</string>
+    <string name="watch_reason_power">Енергозбереження: не вище %dp</string>
+    <string name="watch_reason_monthly">Ліміт трафіку вичерпано: не вище %dp</string>
+    <string name="watch_reason_audio">Лише звук: відео не завантажується</string>
+    <string name="watch_reason_pinned">Вибрано вручну</string>
+    <string name="watch_speed_slower">Повільніше</string>
+    <string name="watch_speed_faster">Швидше</string>
+    <string name="watch_speed_normal">Звичайна</string>
+    <string name="watch_speed_hint">Утримуйте плеєр, щоб ненадовго ввімкнути 2×</string>
+    <string name="watch_loop_off">Вимкнено</string>
 </resources>

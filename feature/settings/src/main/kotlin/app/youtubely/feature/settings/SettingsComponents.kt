@@ -35,6 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.ui.groupedListItemColors
+import app.youtubely.core.ui.groupedListItemShapes
 
 /** Title above a group of rows. */
 @Composable
@@ -77,7 +78,7 @@ internal fun SwitchItem(
         checked = checked,
         onCheckedChange = onChange,
         enabled = enabled,
-        shapes = ListItemDefaults.segmentedShapes(index = position.index, count = position.count),
+        shapes = groupedListItemShapes(position.index, position.count),
         colors = groupedListItemColors(),
         leadingContent = { Icon(painterResource(icon), contentDescription = null) },
         trailingContent = { Switch(checked = checked, onCheckedChange = null, enabled = enabled) },
@@ -100,7 +101,7 @@ internal fun <T> ChoiceRow(
     Box {
         SegmentedListItem(
             onClick = { expanded = true },
-            shapes = ListItemDefaults.segmentedShapes(index = position.index, count = position.count),
+            shapes = groupedListItemShapes(position.index, position.count),
             colors = groupedListItemColors(),
             leadingContent = { Icon(painterResource(icon), contentDescription = null) },
             trailingContent = { Icon(painterResource(YouTubelyIcons.ExpandMore), contentDescription = null) },
@@ -140,7 +141,7 @@ internal fun CategoryRow(
 ) {
     SegmentedListItem(
         onClick = onClick,
-        shapes = ListItemDefaults.segmentedShapes(index = position.index, count = position.count),
+        shapes = groupedListItemShapes(position.index, position.count),
         colors = groupedListItemColors(),
         leadingContent = {
             Surface(

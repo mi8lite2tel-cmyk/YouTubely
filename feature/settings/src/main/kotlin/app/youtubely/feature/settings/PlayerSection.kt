@@ -32,6 +32,7 @@ import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.model.PlaybackSettings
 import app.youtubely.core.model.SponsorBlockSettings
 import app.youtubely.core.ui.groupedListItemColors
+import app.youtubely.core.ui.groupedListItemShapes
 
 private const val SUBTITLE_ROWS = 3
 private const val SPONSOR_ROWS = 3
@@ -48,7 +49,7 @@ internal fun SubtitleSettings(
         SegmentedListItem(
             checked = settings.subtitlesEnabled,
             onCheckedChange = { enabled -> onChange { setSubtitlesEnabled(enabled) } },
-            shapes = ListItemDefaults.segmentedShapes(index = 0, count = SUBTITLE_ROWS),
+            shapes = groupedListItemShapes(0, SUBTITLE_ROWS),
             colors = groupedListItemColors(),
             leadingContent = { Icon(painterResource(YouTubelyIcons.Language), contentDescription = null) },
             trailingContent = { Switch(checked = settings.subtitlesEnabled, onCheckedChange = null) },
@@ -64,7 +65,7 @@ internal fun SubtitleSettings(
         SegmentedListItem(
             checked = settings.subtitleBackground,
             onCheckedChange = { enabled -> onChange { setSubtitleBackground(enabled) } },
-            shapes = ListItemDefaults.segmentedShapes(index = 2, count = SUBTITLE_ROWS),
+            shapes = groupedListItemShapes(2, SUBTITLE_ROWS),
             colors = groupedListItemColors(),
             leadingContent = { Icon(painterResource(YouTubelyIcons.Contrast), contentDescription = null) },
             trailingContent = { Switch(checked = settings.subtitleBackground, onCheckedChange = null) },
@@ -85,7 +86,7 @@ internal fun SponsorBlockSettingsSection(
         SegmentedListItem(
             checked = settings.enabled,
             onCheckedChange = { enabled -> onChange { setEnabled(enabled) } },
-            shapes = ListItemDefaults.segmentedShapes(index = 0, count = SPONSOR_ROWS),
+            shapes = groupedListItemShapes(0, SPONSOR_ROWS),
             colors = groupedListItemColors(),
             leadingContent = { Icon(painterResource(YouTubelyIcons.FastForward), contentDescription = null) },
             trailingContent = { Switch(checked = settings.enabled, onCheckedChange = null) },
@@ -94,7 +95,7 @@ internal fun SponsorBlockSettingsSection(
         SegmentedListItem(
             onClick = { picking = true },
             enabled = settings.enabled,
-            shapes = ListItemDefaults.segmentedShapes(index = 1, count = SPONSOR_ROWS),
+            shapes = groupedListItemShapes(1, SPONSOR_ROWS),
             colors = groupedListItemColors(),
             leadingContent = { Icon(painterResource(YouTubelyIcons.Tune), contentDescription = null) },
             supportingContent = {
@@ -104,7 +105,7 @@ internal fun SponsorBlockSettingsSection(
         SegmentedListItem(
             onClick = { editingServer = true },
             enabled = settings.enabled,
-            shapes = ListItemDefaults.segmentedShapes(index = 2, count = SPONSOR_ROWS),
+            shapes = groupedListItemShapes(2, SPONSOR_ROWS),
             colors = groupedListItemColors(),
             leadingContent = { Icon(painterResource(YouTubelyIcons.Language), contentDescription = null) },
             supportingContent = { Text(settings.serverUrl) },

@@ -69,4 +69,20 @@
     <string name="watch_error_network">Нет соединения. Проверьте сеть и повторите.</string>
     <string name="watch_error_other">Не удалось воспроизвести. Повторите попытку.</string>
     <string name="watch_error_retry">Повторить</string>
+    <string name="watch_back">Назад</string>
+    <string name="watch_quality_now">Сейчас %dp</string>
+    <string name="watch_quality_auto_value">Авто</string>
+    <string name="watch_reason_unlimited">Подстраивается под скорость сети</string>
+    <string name="watch_reason_metered">Не выше %dp на мобильном интернете</string>
+    <string name="watch_reason_unmetered">Не выше %dp по Wi-Fi</string>
+    <string name="watch_reason_saver">Экономия трафика: не выше %dp</string>
+    <string name="watch_reason_power">Энергосбережение: не выше %dp</string>
+    <string name="watch_reason_monthly">Лимит трафика исчерпан: не выше %dp</string>
+    <string name="watch_reason_audio">Только звук: видео не загружается</string>
+    <string name="watch_reason_pinned">Выбрано вручную</string>
+    <string name="watch_speed_slower">Медленнее</string>
+    <string name="watch_speed_faster">Быстрее</string>
+    <string name="watch_speed_normal">Обычная</string>
+    <string name="watch_speed_hint">Удерживайте плеер, чтобы ненадолго включить 2×</string>
+    <string name="watch_loop_off">Выключен</string>
 </resources>

@@ -69,4 +69,20 @@
     <string name="watch_error_network">No connection. Check the network and try again.</string>
     <string name="watch_error_other">Playback failed. Try again.</string>
     <string name="watch_error_retry">Try again</string>
+    <string name="watch_back">Back</string>
+    <string name="watch_quality_now">Now %dp</string>
+    <string name="watch_quality_auto_value">Auto</string>
+    <string name="watch_reason_unlimited">Follows the connection speed</string>
+    <string name="watch_reason_metered">Up to %dp on mobile data</string>
+    <string name="watch_reason_unmetered">Up to %dp on Wi-Fi</string>
+    <string name="watch_reason_saver">Data saver: up to %dp</string>
+    <string name="watch_reason_power">Battery Saver: up to %dp</string>
+    <string name="watch_reason_monthly">Monthly data limit used up: up to %dp</string>
+    <string name="watch_reason_audio">Sound only: the picture is not loaded</string>
+    <string name="watch_reason_pinned">Chosen by you</string>
+    <string name="watch_speed_slower">Slower</string>
+    <string name="watch_speed_faster">Faster</string>
+    <string name="watch_speed_normal">Normal</string>
+    <string name="watch_speed_hint">Hold the player to play at 2× for a moment</string>
+    <string name="watch_loop_off">Off</string>
 </resources>

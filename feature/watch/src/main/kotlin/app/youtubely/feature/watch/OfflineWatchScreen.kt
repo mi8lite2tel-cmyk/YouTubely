@@ -198,11 +198,7 @@ fun OfflineWatchScreen(
     if (showSettings) {
         PlayerSettingsSheet(
             player = player,
-            pinnedHeight = null,
-            networkLimit = null,
-            settings = settings,
-            sleepTimer = sleepTimer,
-            abLoop = abLoop,
+            state = PlayerSheetState(null, null, settings, sleepTimer, abLoop),
             actions = remember(viewModel) { viewModel.playbackManager.sheetActions(context) },
             onQuality = viewModel::setQuality,
             onDismiss = { showSettings = false },

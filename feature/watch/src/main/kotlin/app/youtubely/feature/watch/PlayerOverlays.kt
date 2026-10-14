@@ -295,5 +295,3 @@ private fun handleKey(
 }
 
 private const val SPEED_KEY_STEP = 0.25f
-private const val MIN_SPEED = 0.25f
-private const val MAX_SPEED = 4f

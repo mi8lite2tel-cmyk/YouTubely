@@ -100,4 +100,6 @@ object YouTubelyIcons {
     val Subtitles = R.drawable.ic_subtitles
     val Remove = R.drawable.ic_remove
     val Savings = R.drawable.ic_savings
+    val Repeat = R.drawable.ic_repeat
+    val RepeatOne = R.drawable.ic_repeat_one
 }

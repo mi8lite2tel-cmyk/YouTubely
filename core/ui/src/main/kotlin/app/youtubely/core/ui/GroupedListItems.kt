@@ -7,6 +7,7 @@ package app.youtubely.core.ui
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.ListItemShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 
@@ -29,3 +30,16 @@ fun groupedListItemColors(): ListItemColors {
         selectedOverlineContentColor = colors.onSurfaceVariant,
     )
 }
+
+/**
+ * Shapes for row [index] of a segmented group of [count]. A row keeps its shape when it is
+ * selected (a switch that is on), so the group stays one block; pressing still morphs it.
+ */
+@Composable
+fun groupedListItemShapes(
+    index: Int,
+    count: Int,
+): ListItemShapes =
+    ListItemDefaults.segmentedShapes(index = index, count = count).let {
+        it.copy(selectedShape = it.shape)
+    }
