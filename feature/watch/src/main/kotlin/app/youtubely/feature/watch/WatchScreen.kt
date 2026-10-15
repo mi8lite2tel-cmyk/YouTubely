@@ -144,16 +144,13 @@ fun WatchScreen(
 
     // The screen stays on only while a picture actually plays.
     KeepScreenOn(isPlaying && !inPip && !settings.audioOnly)
-    LifecycleStartEffect(viewModel) {
-        viewModel.onVisible()
-        viewModel.setVideoSuspended(false)
-        onStopOrDispose {
-            // Sound goes on in the background; the picture would only waste data.
-            if (isInBackground(activity)) viewModel.setVideoSuspended(true)
-            // Without background playback, leaving the app pauses (PiP keeps the activity started).
-            if (shouldPauseForBackground(activity, settings.backgroundPlayback)) player.pause()
-        }
-    }
+    PlaybackLifecycleEffect(
+        key = viewModel,
+        player = player,
+        backgroundPlayback = settings.backgroundPlayback,
+        onVisible = viewModel::onVisible,
+        onVideoSuspended = viewModel::setVideoSuspended,
+    )
     DisposableEffect(viewModel) { onDispose { viewModel.onHidden() } }
     ImmersiveWhen(landscape && !inPip)
 

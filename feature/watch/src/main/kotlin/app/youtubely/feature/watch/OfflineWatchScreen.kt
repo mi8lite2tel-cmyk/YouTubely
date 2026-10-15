@@ -136,7 +136,6 @@ fun OfflineWatchScreen(
     val sleepTimer by viewModel.playbackManager.sleepTimer.collectAsStateWithLifecycle()
     val abLoop by viewModel.playbackManager.abLoop.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val activity = LocalActivity.current
     val player = viewModel.player
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val inPip = rememberIsInPictureInPicture()
@@ -148,14 +147,13 @@ fun OfflineWatchScreen(
     KeepScreenOn(isPlaying && !inPip && !audioFile && !settings.audioOnly)
 
     // The record arrives asynchronously from storage; start once it is there.
-    LifecycleStartEffect(item?.id) {
-        viewModel.onVisible()
-        viewModel.playbackManager.setVideoSuspended(false)
-        onStopOrDispose {
-            if (isInBackground(activity)) viewModel.playbackManager.setVideoSuspended(true)
-            if (shouldPauseForBackground(activity, settings.backgroundPlayback)) player.pause()
-        }
-    }
+    PlaybackLifecycleEffect(
+        key = item?.id,
+        player = player,
+        backgroundPlayback = settings.backgroundPlayback,
+        onVisible = viewModel::onVisible,
+        onVideoSuspended = viewModel.playbackManager::setVideoSuspended,
+    )
     DisposableEffect(viewModel) { onDispose { viewModel.onHidden() } }
 
     if (item == null) {

@@ -42,10 +42,13 @@ internal class BatchDownloadWorker
                     StreamSelection.best(downloads.formats(info), height)?.let { downloads.start(info, it) }
                 } catch (e: CancellationException) {
                     throw e
-                } catch (e: ProviderError) {
-                    // A removed or private video must not stop the rest of the playlist; a throttled
-                    // one is tried again (videos already queued are recognised and left alone).
-                    again = again || e is ProviderError.Network || e is ProviderError.RateLimited
+                } catch (_: ProviderError.Network) {
+                    // Tried again later; videos already queued are recognised and left alone.
+                    again = true
+                } catch (_: ProviderError.RateLimited) {
+                    again = true
+                } catch (_: ProviderError) {
+                    // A removed or private video must not stop the rest of the playlist.
                 } catch (
                     @Suppress("TooGenericExceptionCaught") _: Exception,
                 ) {

@@ -100,9 +100,9 @@ sealed interface YouTubeLink {
 
         /** The first link found in free text such as a shared message. */
         fun find(text: String): YouTubeLink? =
-            text.split(Regex("\\s+")).firstNotNullOfOrNull { parse(it.trim(*WRAPPING_CHARS)) }
+            text.split(Regex("\\s+")).firstNotNullOfOrNull { parse(it.trim { char -> char in WRAPPING_CHARS }) }
 
         /** Brackets, quotes and punctuation that a message puts around a link. */
-        private val WRAPPING_CHARS = charArrayOf('(', ')', '[', ']', '<', '>', '"', '\'', '.', ',', ';', ':', '!', '?')
+        private val WRAPPING_CHARS = setOf('(', ')', '[', ']', '<', '>', '"', '\'', '.', ',', ';', ':', '!', '?')
     }
 }
