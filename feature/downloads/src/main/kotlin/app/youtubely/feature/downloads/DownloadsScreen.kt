@@ -71,6 +71,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -631,9 +632,21 @@ private fun ConfirmDeleteDialog(
         title = {
             Text(
                 when (request) {
-                    is Confirmation.Selected -> stringResource(R.string.downloads_confirm_selected, request.count)
-                    Confirmation.Everything -> stringResource(R.string.downloads_confirm_all)
-                    Confirmation.Failed -> stringResource(R.string.downloads_confirm_failed)
+                    is Confirmation.Selected -> {
+                        pluralStringResource(
+                            R.plurals.downloads_confirm_selected,
+                            request.count,
+                            request.count,
+                        )
+                    }
+
+                    Confirmation.Everything -> {
+                        stringResource(R.string.downloads_confirm_all)
+                    }
+
+                    Confirmation.Failed -> {
+                        stringResource(R.string.downloads_confirm_failed)
+                    }
                 },
             )
         },

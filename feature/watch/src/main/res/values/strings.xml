@@ -6,7 +6,6 @@
     <string name="watch_seek_forward">Forward 10 seconds</string>
     <string name="watch_quality">Quality</string>
     <string name="watch_quality_auto">Auto</string>
-    <string name="watch_quality_auto_hint">Adapts to your connection</string>
     <string name="watch_fullscreen">Fullscreen</string>
     <string name="watch_exit_fullscreen">Exit fullscreen</string>
     <string name="watch_share">Share</string>
@@ -17,7 +16,6 @@
     <string name="watch_speed">Speed</string>
     <string name="watch_repeat">Repeat video</string>
     <string name="watch_bitrate">%s Mbit/s</string>
-    <string name="watch_quality_auto_limited">Adapts to your connection, up to %dp on this network</string>
     <string name="watch_download">Download</string>
     <string name="watch_downloaded">Downloaded</string>
     <string name="watch_download_progress">%d%%</string>
@@ -46,10 +44,8 @@
     <string name="watch_sleep_minutes">%d min</string>
     <string name="watch_sleep_end_chip">End of video</string>
     <string name="watch_sleep_cancel">Turn off</string>
-    <string name="watch_audio">Sound and playback</string>
     <string name="watch_skip_silence">Skip silence</string>
     <string name="watch_normalize">Even out volume</string>
-    <string name="watch_normalize_summary">Loud videos are turned down to the common level</string>
     <string name="watch_autoplay">Play the next video</string>
     <string name="watch_equalizer">Equalizer</string>
     <string name="watch_subtitles">Subtitles</string>

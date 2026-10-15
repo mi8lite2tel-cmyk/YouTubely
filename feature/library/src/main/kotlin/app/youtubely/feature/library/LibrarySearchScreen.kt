@@ -33,6 +33,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -199,7 +200,15 @@ fun LibrarySearchScreen(
                 ListItem(
                     onClick = { onOpenPlaylist(playlist.id) },
                     leadingContent = { Icon(painterResource(YouTubelyIcons.PlaylistPlay), contentDescription = null) },
-                    supportingContent = { Text(stringResource(R.string.library_playlist_count, playlist.itemCount)) },
+                    supportingContent = {
+                        Text(
+                            pluralStringResource(
+                                R.plurals.library_playlist_count,
+                                playlist.itemCount,
+                                playlist.itemCount,
+                            ),
+                        )
+                    },
                     modifier = motionItem(),
                 ) { Text(playlist.name) }
             }

@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
  * theme's motion scheme. Plain `animateItem()` uses fixed springs and ignores the animation
  * speed the user chose.
  */
+@Suppress("ModifierFactoryExtensionFunction") // An extension of the lazy scope, which is what animateItem needs.
 @Composable
 fun LazyItemScope.motionItem(): Modifier {
     val motion = MaterialTheme.motionScheme
@@ -27,6 +28,7 @@ fun LazyItemScope.motionItem(): Modifier {
 }
 
 /** The same for an item of a lazy grid. */
+@Suppress("ModifierFactoryExtensionFunction")
 @Composable
 fun LazyGridItemScope.motionItem(): Modifier {
     val motion = MaterialTheme.motionScheme

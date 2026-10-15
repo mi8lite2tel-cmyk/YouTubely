@@ -4,6 +4,7 @@
 
 package app.youtubely.feature.watch
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
@@ -106,6 +107,8 @@ private const val ARTWORK_WIDTH = 720
 private val TwoPaneMinWidth = 840.dp
 
 @androidx.annotation.OptIn(UnstableApi::class)
+// Fullscreen is a deliberate switch between portrait and landscape; it is released when the screen closes.
+@SuppressLint("SourceLockedOrientationActivity")
 @Composable
 fun WatchScreen(
     videoId: VideoId,

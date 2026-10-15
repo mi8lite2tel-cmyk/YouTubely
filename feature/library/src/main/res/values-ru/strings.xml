@@ -69,11 +69,26 @@
     <string name="stats_note">Считается по истории на этом телефоне. Время примерное, ничего никуда не отправляется.</string>
     <string name="stats_week">За неделю</string>
     <string name="stats_month">За 30 дней</string>
-    <string name="stats_videos">%d видео</string>
-    <string name="stats_total">Всего в истории: %d видео</string>
+    <plurals name="stats_videos">
+        <item quantity="one">%d видео</item>
+        <item quantity="few">%d видео</item>
+        <item quantity="many">%d видео</item>
+        <item quantity="other">%d видео</item>
+    </plurals>
+    <plurals name="stats_total">
+        <item quantity="one">Всего в истории: %d видео</item>
+        <item quantity="few">Всего в истории: %d видео</item>
+        <item quantity="many">Всего в истории: %d видео</item>
+        <item quantity="other">Всего в истории: %d видео</item>
+    </plurals>
     <string name="stats_days">Видео по дням</string>
     <string name="stats_top">Любимые каналы за 90 дней</string>
-    <string name="stats_channel_value">%1$s · %2$d видео</string>
+    <plurals name="stats_channel_value">
+        <item quantity="one">%1$s · %2$d видео</item>
+        <item quantity="few">%1$s · %2$d видео</item>
+        <item quantity="many">%1$s · %2$d видео</item>
+        <item quantity="other">%1$s · %2$d видео</item>
+    </plurals>
     <string name="stats_hour">Чаще всего вы смотрите около %02d:00</string>
     <string name="stats_traffic">Трафик в этом месяце: %1$s, из них мобильный %2$s</string>
     <string name="stats_empty">Посмотрите несколько видео, и здесь появится статистика.</string>
@@ -89,5 +104,10 @@
     <string name="library_search_history">История</string>
     <string name="library_search_later">Смотреть позже</string>
     <string name="library_search_clear">Очистить</string>
-    <string name="library_playlist_count">%d видео</string>
+    <plurals name="library_playlist_count">
+        <item quantity="one">%d видео</item>
+        <item quantity="few">%d видео</item>
+        <item quantity="many">%d видео</item>
+        <item quantity="other">%d видео</item>
+    </plurals>
 </resources>

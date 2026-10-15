@@ -164,7 +164,11 @@ internal class DownloadWorker
             val onDisk = dir.listFiles { file -> file.name.endsWith(".part") }.orEmpty().sumOf(File::length)
             // Merging writes a second copy next to the parts, hence the factor.
             val missing = (needed * MERGE_FACTOR - onDisk).coerceAtLeast(0)
-            if (needed > 0 && dir.usableSpace < missing + SPACE_MARGIN_BYTES) throw StorageFullException()
+            if (needed > 0 &&
+                applicationContext.freeSpaceFor(dir) < missing + SPACE_MARGIN_BYTES
+            ) {
+                throw StorageFullException()
+            }
         }
 
         /** Copies the samples into one MP4 first (instant, lossless); Media3 Transformer is the fallback. */

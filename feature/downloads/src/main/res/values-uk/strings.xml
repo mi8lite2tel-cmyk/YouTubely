@@ -32,7 +32,12 @@
     <string name="downloads_retry">Повторити</string>
     <string name="downloads_clear_failed">Видалити невдалі</string>
     <string name="downloads_delete_all">Видалити всі завантаження</string>
-    <string name="downloads_confirm_selected">Видалити завантаження (%d)?</string>
+    <plurals name="downloads_confirm_selected">
+        <item quantity="one">Видалити завантаження (%d)?</item>
+        <item quantity="few">Видалити завантаження (%d)?</item>
+        <item quantity="many">Видалити завантаження (%d)?</item>
+        <item quantity="other">Видалити завантаження (%d)?</item>
+    </plurals>
     <string name="downloads_confirm_all">Видалити всі завантаження?</string>
     <string name="downloads_confirm_failed">Видалити невдалі завантаження?</string>
     <string name="downloads_confirm_body">Файли буде видалено з телефона без можливості відновлення.</string>
@@ -41,5 +46,4 @@
     <string name="downloads_state_waiting_wifi">Чекає Wi-Fi…</string>
     <string name="downloads_error_no_space">Не вистачає місця на телефоні. Звільніть місце й повторіть.</string>
     <string name="downloads_error_empty">Вийшов порожній файл. Повторіть спробу.</string>
-    <string name="downloads_cleared">Видалено: %d</string>
 </resources>

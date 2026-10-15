@@ -103,14 +103,13 @@
     <string name="settings_cat_subscriptions">Оновлення, сповіщення, автозавантаження, перенесення</string>
     <string name="settings_cat_privacy">Історія переглядів</string>
     <string name="settings_cat_about">Версія, вихідний код, ліцензія</string>
-    <string name="settings_quality_auto">Автоматична якість</string>
     <string name="settings_quality_auto_note">Плеєр сам обирає найчіткішу якість, яку тягне з’єднання, у межах цих обмежень.</string>
     <string name="settings_data_saver">Економія трафіку</string>
     <string name="settings_data_saver_off">Вимкнена</string>
     <string name="settings_data_saver_auto">Автоматично</string>
     <string name="settings_data_saver_always">Завжди</string>
     <string name="settings_data_saver_off_summary">Якість обмежена лише налаштуваннями нижче</string>
-    <string name="settings_data_saver_auto_summary">На мобільному інтернеті, якщо ввімкнено економію трафіку Android або витрачено 80% ліміту</string>
+    <string name="settings_data_saver_auto_summary" formatted="false">На мобільному інтернеті, якщо ввімкнено економію трафіку Android або витрачено 80% ліміту</string>
     <string name="settings_data_saver_always_summary">Нижча якість, 30 кадрів/с, економні кодеки й короткий буфер усюди</string>
     <string name="settings_saver_quality">Якість під час економії</string>
     <string name="settings_max_fps">Частота кадрів</string>

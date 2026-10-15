@@ -103,14 +103,13 @@
     <string name="settings_cat_subscriptions">Обновление, уведомления, автозагрузка, перенос</string>
     <string name="settings_cat_privacy">История просмотра</string>
     <string name="settings_cat_about">Версия, исходный код, лицензия</string>
-    <string name="settings_quality_auto">Автоматическое качество</string>
     <string name="settings_quality_auto_note">Плеер сам выбирает самое чёткое качество, которое тянет соединение, в пределах этих ограничений.</string>
     <string name="settings_data_saver">Экономия трафика</string>
     <string name="settings_data_saver_off">Выключена</string>
     <string name="settings_data_saver_auto">Автоматически</string>
     <string name="settings_data_saver_always">Всегда</string>
     <string name="settings_data_saver_off_summary">Качество ограничено только настройками ниже</string>
-    <string name="settings_data_saver_auto_summary">На мобильном интернете, если включена экономия трафика Android или израсходовано 80% лимита</string>
+    <string name="settings_data_saver_auto_summary" formatted="false">На мобильном интернете, если включена экономия трафика Android или израсходовано 80% лимита</string>
     <string name="settings_data_saver_always_summary">Ниже качество, 30 кадров/с, экономные кодеки и короткий буфер везде</string>
     <string name="settings_saver_quality">Качество при экономии</string>
     <string name="settings_max_fps">Частота кадров</string>

@@ -12,10 +12,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.youtubely.core.designsystem.component.ExpressiveFilterChip
@@ -32,10 +34,10 @@ fun DownloadAllDialog(
     onDismiss: () -> Unit,
     onConfirm: (maxHeight: Int?) -> Unit,
 ) {
-    var height by rememberSaveable { mutableStateOf(DEFAULT_HEIGHT) }
+    var height by rememberSaveable { mutableIntStateOf(DEFAULT_HEIGHT) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.download_all_title, count)) },
+        title = { Text(pluralStringResource(R.plurals.download_all_title, count, count)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.download_all_body))

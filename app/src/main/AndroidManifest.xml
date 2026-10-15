@@ -16,6 +16,7 @@
         <!-- configChanges: rotation, fullscreen and PiP resizes keep the activity (and the player UI). -->
         <activity
             android:name=".MainActivity"
+            tools:ignore="PictureInPictureIssue"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden"
             android:exported="true"
             android:launchMode="singleTask"
@@ -27,8 +28,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- YouTube links: the app is offered in "Open with" and can be set as the default. -->
-            <intent-filter>
+            <!-- YouTube links: the app is offered in "Open with" and can be set as the default.
+                 autoVerify cannot work, the domains are not ours. -->
+            <intent-filter tools:ignore="AppLinkWarning">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
