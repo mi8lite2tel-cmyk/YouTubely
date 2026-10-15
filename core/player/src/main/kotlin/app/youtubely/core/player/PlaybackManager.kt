@@ -138,28 +138,56 @@ class PlaybackManager
                 }.launchIn(scope)
         }
 
-        /** When the last automatic reload of expired media URLs happened, to never loop on them. */
-        private var lastReloadAt = 0L
+        /** Consecutive failed tries since playback last worked; see [PlaybackRecovery]. */
+        private var recoveryAttempt = 0
+        private var recoveryJob: Job? = null
 
-        /** Works whether or not a video screen is open: the mini player and background playback rely on it. */
+        /**
+         * Keeps playback going through a bad connection: a dropped network, a server hiccup or
+         * expired links. Works whether or not a video screen is open, because the mini player and
+         * background playback with the screen off rely on it.
+         */
         private val recoveryListener =
             object : Player.Listener {
                 override fun onPlayerError(error: PlaybackException) {
-                    val expired = error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
-                    val now = SystemClock.elapsedRealtime()
-                    // Media URLs are signed for a few hours; after a long pause they need fetching again.
-                    if (expired && currentInfo != null && now - lastReloadAt > RELOAD_GUARD_MS) {
-                        lastReloadAt = now
-                        reload()
-                    }
+                    if (!PlaybackRecovery.isRecoverable(error.errorCode) || _currentVideo.value == null) return
+                    if (recoveryAttempt >= PlaybackRecovery.MAX_ATTEMPTS) return
+                    val attempt = recoveryAttempt++
+                    recoveryJob?.cancel()
+                    recoveryJob =
+                        scope.launch {
+                            delay(if (attempt == 0) 0 else PlaybackRecovery.retryDelayMs(attempt - 1))
+                            if (_currentVideo.value == null) return@launch
+                            if (PlaybackRecovery.needsFreshLinks(
+                                    error.errorCode,
+                                    attempt,
+                                )
+                            ) {
+                                reload()
+                            } else {
+                                player.prepare()
+                            }
+                        }
                 }
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState == Player.STATE_READY) recoveryAttempt = 0
                     if (playbackState != Player.STATE_ENDED) return
                     // Runs after the video screen had its say; without a screen nobody consumed
                     // "sleep at the end", and it must not stop some later video instead.
                     scope.launch(Dispatchers.Main) {
                         if (_sleepTimer.value == SleepTimer.AtEndOfVideo) _sleepTimer.value = SleepTimer.Off
+                    }
+                }
+
+                override fun onPlayWhenReadyChanged(
+                    playWhenReady: Boolean,
+                    reason: Int,
+                ) {
+                    // Pressing play after the player gave up (attempts used up) tries again from scratch.
+                    if (playWhenReady && player.playerError != null) {
+                        recoveryAttempt = 0
+                        reload()
                     }
                 }
             }
@@ -176,6 +204,7 @@ class PlaybackManager
                 return
             }
             val position = player.currentPosition
+            recoveryJob?.cancel()
             scope.launch {
                 val fresh = runCatching { provider.streamInfo(info.item.id) }.getOrNull()
                 if (fresh != null && currentInfo?.item?.id == info.item.id) play(fresh, position) else player.prepare()
@@ -219,6 +248,7 @@ class PlaybackManager
             positionMs: Long = 0,
         ): Boolean {
             val source = factory.mediaSource(info) ?: return false
+            if (currentInfo?.item?.id != info.item.id) recoveryAttempt = 0
             savePosition()
             pinnedHeight = null
             clearLoop()
@@ -341,6 +371,8 @@ class PlaybackManager
 
         @MainThread
         fun stop() {
+            recoveryJob?.cancel()
+            recoveryAttempt = 0
             savePosition()
             clearLoop()
             currentItem = null
@@ -476,7 +508,6 @@ class PlaybackManager
             const val SAVE_INTERVAL_MS = 10_000L
             const val BANDWIDTH_SAVE_INTERVAL_MS = 30_000L
             const val SPEED_SAVE_DELAY_MS = 600L
-            const val RELOAD_GUARD_MS = 60_000L
             const val SAVER_BUFFER_MS = 20_000L
             const val MILLIS_PER_MINUTE = 60_000L
             const val FADE_MS = 8_000L

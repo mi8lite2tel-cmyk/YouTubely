@@ -337,7 +337,27 @@ private fun PlaybackPage(
         }
     }
     Spacer(Modifier.height(16.dp))
+    BackgroundPlaybackRow()
+    Spacer(Modifier.height(16.dp))
     SeekStepSelector(playback.seekStepSeconds) { viewModel.playback { setSeekStepSeconds(it) } }
+}
+
+/** Opens the system screen where battery limits for this app are lifted; the usual cause of sound stopping. */
+@Composable
+private fun BackgroundPlaybackRow() {
+    val context = LocalContext.current
+    SegmentedListItem(
+        onClick = {
+            val open = Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+            val fallback = Intent(android.provider.Settings.ACTION_SETTINGS)
+            runCatching { context.startActivity(open) }.onFailure { runCatching { context.startActivity(fallback) } }
+        },
+        shapes = groupedListItemShapes(0, 1),
+        colors = groupedListItemColors(),
+        leadingContent = { Icon(painterResource(YouTubelyIcons.Battery), contentDescription = null) },
+        trailingContent = { Icon(painterResource(YouTubelyIcons.ChevronRight), contentDescription = null) },
+        supportingContent = { Text(stringResource(R.string.settings_battery_summary)) },
+    ) { Text(stringResource(R.string.settings_battery)) }
 }
 
 @Composable
