@@ -13,6 +13,7 @@ import app.youtubely.core.network.TrafficSink
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -32,6 +33,7 @@ import javax.inject.Singleton
  * Counts the bytes of every HTTP response the app reads and keeps daily totals per network type
  * and kind. Bytes collect in memory and are written every few seconds. Nothing leaves the device.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
 class TrafficMeter
     @Inject

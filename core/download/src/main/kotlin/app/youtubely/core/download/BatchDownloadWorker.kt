@@ -32,7 +32,7 @@ internal class BatchDownloadWorker
         private val downloads: DownloadManager,
     ) : CoroutineWorker(context, params) {
         override suspend fun doWork(): Result {
-            val ids = inputData.getStringArray(KEY_IDS).orEmpty()
+            val ids = inputData.getNullableStringArray(KEY_IDS).orEmpty().filterNotNull()
             val height = inputData.getInt(KEY_HEIGHT, AUDIO_ONLY).takeIf { it != AUDIO_ONLY }
             for (id in ids) {
                 try {

@@ -16,8 +16,9 @@ import androidx.media3.exoplayer.upstream.Allocator
 /**
  * The stock load control with a switchable ceiling on how far ahead the player buffers. A short
  * buffer wastes less traffic when the viewer closes the video or jumps ahead, so the data saver
- * turns it on; otherwise the delegate decides alone.
+ * turns it on; otherwise the delegate decides alone. The deprecated overloads are forwarded unchanged.
  */
+@Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
 @OptIn(UnstableApi::class)
 internal class SavingLoadControl(
     private val delegate: LoadControl,

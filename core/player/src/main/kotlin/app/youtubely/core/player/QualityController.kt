@@ -47,7 +47,7 @@ data class QualitySituation(
  * Turns [QualityPolicy]'s ceiling and the live situation (connection, power mode, mobile data
  * used this month, size of the player window) into ExoPlayer track-selection parameters.
  */
-@OptIn(UnstableApi::class)
+@OptIn(UnstableApi::class, FlowPreview::class)
 @Singleton
 class QualityController
     @Inject
@@ -65,7 +65,6 @@ class QualityController
             }
 
         /** The window size without the flood of values while it animates (full screen, picture-in-picture). */
-        @OptIn(FlowPreview::class)
         private fun settledViewport(): Flow<Viewport?> =
             viewport.debounce(VIEWPORT_DEBOUNCE_MS).onStart { emit(viewport.value) }
 
@@ -131,6 +130,7 @@ class QualityController
          * The viewport makes the player prefer renditions that fit the window. A margin keeps a
          * 1080-pixel-wide phone from dropping to a soft 480p when 720p would still look sharp.
          */
+        @Suppress("DEPRECATION") // The replacement needs a Context-aware builder that buildUpon() does not give.
         private fun applyViewport(
             parameters: TrackSelectionParameters.Builder,
             settings: PlaybackSettings,

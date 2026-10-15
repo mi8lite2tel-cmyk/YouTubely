@@ -216,11 +216,9 @@ class WatchViewModel
         private fun playNext() {
             val queue = _queue.value
             val related = (_state.value as? WatchUiState.Content)?.info?.related.orEmpty()
+            // A video on repeat goes on repeating; nothing else starts.
+            if (player.repeatMode != Player.REPEAT_MODE_OFF) return
             when {
-                player.repeatMode != Player.REPEAT_MODE_OFF -> {
-                    Unit
-                }
-
                 queue?.next != null -> {
                     playQueueItem(queue.index + 1)
                 }

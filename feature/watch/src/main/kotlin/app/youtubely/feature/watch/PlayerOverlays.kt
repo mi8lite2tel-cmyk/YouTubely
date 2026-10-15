@@ -265,7 +265,7 @@ private fun handleKey(
         }
 
         Key.M -> {
-            player.isDeviceMuted = !player.isDeviceMuted
+            player.setDeviceMuted(!player.isDeviceMuted, 0)
         }
 
         Key.F -> {
