@@ -131,22 +131,31 @@ internal class AutoDownloadWorker
                 if (format == null) {
                     Outcome.Skipped
                 } else {
+                    // A download the user started by hand stays theirs: it must not be cleaned up later.
+                    val manual = downloads.isActive(info.item.id, format)
                     val download = downloads.start(info, format, unmeteredOnly = true)
-                    log.record(video.item.id, video.subscription.channel.id, download.id)
+                    if (!manual) log.record(video.item.id, video.subscription.channel.id, download.id)
                     Outcome.Saved
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (_: IOException) {
                 Outcome.Retry
-            } catch (_: ProviderError.Network) {
-                Outcome.Retry
+            } catch (e: ProviderError) {
+                // Throttled or broken for now: try again later. Removed, private, paid, age-restricted
+                // or blocked videos will never work, so they are not tried again.
+                if (e.isTemporary()) Outcome.Retry else Outcome.Skipped
             } catch (
                 @Suppress("TooGenericExceptionCaught") _: Exception,
             ) {
-                // Removed, private, paid or age-restricted: nothing to save, do not try again.
                 Outcome.Skipped
             }
+
+        private fun ProviderError.isTemporary() =
+            this is ProviderError.Network ||
+                this is ProviderError.RateLimited ||
+                this is ProviderError.ExtractorOutdated ||
+                this is ProviderError.Unknown
 
         /** Removes watched downloads (when the rule says so) and those beyond the number to keep. */
         private suspend fun cleanUp(

@@ -54,7 +54,7 @@ class RangeDownloader(
             val fresh = !ledger.exists() && (!target.exists() || target.length() == 0L)
             if (fresh && total == null) {
                 // The first range tells the size (or the server sends everything at once).
-                val first = fetchChunk(url, headers, target, 0) ?: return
+                val first = withContext(Dispatchers.IO) { fetchChunk(url, headers, target, 0) } ?: return
                 total = first.total
                 onProgress(first.written, first.total)
                 if (first.written >= first.total) return
@@ -78,7 +78,7 @@ class RangeDownloader(
         var total = totalBytes
         while (total == null || done < total) {
             currentCoroutineContext().ensureActive()
-            val chunk = fetchChunk(url, headers, target, done) ?: return
+            val chunk = withContext(Dispatchers.IO) { fetchChunk(url, headers, target, done) } ?: return
             done += chunk.written
             total = total ?: chunk.total
             onProgress(done, total)

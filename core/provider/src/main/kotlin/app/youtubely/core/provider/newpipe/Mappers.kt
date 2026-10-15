@@ -75,7 +75,7 @@ internal fun NpStreamInfo.toStreamItem(): StreamItem? =
             title = name,
             channel = channelRef(uploaderUrl, uploaderName, uploaderAvatars, isUploaderVerified),
             thumbnails = thumbnails.toImages(),
-            type = streamType.toStreamType(isShort = false),
+            type = streamType.toStreamType(isShortFormContent),
             duration = duration.takeIf { it > 0 }?.let(Duration::ofSeconds),
             viewCount = viewCount.knownOrNull(),
             uploadedAt = uploadDate?.takeUnless { it.isApproximation }?.instant,

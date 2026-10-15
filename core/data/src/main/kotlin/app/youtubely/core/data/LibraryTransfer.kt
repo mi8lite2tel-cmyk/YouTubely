@@ -71,25 +71,27 @@ class LibraryTransfer
                     .first()
                     .map { it.id.value }
                     .toSet()
-            bundle.subscriptions.forEach { channel ->
-                subscriptions.subscribe(ChannelRef(ChannelId(channel.id), channel.name, emptyList(), false))
-                if (channel.id !in known) newChannels++
-                // Settings come with the channel only when it is new here.
-                if (channel.id !in known) {
-                    val id = ChannelId(channel.id)
-                    subscriptions.setGroup(id, channel.group)
-                    subscriptions.setNotify(id, channel.notify)
-                    subscriptions.setAutoDownload(id, channel.autoDownload)
-                }
+            // A followed channel stays as it is: the bundle knows neither its avatar nor its badge.
+            // Settings come with the channel only when it is new here.
+            bundle.subscriptions.filter { it.id !in known }.distinctBy { it.id }.forEach { channel ->
+                val id = ChannelId(channel.id)
+                subscriptions.subscribe(ChannelRef(id, channel.name, emptyList(), false))
+                newChannels++
+                subscriptions.setGroup(id, channel.group)
+                subscriptions.setNotify(id, channel.notify)
+                subscriptions.setAutoDownload(id, channel.autoDownload)
             }
-            val existing = playlists.playlists.first().associateBy { it.name }
+            val existing = playlists.playlists.first().associate { it.name to it.id }.toMutableMap()
             var videos = 0
             bundle.playlists.forEach { playlist ->
-                val id = existing[playlist.name]?.id ?: playlists.create(playlist.name)
+                // Two playlists of one name in the bundle end up in one list.
+                val id = existing.getOrPut(playlist.name) { playlists.create(playlist.name) }
                 playlists.add(id, playlist.videos.map { it.toItem() })
                 videos += playlist.videos.size
             }
-            bundle.watchLater.forEach { watchLater.add(it.toItem()) }
+            // Exported newest first; adding oldest first keeps that order, and what is saved stays put.
+            val saved = watchLater.videos.first().map { it.item.id.value }.toSet()
+            bundle.watchLater.asReversed().filter { it.id !in saved }.forEach { watchLater.add(it.toItem()) }
             return ImportSummary(newChannels, bundle.playlists.size, videos + bundle.watchLater.size)
         }
 

@@ -84,6 +84,9 @@ class TransferViewModel
             }
         }
 
+        /** A file could not be read or written. */
+        fun unreadable() = _state.update { it.copy(message = TransferMessage.Unreadable) }
+
         fun cancelPreview() = _state.update { it.copy(preview = null) }
 
         fun confirmImport() {

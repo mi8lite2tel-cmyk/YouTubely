@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package app.youtubely.core.download
 
+import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.Serializer
 import app.youtubely.core.model.Download
@@ -11,6 +12,7 @@ import app.youtubely.core.model.VideoId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.InputStream
@@ -110,8 +112,13 @@ internal object DownloadRecordsSerializer : Serializer<List<DownloadRecord>> {
     override val defaultValue: List<DownloadRecord> = emptyList()
 
     override suspend fun readFrom(input: InputStream): List<DownloadRecord> =
-        runCatching { json.decodeFromString<List<DownloadRecord>>(input.readBytes().decodeToString()) }
-            .getOrDefault(emptyList())
+        try {
+            json.decodeFromString<List<DownloadRecord>>(input.readBytes().decodeToString())
+        } catch (e: SerializationException) {
+            throw CorruptionException("Unreadable download records", e)
+        } catch (e: IllegalArgumentException) {
+            throw CorruptionException("Unreadable download records", e)
+        }
 
     override suspend fun writeTo(
         t: List<DownloadRecord>,
