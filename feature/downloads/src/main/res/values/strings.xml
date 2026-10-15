@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="downloads_title">Downloads</string>
-    <string name="downloads_swipe_hint">Swipe left to delete</string>
+    <string name="downloads_swipe_hint">Swipe left to delete, press and hold to select</string>
     <string name="downloads_empty_title">Nothing downloaded yet</string>
     <string name="downloads_empty_body">Tap Download under a video to watch it offline. Only download what you have the rights to.</string>
     <string name="downloads_delete">Delete</string>
@@ -26,4 +26,20 @@
     <string name="downloads_wifi_title">Waiting for Wi-Fi</string>
     <string name="downloads_wifi_body">Downloads only use Wi-Fi (see Settings). You are on mobile data now, so they are paused.</string>
     <string name="downloads_wifi_action">Download over mobile data</string>
+    <string name="downloads_selected">%d selected</string>
+    <string name="downloads_select_all">Select all</string>
+    <string name="downloads_cancel_selection">Cancel selection</string>
+    <string name="downloads_retry">Try again</string>
+    <string name="downloads_clear_failed">Delete failed downloads</string>
+    <string name="downloads_delete_all">Delete all downloads</string>
+    <string name="downloads_confirm_selected">Delete %d downloads?</string>
+    <string name="downloads_confirm_all">Delete all downloads?</string>
+    <string name="downloads_confirm_failed">Delete failed downloads?</string>
+    <string name="downloads_confirm_body">Files are removed from the phone and cannot be restored.</string>
+    <string name="downloads_confirm_yes">Delete</string>
+    <string name="downloads_confirm_no">Cancel</string>
+    <string name="downloads_state_waiting_wifi">Waiting for Wi-Fi…</string>
+    <string name="downloads_error_no_space">Not enough free space. Free some up and try again.</string>
+    <string name="downloads_error_empty">The file turned out empty. Try again.</string>
+    <string name="downloads_cleared">Deleted: %d</string>
 </resources>

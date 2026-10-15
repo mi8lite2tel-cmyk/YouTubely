@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="downloads_title">Скачанные</string>
-    <string name="downloads_swipe_hint">Смахните влево, чтобы удалить</string>
+    <string name="downloads_swipe_hint">Смахните влево, чтобы удалить; удерживайте, чтобы выбрать</string>
     <string name="downloads_empty_title">Пока ничего не скачано</string>
     <string name="downloads_empty_body">Нажмите «Скачать» под видео, чтобы смотреть его без интернета. Скачивайте только то, на что у вас есть права.</string>
     <string name="downloads_delete">Удалить</string>
@@ -26,4 +26,20 @@
     <string name="downloads_wifi_title">Загрузки ждут Wi-Fi</string>
     <string name="downloads_wifi_body">Загрузки идут только по Wi-Fi (см. «Настройки»). Сейчас включена мобильная сеть, поэтому они стоят.</string>
     <string name="downloads_wifi_action">Скачать по мобильной сети</string>
+    <string name="downloads_selected">Выбрано: %d</string>
+    <string name="downloads_select_all">Выбрать все</string>
+    <string name="downloads_cancel_selection">Отменить выбор</string>
+    <string name="downloads_retry">Повторить</string>
+    <string name="downloads_clear_failed">Удалить неудачные</string>
+    <string name="downloads_delete_all">Удалить все загрузки</string>
+    <string name="downloads_confirm_selected">Удалить загрузки (%d)?</string>
+    <string name="downloads_confirm_all">Удалить все загрузки?</string>
+    <string name="downloads_confirm_failed">Удалить неудачные загрузки?</string>
+    <string name="downloads_confirm_body">Файлы будут удалены с телефона без возможности восстановления.</string>
+    <string name="downloads_confirm_yes">Удалить</string>
+    <string name="downloads_confirm_no">Отмена</string>
+    <string name="downloads_state_waiting_wifi">Ждёт Wi-Fi…</string>
+    <string name="downloads_error_no_space">Не хватает места на телефоне. Освободите место и повторите.</string>
+    <string name="downloads_error_empty">Получился пустой файл. Повторите попытку.</string>
+    <string name="downloads_cleared">Удалено: %d</string>
 </resources>

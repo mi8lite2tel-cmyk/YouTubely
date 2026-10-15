@@ -9,12 +9,18 @@ package app.youtubely.core.download
  * means: start the parts from zero.
  */
 object StreamFingerprint {
-    fun of(selected: SelectedStreams): String =
-        listOf(
-            selected.video?.let { "v:${it.mimeType}|${it.codecs}|${it.height}|${it.bitrate}|${it.contentLength}" }
-                ?: "v:-",
-            "a:${selected.audio.mimeType}|${selected.audio.codecs}|${selected.audio.bitrate}|${selected.audio.contentLength}",
-        ).joinToString("\n")
+    fun of(selected: SelectedStreams): String {
+        val video = selected.video
+        val audio = selected.audio
+        val videoPart =
+            if (video == null) {
+                "v:-"
+            } else {
+                "v:${video.mimeType}|${video.codecs}|${video.height}|${video.bitrate}|${video.contentLength}"
+            }
+        val audioPart = "a:${audio.mimeType}|${audio.codecs}|${audio.bitrate}|${audio.contentLength}"
+        return "$videoPart\n$audioPart"
+    }
 
     /** `true` when the parts on disk belong to the streams about to be loaded (or there are none yet). */
     fun matches(
