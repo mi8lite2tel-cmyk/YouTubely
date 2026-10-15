@@ -48,6 +48,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -145,7 +146,10 @@ fun WatchScreen(
     KeepScreenOn(isPlaying && !inPip && !settings.audioOnly)
     LifecycleStartEffect(viewModel) {
         viewModel.onVisible()
+        viewModel.setVideoSuspended(false)
         onStopOrDispose {
+            // Sound goes on in the background; the picture would only waste data.
+            if (isInBackground(activity)) viewModel.setVideoSuspended(true)
             // Without background playback, leaving the app pauses (PiP keeps the activity started).
             if (shouldPauseForBackground(activity, settings.backgroundPlayback)) player.pause()
         }
@@ -160,6 +164,12 @@ fun WatchScreen(
             } else {
                 ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             }
+    }
+    // After leaving fullscreen the portrait lock is lifted again, so turning the phone works as before.
+    LaunchedEffect(landscape) {
+        if (!landscape && activity?.requestedOrientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT) {
+            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
     }
     // Leaving fullscreen with back returns to the portrait layout instead of closing the video.
     BackHandler(enabled = landscape) { activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT }
@@ -486,7 +496,10 @@ private fun Details(
                 onClick = {
                     val link = "https://www.youtube.com/watch?v=${item.id.value}"
                     val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, link)
-                    context.startActivity(Intent.createChooser(send, null))
+                    // Not a "user leaves the app" event: it must not drop a playing video into picture-in-picture.
+                    context.startActivity(
+                        Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NO_USER_ACTION),
+                    )
                 },
                 shapes = ButtonDefaults.shapes(),
             ) {
@@ -555,7 +568,7 @@ private fun Description(
 }
 
 @Composable
-private fun KeepScreenOn(enabled: Boolean) {
+internal fun KeepScreenOn(enabled: Boolean) {
     val view = LocalView.current
     DisposableEffect(view, enabled) {
         view.keepScreenOn = enabled
@@ -564,7 +577,7 @@ private fun KeepScreenOn(enabled: Boolean) {
 }
 
 @Composable
-private fun rememberIsPlaying(player: Player): Boolean {
+internal fun rememberIsPlaying(player: Player): Boolean {
     var playing by remember(player) { mutableStateOf(player.isPlaying) }
     DisposableEffect(player) {
         val listener =

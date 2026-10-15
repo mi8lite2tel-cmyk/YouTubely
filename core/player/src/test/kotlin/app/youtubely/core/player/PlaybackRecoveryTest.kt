@@ -22,6 +22,9 @@ class PlaybackRecoveryTest {
     fun onlyConnectionProblemsAreWorthRetrying() {
         assertTrue(PlaybackRecovery.isRecoverable(PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED))
         assertTrue(PlaybackRecovery.isRecoverable(PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS))
+        assertTrue(PlaybackRecovery.isRecoverable(PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW))
+        assertTrue(PlaybackRecovery.needsLiveEdge(PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW))
+        assertFalse(PlaybackRecovery.needsLiveEdge(PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS))
         assertFalse(PlaybackRecovery.isRecoverable(PlaybackException.ERROR_CODE_DECODING_FAILED))
         assertFalse(PlaybackRecovery.isRecoverable(PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND))
     }

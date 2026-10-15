@@ -85,6 +85,7 @@ class QualityController
             settings: PlaybackSettings,
             situation: QualitySituation,
             pinnedHeight: Int?,
+            portrait: Boolean = false,
         ): QualityCap {
             val cap =
                 QualityPolicy.decide(
@@ -118,7 +119,11 @@ class QualityController
                 }
 
                 else -> {
-                    parameters.setMinVideoSize(0, 0).setMaxVideoSize(Int.MAX_VALUE, height ?: Int.MAX_VALUE)
+                    // "720p" means the short side: an upright video is limited by its width.
+                    val limit = height ?: Int.MAX_VALUE
+                    parameters
+                        .setMinVideoSize(0, 0)
+                        .setMaxVideoSize(if (portrait) limit else Int.MAX_VALUE, if (portrait) Int.MAX_VALUE else limit)
                 }
             }
             applyViewport(parameters, settings, situation.viewport, pinnedHeight != null)

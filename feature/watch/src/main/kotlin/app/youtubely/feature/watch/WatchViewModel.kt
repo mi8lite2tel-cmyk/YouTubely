@@ -170,7 +170,9 @@ class WatchViewModel
         private val listener =
             object : Player.Listener {
                 override fun onPlaybackStateChanged(playbackState: Int) {
-                    if (playbackState == Player.STATE_ENDED && isCurrent && !playback.consumeSleepAtEnd()) playNext()
+                    if (playbackState == Player.STATE_ENDED && steersPlayback && !playback.consumeSleepAtEnd()) {
+                        playNext()
+                    }
                 }
             }
 
@@ -182,13 +184,22 @@ class WatchViewModel
 
         val isCurrent: Boolean get() = playback.currentVideo.value == id
 
+        /** This screen shows what plays and was the last to take over; other video screens leave it alone. */
+        private val steersPlayback: Boolean get() = isCurrent && playback.steeringScreen === this
+
         fun retry() = load(positionMs = savedPositionMs ?: 0, refetch = true)
 
         /** The screen is shown again (e.g. back from another video): take the player back. */
         fun onVisible() {
             val content = _state.value as? WatchUiState.Content ?: return
-            if (!isCurrent && !playback.play(content.info, savedPositionMs ?: 0)) {
-                _state.value = WatchUiState.Error(ProviderError.ExtractorOutdated())
+            playback.steeringScreen = this
+            if (!isCurrent) {
+                if (playback.play(content.info, savedPositionMs ?: 0)) {
+                    // The player singleton forgot this video's SponsorBlock marks while another one played.
+                    loadSegments(content.info.item.id)
+                } else {
+                    _state.value = WatchUiState.Error(ProviderError.ExtractorOutdated())
+                }
             }
         }
 
@@ -198,6 +209,8 @@ class WatchViewModel
         }
 
         fun setQuality(height: Int?) = playback.setQuality(height)
+
+        fun setVideoSuspended(suspended: Boolean) = playback.setVideoSuspended(suspended)
 
         val pinnedQuality: Int? get() = playback.pinnedHeight
 
@@ -291,6 +304,7 @@ class WatchViewModel
             loading =
                 viewModelScope.launch {
                     val requested = id
+                    playback.steeringScreen = this@WatchViewModel
                     // Back from the mini player: the video is still loaded, keep playing as it is.
                     val playing = playback.currentInfo?.takeIf { it.item.id == requested && isCurrent && !refetch }
                     if (playing != null) {

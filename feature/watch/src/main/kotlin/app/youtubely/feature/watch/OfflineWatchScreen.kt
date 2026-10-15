@@ -140,12 +140,19 @@ fun OfflineWatchScreen(
     val player = viewModel.player
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val inPip = rememberIsInPictureInPicture()
+    val isPlaying = rememberIsPlaying(player)
     val item = download
+    val audioFile = item?.format == DownloadFormat.Audio
+
+    // The screen stays on only while a picture actually plays.
+    KeepScreenOn(isPlaying && !inPip && !audioFile && !settings.audioOnly)
 
     // The record arrives asynchronously from storage; start once it is there.
     LifecycleStartEffect(item?.id) {
         viewModel.onVisible()
+        viewModel.playbackManager.setVideoSuspended(false)
         onStopOrDispose {
+            if (isInBackground(activity)) viewModel.playbackManager.setVideoSuspended(true)
             if (shouldPauseForBackground(activity, settings.backgroundPlayback)) player.pause()
         }
     }
@@ -168,13 +175,15 @@ fun OfflineWatchScreen(
                 .fillMaxWidth()
                 .aspectRatio(VIDEO_ASPECT),
         ) {
-            val audioFile = item.format == DownloadFormat.Audio
             VideoPlayer(
                 player = player,
                 fullscreen = false,
                 onToggleFullscreen = {},
                 onOpenSettings = { showSettings = true },
-                modifier = Modifier.fillMaxSize().pictureInPicture(settings.pictureInPicture),
+                modifier =
+                    Modifier.fillMaxSize().pictureInPicture(
+                        isPlaying && settings.pictureInPicture && !audioFile && !settings.audioOnly,
+                    ),
                 showFullscreen = false,
                 seekStepSeconds = settings.seekStepSeconds,
                 audioOnly = audioFile || settings.audioOnly,

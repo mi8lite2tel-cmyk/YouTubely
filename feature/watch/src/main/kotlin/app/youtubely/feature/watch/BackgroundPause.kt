@@ -13,8 +13,10 @@ import androidx.lifecycle.LifecycleOwner
 internal fun shouldPauseForBackground(
     activity: Activity?,
     backgroundPlayback: Boolean,
-): Boolean {
-    val leaving = activity != null && !backgroundPlayback && !activity.isChangingConfigurations
+): Boolean = activity != null && !backgroundPlayback && !activity.isChangingConfigurations && isInBackground(activity)
+
+/** The app is out of sight (home, screen off). Picture-in-picture and rotation do not count. */
+internal fun isInBackground(activity: Activity?): Boolean {
     val started = (activity as? LifecycleOwner)?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.STARTED) == true
-    return leaving && !started
+    return activity != null && !activity.isChangingConfigurations && !started
 }

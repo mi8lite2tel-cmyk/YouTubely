@@ -24,10 +24,14 @@ object PlaybackRecovery {
             PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS,
             PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
             PlaybackException.ERROR_CODE_TIMEOUT,
+            PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW,
             -> true
 
             else -> false
         }
+
+    /** A paused live stream fell out of its recording window: jump to the live edge and go on. */
+    fun needsLiveEdge(errorCode: Int): Boolean = errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW
 
     /** Expired or refused links need fresh ones from the extractor, not just another attempt. */
     fun needsFreshLinks(

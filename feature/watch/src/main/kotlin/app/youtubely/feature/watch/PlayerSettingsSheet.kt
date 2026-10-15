@@ -32,6 +32,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -45,6 +46,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
+import androidx.media3.common.Tracks
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.model.PlaybackSettings
 import app.youtubely.core.model.QualityCap
@@ -206,7 +208,8 @@ internal fun MainPage(
     onRepeat: (Boolean) -> Unit,
     onOpen: (SheetPage) -> Unit,
 ) {
-    val subtitles = remember(player) { player.subtitleOptions() }
+    val tracks = rememberTracks(player)
+    val subtitles = remember(player, tracks) { player.subtitleOptions() }
     val navigation =
         buildList {
             add(Triple(SheetPage.Quality, YouTubelyIcons.Tune, qualityValue(player, state.pinnedHeight)))
@@ -325,7 +328,8 @@ private fun QualityPage(
     cap: QualityCap?,
     onPick: (Int?) -> Unit,
 ) {
-    val options = remember(player) { player.qualityOptions() }
+    val tracks = rememberTracks(player)
+    val options = remember(player, tracks) { player.qualityOptions() }
     val now = player.videoSize.height.takeIf { it > 0 }
     val reason = cap?.let { reasonText(it) } ?: stringResource(R.string.watch_reason_unlimited)
     val autoDetail =
@@ -367,7 +371,8 @@ private fun SubtitlePage(
     enabled: Boolean,
     actions: PlayerSheetActions,
 ) {
-    val options = remember(player) { player.subtitleOptions() }
+    val tracks = rememberTracks(player)
+    val options = remember(player, tracks) { player.subtitleOptions() }
     val selected = options.firstOrNull { it.selected }?.language.takeIf { enabled }
     val count = options.size + 1
     ChoiceItem(
@@ -416,3 +421,20 @@ private fun QualityOption.label(): String =
 @Composable
 private fun bitrateText(bitrate: Int): String =
     stringResource(R.string.watch_bitrate, String.format(currentLocale(), "%.1f", bitrate / BITS_PER_MEGABIT))
+
+/** The tracks of the player, up to date: they arrive after the sheet may have opened and change with every choice. */
+@Composable
+private fun rememberTracks(player: Player): Tracks {
+    var tracks by remember(player) { mutableStateOf(player.currentTracks) }
+    DisposableEffect(player) {
+        val listener =
+            object : Player.Listener {
+                override fun onTracksChanged(newTracks: Tracks) {
+                    tracks = newTracks
+                }
+            }
+        player.addListener(listener)
+        onDispose { player.removeListener(listener) }
+    }
+    return tracks
+}
