@@ -98,42 +98,15 @@ class TrafficMeter
 
         val summary: Flow<TrafficSummary> =
             monthStarts().flatMapLatest { monthStart ->
-                val from = minOf(monthStart, today().minusDays(DAYS_SHOWN - 1L)).toEpochDay()
+                val from = minOf(monthStart, today().minusDays(TrafficSummaries.DAYS_SHOWN - 1L)).toEpochDay()
                 combine(dao.observeSums(monthStart.toEpochDay()), dao.observeDays(from)) { sums, days ->
-                    summarize(sums, days)
+                    TrafficSummaries.build(sums, days, today())
                 }
             }
 
         suspend fun reset() {
             pending.clear()
             dao.clear()
-        }
-
-        internal fun summarize(
-            sums: List<TrafficSum>,
-            days: List<TrafficDay>,
-            today: LocalDate = today(),
-        ): TrafficSummary {
-            val byDay = days.groupBy { it.day }
-            val shown =
-                (DAYS_SHOWN - 1 downTo 0).map { back ->
-                    val date = today.minusDays(back.toLong())
-                    val rows = byDay[date.toEpochDay()].orEmpty()
-                    DayTraffic(
-                        date = date,
-                        mobile = rows.filter { it.metered }.sumOf { it.bytes },
-                        wifi = rows.filterNot { it.metered }.sumOf { it.bytes },
-                    )
-                }
-            return TrafficSummary(
-                monthMobile = sums.filter { it.metered }.sumOf { it.bytes },
-                monthWifi = sums.filterNot { it.metered }.sumOf { it.bytes },
-                monthByKind =
-                    sums
-                        .groupBy { runCatching { TrafficKind.valueOf(it.kind) }.getOrDefault(TrafficKind.Other) }
-                        .mapValues { (_, rows) -> rows.sumOf { it.bytes } },
-                days = shown,
-            )
         }
 
         private fun monthStarts(): Flow<LocalDate> =
@@ -150,7 +123,6 @@ class TrafficMeter
             const val FLUSH_INTERVAL_MS = 5_000L
             const val MONTH_CHECK_MS = 3_600_000L
             const val RETENTION_DAYS = 400L
-            const val DAYS_SHOWN = 14
             const val BYTES_PER_MB = 1024L * 1024
         }
     }
