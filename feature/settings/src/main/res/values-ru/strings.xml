@@ -147,4 +147,6 @@
     <string name="settings_auto_per_run_value">До %d</string>
     <string name="settings_auto_skip_watched">Пропускать просмотренные</string>
     <string name="settings_auto_skip_watched_summary">Видео из истории не скачиваются</string>
+    <string name="settings_battery">Не прерывать звук при выключенном экране</string>
+    <string name="settings_battery_summary">Некоторые телефоны (Xiaomi, Huawei, Samsung) останавливают фоновые приложения ради батареи. Разрешите YouTubely работать без ограничений, а на Xiaomi ещё включите автозапуск.</string>
 </resources>

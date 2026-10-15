@@ -15,6 +15,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
+import androidx.work.await
 import androidx.work.workDataOf
 import app.youtubely.core.datastore.PlaybackSettingsRepository
 import app.youtubely.core.model.Download
@@ -150,11 +151,75 @@ class DownloadManager
         }
 
         /** Removes the record and every file of the download, finished or not. */
-        suspend fun delete(id: String) {
-            workManager.cancelUniqueWork(workName(id))
-            store.remove(id)
-            File(DownloadWorker.downloadsRoot(context), id).deleteRecursively()
+        suspend fun delete(id: String) = deleteAll(listOf(id))
+
+        /**
+         * Removes several downloads. Running work is stopped first and awaited, otherwise a worker
+         * that is still writing would recreate the folder right after it was deleted.
+         */
+        suspend fun deleteAll(ids: Collection<String>) {
+            ids.forEach { workManager.cancelUniqueWork(workName(it)).await() }
+            ids.forEach { store.remove(it) }
+            withContext(Dispatchers.IO) {
+                ids.forEach { File(DownloadWorker.downloadsRoot(context), it).deleteRecursively() }
+            }
         }
+
+        /** Removes every download that failed, with its leftovers. Returns how many there were. */
+        suspend fun clearFailed(): Int {
+            val failed =
+                store.downloads
+                    .first()
+                    .filter { it.state == DownloadState.Failed }
+                    .map { it.id }
+            deleteAll(failed)
+            return failed.size
+        }
+
+        /**
+         * Brings records, scheduled work and files back in line after the app was killed or storage
+         * was cleaned: interrupted downloads start again, records of vanished files are forgotten and
+         * leftover folders are removed. Call once at app start.
+         */
+        suspend fun reconcile() =
+            withContext(Dispatchers.IO) {
+                val root = DownloadWorker.downloadsRoot(context)
+                val all = store.downloads.first()
+                val active =
+                    all
+                        .filter { download ->
+                            // Runs on the IO dispatcher, so waiting for the answer is fine.
+                            workManager
+                                .getWorkInfosForUniqueWork(workName(download.id))
+                                .get()
+                                .any { !it.state.isFinished }
+                        }.mapTo(HashSet()) { it.id }
+                val plan =
+                    DownloadReconciler.plan(
+                        downloads =
+                            all.map {
+                                DownloadFacts(
+                                    it.id,
+                                    it.state,
+                                    it.filePath?.let(::File)?.exists() == true,
+                                )
+                            },
+                        activeWork = active,
+                        folders =
+                            root.listFiles(File::isDirectory).orEmpty().map { folder ->
+                                FolderFacts(
+                                    folder.name,
+                                    hasMedia = folder.listFiles().orEmpty().any { it.extension in MEDIA_EXTENSIONS },
+                                )
+                            },
+                    )
+                plan.forget.forEach { id ->
+                    store.remove(id)
+                    File(root, id).deleteRecursively()
+                }
+                plan.deleteFolders.forEach { File(root, it).deleteRecursively() }
+                plan.restart.forEach { resume(it) }
+            }
 
         private fun unmeteredNetwork(): Flow<Boolean> =
             callbackFlow {
@@ -208,6 +273,7 @@ class DownloadManager
 
         private companion object {
             const val TAG = "download"
+            val MEDIA_EXTENSIONS = setOf("mp4", "m4a", "mkv", "webm", "opus")
             const val BACKOFF_SECONDS = 30L
         }
     }

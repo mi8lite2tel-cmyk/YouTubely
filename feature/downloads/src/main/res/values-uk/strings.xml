@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="downloads_title">Завантажені</string>
-    <string name="downloads_swipe_hint">Проведіть ліворуч, щоб видалити</string>
+    <string name="downloads_swipe_hint">Змахніть уліво, щоб видалити; утримуйте, щоб вибрати</string>
     <string name="downloads_empty_title">Поки нічого не завантажено</string>
     <string name="downloads_empty_body">Натисніть «Завантажити» під відео, щоб дивитися його без інтернету. Завантажуйте лише те, на що маєте права.</string>
     <string name="downloads_delete">Видалити</string>
@@ -26,4 +26,20 @@
     <string name="downloads_wifi_title">Завантаження чекають на Wi-Fi</string>
     <string name="downloads_wifi_body">Завантаження йдуть лише через Wi-Fi (див. «Налаштування»). Зараз увімкнено мобільну мережу, тому вони стоять.</string>
     <string name="downloads_wifi_action">Завантажити через мобільну мережу</string>
+    <string name="downloads_selected">Вибрано: %d</string>
+    <string name="downloads_select_all">Вибрати все</string>
+    <string name="downloads_cancel_selection">Скасувати вибір</string>
+    <string name="downloads_retry">Повторити</string>
+    <string name="downloads_clear_failed">Видалити невдалі</string>
+    <string name="downloads_delete_all">Видалити всі завантаження</string>
+    <string name="downloads_confirm_selected">Видалити завантаження (%d)?</string>
+    <string name="downloads_confirm_all">Видалити всі завантаження?</string>
+    <string name="downloads_confirm_failed">Видалити невдалі завантаження?</string>
+    <string name="downloads_confirm_body">Файли буде видалено з телефона без можливості відновлення.</string>
+    <string name="downloads_confirm_yes">Видалити</string>
+    <string name="downloads_confirm_no">Скасувати</string>
+    <string name="downloads_state_waiting_wifi">Чекає Wi-Fi…</string>
+    <string name="downloads_error_no_space">Не вистачає місця на телефоні. Звільніть місце й повторіть.</string>
+    <string name="downloads_error_empty">Вийшов порожній файл. Повторіть спробу.</string>
+    <string name="downloads_cleared">Видалено: %d</string>
 </resources>

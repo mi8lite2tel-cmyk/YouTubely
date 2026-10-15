@@ -5,6 +5,7 @@ package app.youtubely
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import app.youtubely.core.download.DownloadManager
 import app.youtubely.core.sync.SyncScheduler
 import app.youtubely.widget.WidgetUpdater
 import coil3.ImageLoader
@@ -13,6 +14,10 @@ import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import javax.inject.Inject
 
@@ -33,11 +38,16 @@ class YouTubelyApplication :
     @Inject
     lateinit var widgetUpdater: WidgetUpdater
 
+    @Inject
+    lateinit var downloads: DownloadManager
+
     override fun onCreate() {
         super.onCreate()
         // Keeps the background refresh of subscriptions in line with the settings.
         syncScheduler.start()
         widgetUpdater.start()
+        // Downloads interrupted by a kill or a reboot continue; records of vanished files go away.
+        CoroutineScope(SupervisorJob() + Dispatchers.Default).launch { runCatching { downloads.reconcile() } }
     }
 
     /** Lets WorkManager create Hilt-injected workers (downloads). */

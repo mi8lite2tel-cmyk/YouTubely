@@ -147,4 +147,6 @@
     <string name="settings_auto_per_run_value">Up to %d</string>
     <string name="settings_auto_skip_watched">Skip watched videos</string>
     <string name="settings_auto_skip_watched_summary">Videos already in the history are not saved</string>
+    <string name="settings_battery">Keep playing with the screen off</string>
+    <string name="settings_battery_summary">Some phones (Xiaomi, Huawei, Samsung) stop background apps to save battery. Allow YouTubely to run without limits, and on Xiaomi also turn on autostart.</string>
 </resources>

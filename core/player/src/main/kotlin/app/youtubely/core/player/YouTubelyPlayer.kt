@@ -47,6 +47,9 @@ class YouTubelyPlayer
         fun createPlayer(context: Context): ExoPlayer =
             ExoPlayer
                 .Builder(context)
+                // Keeps the CPU and Wi-Fi awake while playing with the screen off. Without this the phone
+                // dozes after a few minutes, the buffer runs dry and playback stops for good.
+                .setWakeMode(C.WAKE_MODE_NETWORK)
                 .setLoadControl(loadControl)
                 .setBandwidthMeter(bandwidthMeter(context))
                 .setAudioAttributes(
