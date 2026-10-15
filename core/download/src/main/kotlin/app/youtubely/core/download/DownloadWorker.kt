@@ -19,6 +19,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -61,21 +62,40 @@ internal class DownloadWorker
             } catch (e: CancellationException) {
                 // A user pause already set Paused, a delete removed the record; otherwise the system
                 // stopped us (e.g. Wi-Fi lost) and WorkManager resumes the download later.
-                store.update(id) { if (it.state == DownloadState.Paused) it else it.copy(state = DownloadState.Queued) }
+                // The job is cancelled already, so the write has to survive that.
+                withContext(NonCancellable) {
+                    store.update(id) {
+                        if (it.state ==
+                            DownloadState.Paused
+                        ) {
+                            it
+                        } else {
+                            it.copy(state = DownloadState.Queued)
+                        }
+                    }
+                }
                 throw e
             } catch (e: IOException) {
-                if (runAttemptCount < MAX_ATTEMPTS) {
-                    store.update(id) { it.copy(state = DownloadState.Queued) }
-                    Result.retry()
-                } else {
-                    fail(e)
-                }
+                retryOrFail(e)
+            } catch (e: ProviderError.Network) {
+                retryOrFail(e)
+            } catch (e: ProviderError.RateLimited) {
+                retryOrFail(e)
             } catch (
                 @Suppress("TooGenericExceptionCaught") e: Exception,
             ) {
                 fail(e)
             }
         }
+
+        /** A flaky connection or a throttled source is waited out a few times before giving up. */
+        private suspend fun retryOrFail(e: Exception): Result =
+            if (runAttemptCount < MAX_ATTEMPTS) {
+                store.update(id) { it.copy(state = DownloadState.Queued) }
+                Result.retry()
+            } else {
+                fail(e)
+            }
 
         private suspend fun fail(e: Exception): Result {
             store.update(id) {
@@ -104,7 +124,13 @@ internal class DownloadWorker
                 info.item.thumbnails
                     .bestFor(THUMBNAIL_WIDTH)
                     ?.url
-                    ?.let { runCatching { fetch(it, thumbnail) } }
+                    ?.let { url ->
+                        try {
+                            fetch(url, thumbnail)
+                        } catch (_: IOException) {
+                            // The picture is optional; the video must not fail for it.
+                        }
+                    }
             }
 
             val videoPart = File(dir, "video.part")
@@ -164,7 +190,11 @@ internal class DownloadWorker
             val onDisk = dir.listFiles { file -> file.name.endsWith(".part") }.orEmpty().sumOf(File::length)
             // Merging writes a second copy next to the parts, hence the factor.
             val missing = (needed * MERGE_FACTOR - onDisk).coerceAtLeast(0)
-            if (needed > 0 && dir.usableSpace < missing + SPACE_MARGIN_BYTES) throw StorageFullException()
+            if (needed > 0 &&
+                applicationContext.freeSpaceFor(dir) < missing + SPACE_MARGIN_BYTES
+            ) {
+                throw StorageFullException()
+            }
         }
 
         /** Copies the samples into one MP4 first (instant, lossless); Media3 Transformer is the fallback. */
@@ -232,7 +262,14 @@ internal class DownloadWorker
             progress: Float,
             total: Long? = null,
         ) {
-            store.update(id) { it.copy(state = state, progress = progress, totalBytes = total ?: it.totalBytes) }
+            // A pause that arrived meanwhile stays: the worker only learns of it at its next check.
+            store.update(id) {
+                if (it.state == DownloadState.Paused) {
+                    it
+                } else {
+                    it.copy(state = state, progress = progress, totalBytes = total ?: it.totalBytes)
+                }
+            }
             // Android refuses to start a foreground service from the background for work that runs
             // outside the expedited quota; the download itself must not fail because of that.
             try {
@@ -259,15 +296,27 @@ internal class DownloadWorker
             }
         }
 
-        override suspend fun getForegroundInfo(): ForegroundInfo =
-            foregroundInfo(store.get(id)?.title.orEmpty(), 0f, merging = false)
+        override suspend fun getForegroundInfo(): ForegroundInfo {
+            // Before Android 12 this runs before doWork(), so the channel may not exist yet.
+            DownloadNotifications.ensureChannel(applicationContext)
+            return foregroundInfo(store.get(id)?.title.orEmpty(), 0f, merging = false)
+        }
 
-        private fun fetch(
+        /** Saves [url] to [target]; a failed copy leaves nothing behind, not half a picture. */
+        private suspend fun fetch(
             url: String,
             target: File,
-        ) {
-            client.newCall(Request.Builder().url(url).build()).execute().use { response ->
-                if (response.isSuccessful) target.outputStream().use { response.body.byteStream().copyTo(it) }
+        ) = withContext(Dispatchers.IO) {
+            val partial = File(target.parentFile, "${target.name}.tmp")
+            try {
+                client.newCall(Request.Builder().url(url).build()).execute().use { response ->
+                    if (response.isSuccessful) {
+                        partial.outputStream().use { response.body.byteStream().copyTo(it) }
+                        check(partial.renameTo(target)) { "Could not save the thumbnail" }
+                    }
+                }
+            } finally {
+                partial.delete()
             }
         }
 

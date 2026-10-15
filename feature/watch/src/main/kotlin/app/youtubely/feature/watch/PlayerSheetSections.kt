@@ -194,7 +194,7 @@ private fun equalizerLauncher(
             .putExtra(AudioEffect.EXTRA_PACKAGE_NAME, context.packageName)
             .putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MOVIE)
     return if (intent.resolveActivity(context.packageManager) != null) {
-        { context.startActivity(intent) }
+        { context.startActivity(Intent(intent).addFlags(Intent.FLAG_ACTIVITY_NO_USER_ACTION)) }
     } else {
         null
     }

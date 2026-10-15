@@ -70,8 +70,14 @@ class DownloadsViewModel
 
         private val _selection = MutableStateFlow<Set<String>>(emptySet())
 
-        /** Downloads ticked for deletion; empty when not selecting. */
-        val selection: StateFlow<Set<String>> = _selection.asStateFlow()
+        /**
+         * Downloads ticked for deletion; empty when not selecting. Only what is on the screen counts:
+         * a download hidden by the filter or removed meanwhile is never deleted by accident.
+         */
+        val selection: StateFlow<Set<String>> =
+            combine(_selection, state) { ticked, current ->
+                ticked.intersect(current.visibleIds.toSet())
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptySet())
 
         fun toggleSelected(id: String) = _selection.update { if (id in it) it - id else it + id }
 
@@ -85,7 +91,7 @@ class DownloadsViewModel
 
         /** Deletes what is selected, for good (the screen asked first). */
         fun deleteSelected() {
-            val ids = _selection.value
+            val ids = selection.value
             _selection.value = emptySet()
             launch { manager.deleteAll(ids) }
         }
@@ -119,6 +125,7 @@ class DownloadsViewModel
 
         fun setFilter(value: DownloadFilter) {
             filter.value = value
+            _selection.value = emptySet()
         }
 
         fun pause(id: String) = launch { manager.pause(id) }

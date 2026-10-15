@@ -77,22 +77,18 @@ class DownloadManager
                 val root = DownloadWorker.downloadsRoot(context).apply { mkdirs() }
                 StorageUsage(
                     usedBytes = root.walkTopDown().filter { it.isFile }.sumOf { it.length() },
-                    freeBytes = allocatableBytes(root),
+                    freeBytes = context.freeSpaceFor(root),
                 )
             }
 
-        /** Free space including cache the system would clear for us; plain free space if that is unknown. */
-        private fun allocatableBytes(dir: File): Long {
-            val storage = context.getSystemService<StorageManager>() ?: return dir.usableSpace
-            return try {
-                storage.getAllocatableBytes(storage.getUuidForPath(dir))
-            } catch (_: IOException) {
-                dir.usableSpace
-            }
-        }
-
         /** What can be saved without re-encoding and played back on this device (see [StreamSelection]). */
         fun formats(info: StreamInfo): List<DownloadFormat> = StreamSelection.formats(info, DeviceDecoders::canPlay)
+
+        /** Whether this video is already saved or being saved in [format]. */
+        suspend fun isActive(
+            video: VideoId,
+            format: DownloadFormat,
+        ): Boolean = store.get(Download.idFor(video, format))?.let { it.state != DownloadState.Failed } == true
 
         /** @param unmeteredOnly wait for Wi-Fi whatever the setting says (automatic downloads). */
         suspend fun start(
@@ -184,6 +180,15 @@ class DownloadManager
         suspend fun reconcile() =
             withContext(Dispatchers.IO) {
                 val root = DownloadWorker.downloadsRoot(context)
+                // Folders first, records after: a download that starts in between has a record and so is
+                // never mistaken for a leftover folder.
+                val folders =
+                    root.listFiles(File::isDirectory).orEmpty().map { folder ->
+                        FolderFacts(
+                            folder.name,
+                            hasMedia = folder.listFiles().orEmpty().any { it.extension in MEDIA_EXTENSIONS },
+                        )
+                    }
                 val all = store.downloads.first()
                 val active =
                     all
@@ -205,13 +210,7 @@ class DownloadManager
                                 )
                             },
                         activeWork = active,
-                        folders =
-                            root.listFiles(File::isDirectory).orEmpty().map { folder ->
-                                FolderFacts(
-                                    folder.name,
-                                    hasMedia = folder.listFiles().orEmpty().any { it.extension in MEDIA_EXTENSIONS },
-                                )
-                            },
+                        folders = folders,
                     )
                 plan.forget.forEach { id ->
                     store.remove(id)

@@ -118,6 +118,9 @@ class PlaybackManager
         val sleepTimer: StateFlow<SleepTimer> = _sleepTimer.asStateFlow()
         private var sleepJob: Job? = null
 
+        /** The volume is being faded out for the sleep timer; nothing else may set it meanwhile. */
+        private var fading = false
+
         private val _abLoop = MutableStateFlow(AbLoop())
         val abLoop: StateFlow<AbLoop> = _abLoop.asStateFlow()
         private var loopJob: Job? = null
@@ -143,6 +146,13 @@ class PlaybackManager
         private var recoveryJob: Job? = null
 
         /**
+         * The screen that steers playback (queue, autoplay). Several video screens can sit on the back
+         * stacks at once; only the one that last took over may start the next video.
+         */
+        @Volatile
+        var steeringScreen: Any? = null
+
+        /**
          * Keeps playback going through a bad connection: a dropped network, a server hiccup or
          * expired links. Works whether or not a video screen is open, because the mini player and
          * background playback with the screen off rely on it.
@@ -158,6 +168,7 @@ class PlaybackManager
                         scope.launch {
                             delay(if (attempt == 0) 0 else PlaybackRecovery.retryDelayMs(attempt - 1))
                             if (_currentVideo.value == null) return@launch
+                            if (PlaybackRecovery.needsLiveEdge(error.errorCode)) player.seekToDefaultPosition()
                             if (PlaybackRecovery.needsFreshLinks(
                                     error.errorCode,
                                     attempt,
@@ -205,10 +216,17 @@ class PlaybackManager
             }
             val position = player.currentPosition
             recoveryJob?.cancel()
-            scope.launch {
-                val fresh = runCatching { provider.streamInfo(info.item.id) }.getOrNull()
-                if (fresh != null && currentInfo?.item?.id == info.item.id) play(fresh, position) else player.prepare()
-            }
+            recoveryJob =
+                scope.launch {
+                    val fresh = runCatching { provider.streamInfo(info.item.id) }.getOrNull()
+                    val source = fresh?.takeIf { currentInfo?.item?.id == info.item.id }?.let(factory::mediaSource)
+                    if (fresh != null && source != null) {
+                        // Same video, new links: quality, loop and speed stay as the user set them.
+                        player.setMediaSource(source, position)
+                        currentInfo = fresh
+                    }
+                    player.prepare()
+                }
         }
 
         private val bandwidthListener =
@@ -248,12 +266,17 @@ class PlaybackManager
             positionMs: Long = 0,
         ): Boolean {
             val source = factory.mediaSource(info) ?: return false
-            if (currentInfo?.item?.id != info.item.id) recoveryAttempt = 0
+            if (currentInfo?.item?.id != info.item.id) {
+                recoveryAttempt = 0
+                recoveryJob?.cancel()
+                // "Repeat this video" is about that video, not the ones after it.
+                player.repeatMode = Player.REPEAT_MODE_OFF
+            }
             savePosition()
             pinnedHeight = null
             clearLoop()
             baseVolume = VolumeNormalizer.volumeFor(info.loudnessDb).takeIf { _settings.value.normalizeVolume } ?: 1f
-            if (sleepJob?.isActive != true) player.volume = baseVolume
+            if (!fading) player.volume = baseVolume
             applyLimits(_settings.value)
             player.setMediaSource(source, positionMs)
             currentInfo = info
@@ -273,11 +296,14 @@ class PlaybackManager
             positionMs: Long = 0,
             downloadId: String? = null,
         ) {
+            recoveryAttempt = 0
+            recoveryJob?.cancel()
+            player.repeatMode = Player.REPEAT_MODE_OFF
             savePosition()
             pinnedHeight = null
             clearLoop()
             baseVolume = 1f
-            if (sleepJob?.isActive != true) player.volume = baseVolume
+            if (!fading) player.volume = baseVolume
             applyLimits(_settings.value)
             val mediaItem =
                 MediaItem
@@ -309,6 +335,17 @@ class PlaybackManager
         /** Applies one change to the stored playback settings; the player follows through the settings flow. */
         fun updateSettings(change: suspend PlaybackSettingsRepository.() -> Unit) {
             scope.launch { settingsRepository.change() }
+        }
+
+        /** Nobody can see the picture (app in the background); only the sound is worth downloading. */
+        private var videoSuspended = false
+
+        /** Stops loading the picture while the app is out of sight, and brings it back afterwards. */
+        @MainThread
+        fun setVideoSuspended(suspended: Boolean) {
+            if (videoSuspended == suspended) return
+            videoSuspended = suspended
+            applyLimits(_settings.value)
         }
 
         /** Sound only, without downloading the picture. Kept for the next videos too. */
@@ -389,15 +426,16 @@ class PlaybackManager
             val parameters =
                 player.trackSelectionParameters
                     .buildUpon()
-                    .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, settings.audioOnly)
+                    .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, settings.audioOnly || videoSuspended)
                     .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !settings.subtitlesEnabled)
                     .setPreferredTextLanguage(settings.subtitleLanguage ?: Locale.getDefault().language)
                     .setPreferredAudioRoleFlags(C.ROLE_FLAG_MAIN)
-            val cap = quality.configure(parameters, settings, situation, pinnedHeight)
+            val portrait = currentInfo?.videoStreams?.firstOrNull()?.let { it.height > it.width } == true
+            val cap = quality.configure(parameters, settings, situation, pinnedHeight, portrait)
             savingLoadControl(settings, cap)
             player.trackSelectionParameters = parameters.build()
             player.skipSilenceEnabled = settings.skipSilence
-            if (sleepJob?.isActive != true) player.volume = if (settings.normalizeVolume) baseVolume else 1f
+            if (!fading) player.volume = if (settings.normalizeVolume) baseVolume else 1f
         }
 
         /** A short buffer wastes less when the data saver is on or the monthly allowance is nearly spent. */
@@ -444,12 +482,17 @@ class PlaybackManager
 
         private suspend fun fadeOutAndPause() {
             val steps = (FADE_MS / FADE_STEP_MS).toInt()
-            for (step in 1..steps) {
-                player.volume = baseVolume * (1f - step.toFloat() / steps)
-                delay(FADE_STEP_MS)
+            fading = true
+            try {
+                for (step in 1..steps) {
+                    player.volume = baseVolume * (1f - step.toFloat() / steps)
+                    delay(FADE_STEP_MS)
+                }
+                player.pause()
+            } finally {
+                fading = false
+                player.volume = baseVolume
             }
-            player.pause()
-            player.volume = baseVolume
         }
 
         /** Marks the current position as the start of a stretch to repeat. */

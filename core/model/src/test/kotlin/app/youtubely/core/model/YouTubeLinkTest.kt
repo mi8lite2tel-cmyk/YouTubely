@@ -60,4 +60,20 @@ class YouTubeLinkTest {
         )
         assertNull(YouTubeLink.find("nothing here"))
     }
+
+    @Test
+    fun findsALinkWrappedInPunctuation() {
+        val video = YouTubeLink.Video(VideoId(id))
+        assertEquals(video, YouTubeLink.find("see https://youtu.be/$id."))
+        assertEquals(video, YouTubeLink.find("(https://youtu.be/$id)"))
+        assertEquals(video, YouTubeLink.find("<https://youtu.be/$id>, thanks!"))
+    }
+
+    @Test
+    fun aWatchLinkWithOnlyAPlaylistOpensThePlaylist() {
+        assertEquals(
+            YouTubeLink.Playlist(PlaylistId("PL123")),
+            YouTubeLink.parse("https://www.youtube.com/watch?list=PL123"),
+        )
+    }
 }

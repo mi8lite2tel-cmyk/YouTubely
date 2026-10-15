@@ -192,10 +192,14 @@ private fun Modifier.tapGestures(
                 }
             },
             onPress = {
-                tryAwaitRelease()
-                if (state.boosting) {
-                    player.setPlaybackSpeed(state.speedBeforeBoost)
-                    state.boosting = false
+                // Also when the gesture is cancelled (screen left, key changed): never stay at 2×.
+                try {
+                    tryAwaitRelease()
+                } finally {
+                    if (state.boosting) {
+                        player.setPlaybackSpeed(state.speedBeforeBoost)
+                        state.boosting = false
+                    }
                 }
             },
         )

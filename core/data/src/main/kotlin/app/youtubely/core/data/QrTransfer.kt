@@ -89,7 +89,7 @@ object QrTransfer {
                     val valid =
                         fields.size == FIELD_COUNT && fields[0] == PREFIX &&
                             index != null && count != null && count > 0 && index in 0 until count
-                    return if (valid) Frame(fields[1], index!!, count!!, fields[DATA_FIELD]) else null
+                    return if (valid) Frame(fields[1], index, count, fields[DATA_FIELD]) else null
                 }
             }
         }

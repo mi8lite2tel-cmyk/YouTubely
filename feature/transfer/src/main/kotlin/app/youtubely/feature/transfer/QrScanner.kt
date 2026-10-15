@@ -45,7 +45,10 @@ fun QrScanner(
     DisposableEffect(lifecycleOwner) {
         val providerFuture = ProcessCameraProvider.getInstance(context)
         var provider: ProcessCameraProvider? = null
+        // The sheet can close before the camera is ready; then nothing may be bound afterwards.
+        var disposed = false
         providerFuture.addListener({
+            if (disposed) return@addListener
             val cameraProvider = providerFuture.get()
             provider = cameraProvider
             val preview = Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
@@ -59,6 +62,7 @@ fun QrScanner(
             cameraProvider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
         }, ContextCompat.getMainExecutor(context))
         onDispose {
+            disposed = true
             provider?.unbindAll()
             executor.shutdown()
         }

@@ -16,6 +16,7 @@
         <!-- configChanges: rotation, fullscreen and PiP resizes keep the activity (and the player UI). -->
         <activity
             android:name=".MainActivity"
+            tools:ignore="PictureInPictureIssue"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden"
             android:exported="true"
             android:launchMode="singleTask"
@@ -27,8 +28,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- YouTube links: the app is offered in "Open with" and can be set as the default. -->
-            <intent-filter>
+            <!-- YouTube links: the app is offered in "Open with" and can be set as the default.
+                 autoVerify cannot work, the domains are not ours. -->
+            <intent-filter tools:ignore="AppLinkWarning">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:scheme="http" />
+                <data android:host="youtu.be" />
+            </intent-filter>
+
+            <!-- Only the pages the app can show; handles, search and feeds stay with the browser. -->
+            <intent-filter tools:ignore="AppLinkWarning">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -38,7 +50,12 @@
                 <data android:host="www.youtube.com" />
                 <data android:host="m.youtube.com" />
                 <data android:host="music.youtube.com" />
-                <data android:host="youtu.be" />
+                <data android:pathPrefix="/watch" />
+                <data android:pathPrefix="/shorts" />
+                <data android:pathPrefix="/live" />
+                <data android:pathPrefix="/embed" />
+                <data android:pathPrefix="/playlist" />
+                <data android:pathPrefix="/channel" />
             </intent-filter>
 
             <!-- A link shared from another app. -->

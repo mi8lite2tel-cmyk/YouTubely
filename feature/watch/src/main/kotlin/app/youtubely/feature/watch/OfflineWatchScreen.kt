@@ -136,19 +136,24 @@ fun OfflineWatchScreen(
     val sleepTimer by viewModel.playbackManager.sleepTimer.collectAsStateWithLifecycle()
     val abLoop by viewModel.playbackManager.abLoop.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val activity = LocalActivity.current
     val player = viewModel.player
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val inPip = rememberIsInPictureInPicture()
+    val isPlaying = rememberIsPlaying(player)
     val item = download
+    val audioFile = item?.format == DownloadFormat.Audio
+
+    // The screen stays on only while a picture actually plays.
+    KeepScreenOn(isPlaying && !inPip && !audioFile && !settings.audioOnly)
 
     // The record arrives asynchronously from storage; start once it is there.
-    LifecycleStartEffect(item?.id) {
-        viewModel.onVisible()
-        onStopOrDispose {
-            if (shouldPauseForBackground(activity, settings.backgroundPlayback)) player.pause()
-        }
-    }
+    PlaybackLifecycleEffect(
+        key = item?.id,
+        player = player,
+        backgroundPlayback = settings.backgroundPlayback,
+        onVisible = viewModel::onVisible,
+        onVideoSuspended = viewModel.playbackManager::setVideoSuspended,
+    )
     DisposableEffect(viewModel) { onDispose { viewModel.onHidden() } }
 
     if (item == null) {
@@ -168,13 +173,15 @@ fun OfflineWatchScreen(
                 .fillMaxWidth()
                 .aspectRatio(VIDEO_ASPECT),
         ) {
-            val audioFile = item.format == DownloadFormat.Audio
             VideoPlayer(
                 player = player,
                 fullscreen = false,
                 onToggleFullscreen = {},
                 onOpenSettings = { showSettings = true },
-                modifier = Modifier.fillMaxSize().pictureInPicture(settings.pictureInPicture),
+                modifier =
+                    Modifier.fillMaxSize().pictureInPicture(
+                        isPlaying && settings.pictureInPicture && !audioFile && !settings.audioOnly,
+                    ),
                 showFullscreen = false,
                 seekStepSeconds = settings.seekStepSeconds,
                 audioOnly = audioFile || settings.audioOnly,

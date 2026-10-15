@@ -88,6 +88,18 @@ data class SponsorBlockSettings(
         val DEFAULT_CATEGORIES = setOf("sponsor", "selfpromo", "interaction")
         val ALL_CATEGORIES =
             listOf("sponsor", "selfpromo", "interaction", "intro", "outro", "preview", "filler", "music_offtopic")
+
+        /**
+         * The server address to save for what the user typed: empty (the default server) for blank
+         * input, the trimmed address when it is an https URL, `null` when it is neither. An invalid
+         * address must never silently turn into the default server.
+         */
+        fun normalizeServer(input: String): String? {
+            val text = input.trim().trimEnd('/')
+            if (text.isEmpty()) return ""
+            val host = runCatching { java.net.URI(text) }.getOrNull()
+            return text.takeIf { host != null && host.scheme == "https" && !host.host.isNullOrEmpty() }
+        }
     }
 }
 

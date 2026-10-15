@@ -93,9 +93,14 @@ class YouTubelyPlayer
         }
 
         /** One lazily loaded source per subtitle track; the user's language comes first. */
+        @Suppress("DEPRECATION") // Sideloaded text through the media item cannot be loaded lazily per track.
         private fun subtitleSources(info: StreamInfo): List<MediaSource> {
             if (info.item.type == StreamType.Live) return emptyList()
-            val factory = SingleSampleMediaSource.Factory(dataSourceFactory(emptyMap()))
+            val factory =
+                SingleSampleMediaSource
+                    .Factory(dataSourceFactory(emptyMap()))
+                    // One unreachable subtitle file must not stop the video.
+                    .setTreatLoadErrorsAsEndOfStream(true)
             val device = Locale.getDefault().language
             return info.subtitles
                 .sortedWith(

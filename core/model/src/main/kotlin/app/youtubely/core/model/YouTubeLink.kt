@@ -61,7 +61,8 @@ sealed interface YouTubeLink {
                 }
 
                 segments.firstOrNull() == "watch" -> {
-                    videoLink(query["v"], playlist)
+                    // A watch link that names only a playlist opens the playlist.
+                    videoLink(query["v"], playlist) ?: playlist?.let(YouTubeLink::Playlist)
                 }
 
                 segments.firstOrNull() in VIDEO_PATHS -> {
@@ -98,6 +99,10 @@ sealed interface YouTubeLink {
                 }
 
         /** The first link found in free text such as a shared message. */
-        fun find(text: String): YouTubeLink? = text.split(Regex("\\s+")).firstNotNullOfOrNull { parse(it) }
+        fun find(text: String): YouTubeLink? =
+            text.split(Regex("\\s+")).firstNotNullOfOrNull { parse(it.trim { char -> char in WRAPPING_CHARS }) }
+
+        /** Brackets, quotes and punctuation that a message puts around a link. */
+        private val WRAPPING_CHARS = setOf('(', ')', '[', ']', '<', '>', '"', '\'', '.', ',', ';', ':', '!', '?')
     }
 }

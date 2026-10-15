@@ -69,7 +69,7 @@ class LibraryViewModel
 
         fun unsubscribe(channel: ChannelRef) = launch { subscriptions.unsubscribe(channel.id) }
 
-        fun resubscribe(channel: ChannelRef) = launch { subscriptions.subscribe(channel) }
+        fun resubscribe(subscription: Subscription) = launch { subscriptions.restore(subscription) }
 
         fun setNotify(
             subscription: Subscription,

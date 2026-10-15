@@ -6,7 +6,6 @@
     <string name="watch_seek_forward">Уперед на 10 секунд</string>
     <string name="watch_quality">Якість</string>
     <string name="watch_quality_auto">Авто</string>
-    <string name="watch_quality_auto_hint">Підлаштовується під швидкість мережі</string>
     <string name="watch_fullscreen">На весь екран</string>
     <string name="watch_exit_fullscreen">Вийти з повноекранного режиму</string>
     <string name="watch_share">Поділитися</string>
@@ -17,7 +16,6 @@
     <string name="watch_speed">Швидкість</string>
     <string name="watch_repeat">Повтор відео</string>
     <string name="watch_bitrate">%s Мбіт/с</string>
-    <string name="watch_quality_auto_limited">Під швидкість мережі, не вище %dp у цій мережі</string>
     <string name="watch_download">Завантажити</string>
     <string name="watch_downloaded">Завантажено</string>
     <string name="watch_download_progress">%d%%</string>
@@ -46,10 +44,8 @@
     <string name="watch_sleep_minutes">%d хв</string>
     <string name="watch_sleep_end_chip">До кінця відео</string>
     <string name="watch_sleep_cancel">Вимкнути</string>
-    <string name="watch_audio">Звук і відтворення</string>
     <string name="watch_skip_silence">Пропускати тишу</string>
     <string name="watch_normalize">Вирівнювати гучність</string>
-    <string name="watch_normalize_summary">Гучні відео приглушуються до спільного рівня</string>
     <string name="watch_autoplay">Вмикати наступне відео</string>
     <string name="watch_equalizer">Еквалайзер</string>
     <string name="watch_subtitles">Субтитри</string>

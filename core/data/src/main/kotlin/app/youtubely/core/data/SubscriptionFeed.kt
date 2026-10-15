@@ -84,26 +84,31 @@ class SubscriptionFeed
             if (refreshing.isLocked) return
             refreshing.withLock {
                 status.update { it.copy(loading = true) }
-                val channels = subscriptionDao.getAll()
-                val permits = Semaphore(PARALLEL_REQUESTS)
-                val failed =
-                    coroutineScope {
-                        channels
-                            .map { channel -> async { channel to permits.withPermit { load(channel) } } }
-                            .awaitAll()
-                    }.filter { it.second.isFailure }
-                dao.prune(MAX_STORED)
-                status.value =
-                    Status(
-                        failed = failed.map { it.first.toChannel() },
-                        updatedAt = Instant.now(),
-                        error =
-                            if (channels.isNotEmpty() && failed.size == channels.size) {
-                                failed.first().second.exceptionOrNull()
-                            } else {
-                                null
-                            },
-                    )
+                try {
+                    val channels = subscriptionDao.getAll()
+                    val permits = Semaphore(PARALLEL_REQUESTS)
+                    val failed =
+                        coroutineScope {
+                            channels
+                                .map { channel -> async { channel to permits.withPermit { load(channel) } } }
+                                .awaitAll()
+                        }.filter { it.second.isFailure }
+                    dao.prune(MAX_STORED)
+                    status.value =
+                        Status(
+                            failed = failed.map { it.first.toChannel() },
+                            updatedAt = Instant.now(),
+                            error =
+                                if (channels.isNotEmpty() && failed.size == channels.size) {
+                                    failed.first().second.exceptionOrNull()
+                                } else {
+                                    null
+                                },
+                        )
+                } finally {
+                    // A cancelled or crashed refresh must not leave Home spinning for good.
+                    status.update { it.copy(loading = false) }
+                }
             }
         }
 

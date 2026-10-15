@@ -26,9 +26,10 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -64,7 +65,7 @@ fun VideoActionsSheet(
     val motion = MaterialTheme.motionScheme
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(),
+        sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden),
         modifier = modifier,
     ) {
         AnimatedContent(
@@ -111,10 +112,9 @@ private fun ActionList(
     val isSaved = item.id in saved
     val context = LocalContext.current
     Column(Modifier.padding(bottom = 16.dp)) {
-        ListItem(
-            headlineContent = { Text(item.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-            supportingContent = item.channel?.let { { Text(it.name) } },
-        )
+        ListItem(supportingContent = item.channel?.let { { Text(it.name) } }) {
+            Text(item.title, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
         ActionItem(
             text = if (isSaved) R.string.actions_remove_watch_later else R.string.actions_watch_later,
             icon = if (isSaved) YouTubelyIcons.Check else YouTubelyIcons.Schedule,
@@ -147,10 +147,9 @@ private fun ActionItem(
     onClick: () -> Unit,
 ) {
     ListItem(
-        headlineContent = { Text(stringResource(text)) },
+        onClick = onClick,
         leadingContent = { Icon(painterResource(icon), contentDescription = null) },
-        modifier = Modifier.clickable(onClick = onClick),
-    )
+    ) { Text(stringResource(text)) }
 }
 
 @Composable
@@ -164,25 +163,21 @@ private fun PlaylistPicker(
     var creating by rememberSaveable { mutableStateOf(false) }
     Column(Modifier.padding(bottom = 16.dp)) {
         ListItem(
-            headlineContent = {
-                Text(stringResource(R.string.actions_save_to_playlist), style = MaterialTheme.typography.titleMedium)
-            },
             leadingContent = {
                 IconButton(onClick = onBack) {
                     Icon(painterResource(YouTubelyIcons.ArrowBack), stringResource(R.string.actions_back))
                 }
             },
-        )
+        ) { Text(stringResource(R.string.actions_save_to_playlist), style = MaterialTheme.typography.titleMedium) }
         ActionItem(text = R.string.actions_new_playlist, icon = YouTubelyIcons.Add) { creating = true }
         LazyColumn {
             items(playlists, key = { it.id }) { playlist ->
                 val present = playlist.id in containing
                 ListItem(
-                    headlineContent = { Text(playlist.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    onClick = { viewModel.setInPlaylist(playlist.id, item, !present) },
                     supportingContent = { Text(stringResource(R.string.actions_videos_count, playlist.itemCount)) },
                     trailingContent = { Checkbox(checked = present, onCheckedChange = null) },
-                    modifier = Modifier.clickable { viewModel.setInPlaylist(playlist.id, item, !present) },
-                )
+                ) { Text(playlist.name, maxLines = 1, overflow = TextOverflow.Ellipsis) }
             }
         }
     }

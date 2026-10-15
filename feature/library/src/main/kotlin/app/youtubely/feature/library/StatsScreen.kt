@@ -36,6 +36,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -145,7 +146,7 @@ internal fun StatsContent(
                     Text(stringResource(R.string.stats_days), style = MaterialTheme.typography.titleMediumEmphasized)
                     DayBars(stats, Modifier.fillMaxWidth().height(96.dp))
                     stats.busiestHour?.let { Note(stringResource(R.string.stats_hour, it)) }
-                    Note(stringResource(R.string.stats_total, stats.videosTotal))
+                    Note(pluralStringResource(R.plurals.stats_total, stats.videosTotal, stats.videosTotal))
                 }
             }
         }
@@ -176,7 +177,14 @@ internal fun StatsContent(
                                 )
                             },
                             supportingContent = {
-                                Text(stringResource(R.string.stats_channel_value, watchTime(stat.time), stat.videos))
+                                Text(
+                                    pluralStringResource(
+                                        R.plurals.stats_channel_value,
+                                        stat.videos,
+                                        watchTime(stat.time),
+                                        stat.videos,
+                                    ),
+                                )
                             },
                         ) { Text(stat.channel.name) }
                     }
@@ -211,7 +219,10 @@ private fun PeriodCard(
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(label, style = MaterialTheme.typography.labelLarge)
             Text(time, style = MaterialTheme.typography.headlineSmallEmphasized, maxLines = 1)
-            Text(stringResource(R.string.stats_videos, videos), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                pluralStringResource(R.plurals.stats_videos, videos, videos),
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
     }
 }

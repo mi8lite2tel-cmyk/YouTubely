@@ -5,7 +5,9 @@
 package app.youtubely.feature.transfer
 
 import android.Manifest
+import android.content.ContentResolver
 import android.content.pm.PackageManager
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -37,12 +39,13 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedListItem
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -72,11 +75,43 @@ import app.youtubely.core.designsystem.component.ExpressiveFilterChip
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
 import app.youtubely.core.ui.groupedListItemColors
 import app.youtubely.core.ui.groupedListItemShapes
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.IOException
 
 private const val MAX_FILE_BYTES = 8 * 1024 * 1024
 private const val FRAME_MILLIS = 700L
+
+/**
+ * The text of the file at [uri], read off the main thread; `null` when it cannot be opened or is
+ * too big to be a subscription list (a few hundred kilobytes at most).
+ */
+private suspend fun ContentResolver.readText(uri: Uri): String? =
+    withContext(Dispatchers.IO) {
+        try {
+            openInputStream(uri)?.use { it.readAtMost(MAX_FILE_BYTES) }?.toString(Charsets.UTF_8)
+        } catch (_: IOException) {
+            null
+        } catch (_: SecurityException) {
+            null
+        }
+    }
+
+private suspend fun ContentResolver.writeText(
+    uri: Uri,
+    text: String,
+): Boolean =
+    withContext(Dispatchers.IO) {
+        try {
+            openOutputStream(uri)?.use { it.write(text.toByteArray()) } != null
+        } catch (_: IOException) {
+            false
+        } catch (_: SecurityException) {
+            false
+        }
+    }
 
 /** Move subscriptions and playlists between phones with QR codes, or in and out of files. */
 @Composable
@@ -97,16 +132,17 @@ fun TransferScreen(
             if (uri != null) {
                 scope.launch {
                     val text = viewModel.exportText() ?: return@launch
-                    context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray()) }
+                    if (!context.contentResolver.writeText(uri, text)) viewModel.unreadable()
                 }
             }
         }
     val import =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) {
-                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                // A subscription list is a few hundred kilobytes at most; anything huge is not one.
-                viewModel.preview(bytes?.takeIf { it.size <= MAX_FILE_BYTES }?.toString(Charsets.UTF_8).orEmpty())
+                scope.launch {
+                    val text = context.contentResolver.readText(uri)
+                    if (text == null) viewModel.unreadable() else viewModel.preview(text)
+                }
             }
         }
 
@@ -268,7 +304,7 @@ private fun QrSheet(
     }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden),
     ) {
         Column(
             Modifier.padding(horizontal = 24.dp).padding(bottom = 24.dp),
@@ -316,7 +352,7 @@ private fun ScanSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden),
     ) {
         Column(
             Modifier.padding(horizontal = 24.dp).padding(bottom = 24.dp),

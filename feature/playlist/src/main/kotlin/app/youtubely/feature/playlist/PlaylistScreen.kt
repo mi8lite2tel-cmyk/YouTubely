@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
@@ -57,6 +58,7 @@ import app.youtubely.core.model.bestFor
 import app.youtubely.core.ui.DownloadAllButton
 import app.youtubely.core.ui.ErrorState
 import app.youtubely.core.ui.LoadMoreEffect
+import app.youtubely.core.ui.LoadMoreRetry
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.StateTransition
 import app.youtubely.core.ui.VideoRow
@@ -160,22 +162,28 @@ fun PlaylistScreen(
                                         )
                                     }
                                 }
-                                if (state.loadingMore) {
-                                    item(key = "loading-more") {
-                                        Box(
-                                            Modifier.fillMaxWidth().padding(24.dp),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            LoadingIndicator()
-                                        }
-                                    }
-                                }
+                                loadMoreFooter(state, viewModel::retryLoadMore)
                             }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+/** A spinner while the next page loads, a retry button when it failed. */
+private fun LazyListScope.loadMoreFooter(
+    state: PlaylistUiState,
+    onRetry: () -> Unit,
+) {
+    if (state.loadingMore) {
+        item(key = "loading-more") {
+            Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { LoadingIndicator() }
+        }
+    }
+    if (state.loadMoreFailed) {
+        item(key = "load-more-retry") { LoadMoreRetry(onRetry) }
     }
 }
 

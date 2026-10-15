@@ -74,9 +74,10 @@
     <string name="settings_sponsorblock_enable">Skip sponsor reads and similar parts</string>
     <string name="settings_sponsorblock_summary">Off by default. When on, the app asks a SponsorBlock server for marks of the video and sends only the first 4 characters of a hash of its id, never the id or anything about you.</string>
     <string name="settings_sponsorblock_categories">What to skip</string>
-    <string name="settings_sponsorblock_categories_count">%d kinds of parts</string>
+    <string name="settings_sponsorblock_categories_count">Segment types: %d</string>
     <string name="settings_sponsorblock_server">Server</string>
-    <string name="settings_sponsorblock_server_hint">Use your own SponsorBlock server if you run one. Leave empty or invalid to use the default. It must start with https://</string>
+    <string name="settings_sponsorblock_server_hint">Use your own SponsorBlock server if you run one. Leave empty to use the default. It must start with https://</string>
+    <string name="settings_sponsorblock_server_invalid">Not a valid https:// address</string>
     <string name="settings_done">Done</string>
     <string name="settings_cancel">Cancel</string>
     <string name="settings_sb_sponsor">Sponsor</string>
@@ -103,14 +104,13 @@
     <string name="settings_cat_subscriptions">Refresh, notifications, automatic downloads, transfer</string>
     <string name="settings_cat_privacy">Watch history</string>
     <string name="settings_cat_about">Version, source code, licence</string>
-    <string name="settings_quality_auto">Automatic quality</string>
     <string name="settings_quality_auto_note">The player picks the sharpest picture your connection keeps up with, within these limits.</string>
     <string name="settings_data_saver">Data saver</string>
     <string name="settings_data_saver_off">Off</string>
     <string name="settings_data_saver_auto">Automatic</string>
     <string name="settings_data_saver_always">Always</string>
     <string name="settings_data_saver_off_summary">Quality is limited only by the limits below</string>
-    <string name="settings_data_saver_auto_summary">On mobile data when Android Data Saver is on or 80% of the monthly limit is used</string>
+    <string name="settings_data_saver_auto_summary" formatted="false">On mobile data when Android Data Saver is on or 80% of the monthly limit is used</string>
     <string name="settings_data_saver_always_summary">Lower quality, 30 fps, efficient codecs and a short buffer everywhere</string>
     <string name="settings_saver_quality">Quality while saving</string>
     <string name="settings_max_fps">Frame rate</string>

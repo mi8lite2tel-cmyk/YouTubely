@@ -157,13 +157,13 @@ internal fun RuleDetails(
         ChipGroup(R.string.library_rule_min) {
             MinMinuteChoices.forEach { minutes ->
                 val label = if (minutes == 0) any else stringResource(R.string.library_rule_minutes, minutes)
-                ExpressiveFilterChip(rule.minMinutes == minutes, { onRule(rule.copy(minMinutes = minutes)) }, label)
+                ExpressiveFilterChip(rule.minMinutes == minutes, { onRule(rule.withMin(minutes)) }, label)
             }
         }
         ChipGroup(R.string.library_rule_max) {
             MaxMinuteChoices.forEach { minutes ->
                 val label = if (minutes == 0) any else stringResource(R.string.library_rule_minutes, minutes)
-                ExpressiveFilterChip(rule.maxMinutes == minutes, { onRule(rule.copy(maxMinutes = minutes)) }, label)
+                ExpressiveFilterChip(rule.maxMinutes == minutes, { onRule(rule.withMax(minutes)) }, label)
             }
         }
         OutlinedTextField(
@@ -276,3 +276,11 @@ private val RuleSaver =
             )
         },
     )
+
+/** A minimum above the maximum would match no video at all, so the maximum steps aside ("any"). */
+internal fun AutoDownloadRule.withMin(minutes: Int): AutoDownloadRule =
+    copy(minMinutes = minutes, maxMinutes = if (maxMinutes in 1 until minutes) 0 else maxMinutes)
+
+/** The same for a maximum below the minimum: the minimum steps aside. */
+internal fun AutoDownloadRule.withMax(minutes: Int): AutoDownloadRule =
+    copy(maxMinutes = minutes, minMinutes = if (minutes in 1 until minMinutes) 0 else minMinutes)

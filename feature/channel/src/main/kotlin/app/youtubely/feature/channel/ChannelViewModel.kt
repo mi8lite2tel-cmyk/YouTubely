@@ -32,6 +32,8 @@ data class TabContent(
     val nextPage: Page? = null,
     val loading: Boolean = true,
     val loadingMore: Boolean = false,
+    /** The next page failed; no new attempt starts until the user asks. */
+    val loadMoreFailed: Boolean = false,
     val error: Throwable? = null,
 )
 
@@ -76,11 +78,16 @@ class ChannelViewModel
 
         fun retry() = load(_state.value.tab)
 
+        fun retryLoadMore() {
+            setTab(_state.value.tab) { it.copy(loadMoreFailed = false) }
+            loadMore()
+        }
+
         fun loadMore() {
             val tab = _state.value.tab
             val content = _state.value.content
             val next = content.nextPage ?: return
-            if (content.loading || content.loadingMore) return
+            if (content.loading || content.loadingMore || content.loadMoreFailed) return
             setTab(tab) { it.copy(loadingMore = true) }
             viewModelScope.launch {
                 when (val result = outcomeOf { provider.channel(id, tab, next) }) {
@@ -95,8 +102,8 @@ class ChannelViewModel
                     }
 
                     is Outcome.Failure -> {
-                        // Keep what is shown; scrolling to the end again retries.
-                        setTab(tab) { it.copy(loadingMore = false) }
+                        // Keep what is shown; the footer offers a retry.
+                        setTab(tab) { it.copy(loadingMore = false, loadMoreFailed = true) }
                     }
                 }
             }
@@ -132,7 +139,7 @@ class ChannelViewModel
                                             (
                                                 tab to
                                                     TabContent(
-                                                        items = page.items.items,
+                                                        items = page.items.items.distinctBy(::key),
                                                         nextPage = page.items.nextPage,
                                                         loading = false,
                                                     )

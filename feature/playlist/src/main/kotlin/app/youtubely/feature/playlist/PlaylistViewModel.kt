@@ -27,6 +27,8 @@ data class PlaylistUiState(
     val items: List<StreamItem> = emptyList(),
     val nextPage: Page? = null,
     val loadingMore: Boolean = false,
+    /** The next page failed; no new attempt starts until the user asks. */
+    val loadMoreFailed: Boolean = false,
     val error: Throwable? = null,
 )
 
@@ -64,10 +66,15 @@ class PlaylistViewModel
             }
         }
 
+        fun retryLoadMore() {
+            _state.update { it.copy(loadMoreFailed = false) }
+            loadMore()
+        }
+
         fun loadMore() {
             val current = _state.value
             val next = current.nextPage ?: return
-            if (current.loadingMore) return
+            if (current.loadingMore || current.loadMoreFailed) return
             _state.update { it.copy(loadingMore = true) }
             viewModelScope.launch {
                 val result = outcomeOf { provider.playlist(id, next) }
@@ -79,7 +86,7 @@ class PlaylistViewModel
                             loadingMore = false,
                         )
                     } else {
-                        state.copy(loadingMore = false)
+                        state.copy(loadingMore = false, loadMoreFailed = true)
                     }
                 }
             }
@@ -93,7 +100,9 @@ class PlaylistViewModel
                         is Outcome.Success -> {
                             PlaylistUiState(
                                 playlist = result.value.playlist,
-                                items = result.value.items.items,
+                                items =
+                                    result.value.items.items
+                                        .distinctBy { it.id },
                                 nextPage = result.value.items.nextPage,
                             )
                         }

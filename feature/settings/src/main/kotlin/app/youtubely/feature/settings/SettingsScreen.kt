@@ -4,6 +4,7 @@
 
 package app.youtubely.feature.settings
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -415,7 +416,14 @@ private fun AboutPage(versionName: String) {
     val context = LocalContext.current
     SettingsGroup {
         SegmentedListItem(
-            onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, SOURCE_URL.toUri())) },
+            onClick = {
+                // A phone without a browser has nothing to open the link with.
+                try {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, SOURCE_URL.toUri()))
+                } catch (_: ActivityNotFoundException) {
+                    Unit
+                }
+            },
             shapes = groupedListItemShapes(0, 2),
             colors = groupedListItemColors(),
             leadingContent = { Icon(painterResource(YouTubelyIcons.Info), contentDescription = null) },
