@@ -81,7 +81,11 @@ class LibraryTransfer
                 subscriptions.setNotify(id, channel.notify)
                 subscriptions.setAutoDownload(id, channel.autoDownload)
             }
-            val existing = playlists.playlists.first().associate { it.name to it.id }.toMutableMap()
+            val existing =
+                playlists.playlists
+                    .first()
+                    .associate { it.name to it.id }
+                    .toMutableMap()
             var videos = 0
             bundle.playlists.forEach { playlist ->
                 // Two playlists of one name in the bundle end up in one list.
@@ -90,8 +94,15 @@ class LibraryTransfer
                 videos += playlist.videos.size
             }
             // Exported newest first; adding oldest first keeps that order, and what is saved stays put.
-            val saved = watchLater.videos.first().map { it.item.id.value }.toSet()
-            bundle.watchLater.asReversed().filter { it.id !in saved }.forEach { watchLater.add(it.toItem()) }
+            val saved =
+                watchLater.videos
+                    .first()
+                    .map { it.item.id.value }
+                    .toSet()
+            bundle.watchLater
+                .asReversed()
+                .filter { it.id !in saved }
+                .forEach { watchLater.add(it.toItem()) }
             return ImportSummary(newChannels, bundle.playlists.size, videos + bundle.watchLater.size)
         }
 

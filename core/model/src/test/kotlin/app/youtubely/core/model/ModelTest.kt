@@ -62,4 +62,13 @@ class ModelTest {
         assertTrue(SearchFilter.DurationFilter.Long.matches(video(45)))
         assertTrue(SearchFilter.DurationFilter.Any.matches(video(null)))
     }
+
+    @Test
+    fun `a typed sponsorblock server is checked, not silently replaced`() {
+        assertEquals("", SponsorBlockSettings.normalizeServer("   "))
+        assertEquals("https://sb.example.com", SponsorBlockSettings.normalizeServer(" https://sb.example.com/ "))
+        assertNull(SponsorBlockSettings.normalizeServer("sb.example.com"))
+        assertNull(SponsorBlockSettings.normalizeServer("http://sb.example.com"))
+        assertNull(SponsorBlockSettings.normalizeServer("https://"))
+    }
 }

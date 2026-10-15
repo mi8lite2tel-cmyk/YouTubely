@@ -76,7 +76,8 @@
     <string name="settings_sponsorblock_categories">What to skip</string>
     <string name="settings_sponsorblock_categories_count">Segment types: %d</string>
     <string name="settings_sponsorblock_server">Server</string>
-    <string name="settings_sponsorblock_server_hint">Use your own SponsorBlock server if you run one. Leave empty or invalid to use the default. It must start with https://</string>
+    <string name="settings_sponsorblock_server_hint">Use your own SponsorBlock server if you run one. Leave empty to use the default. It must start with https://</string>
+    <string name="settings_sponsorblock_server_invalid">Not a valid https:// address</string>
     <string name="settings_done">Done</string>
     <string name="settings_cancel">Cancel</string>
     <string name="settings_sb_sponsor">Sponsor</string>

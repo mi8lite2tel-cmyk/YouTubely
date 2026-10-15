@@ -133,16 +133,15 @@ fun YouTubelyApp(
         id: VideoId,
         sharedKey: String,
     ) {
-        backStack.add(WatchRoute(id.value, sharedKey))
+        backStack.pushUnique(WatchRoute(id.value, sharedKey))
     }
 
     fun openChannel(id: ChannelId) {
-        // Opening the channel that is already on top (e.g. from its own video) just goes back to it.
-        if (backStack.lastOrNull() != ChannelRoute(id.value)) backStack.add(ChannelRoute(id.value))
+        backStack.pushUnique(ChannelRoute(id.value))
     }
 
     fun openPlaylist(id: PlaylistId) {
-        backStack.add(PlaylistRoute(id.value))
+        backStack.pushUnique(PlaylistRoute(id.value))
     }
 
     // A link or notification the app was opened with: show it on top of the current tab.
@@ -202,24 +201,24 @@ fun YouTubelyApp(
                                     LibraryScreen(
                                         onOpenVideo = ::openVideo,
                                         onOpenChannel = ::openChannel,
-                                        onOpenPlaylist = { stack.add(LocalPlaylistRoute(it)) },
+                                        onOpenPlaylist = { stack.pushUnique(LocalPlaylistRoute(it)) },
                                         onPlayAllLater = {
                                             id,
                                             key,
                                             ->
-                                            stack.add(WatchRoute(id.value, key, LocalQueue.WATCH_LATER))
+                                            stack.pushUnique(WatchRoute(id.value, key, LocalQueue.WATCH_LATER))
                                         },
-                                        onOpenTransfer = { stack.add(TransferRoute) },
-                                        onOpenStats = { stack.add(StatsRoute) },
-                                        onOpenSearch = { stack.add(LibrarySearchRoute) },
+                                        onOpenTransfer = { stack.pushUnique(TransferRoute) },
+                                        onOpenStats = { stack.pushUnique(StatsRoute) },
+                                        onOpenSearch = { stack.pushUnique(LibrarySearchRoute) },
                                     )
                                 }
                                 entry<LibrarySearchRoute> {
                                     LibrarySearchScreen(
                                         onBack = { stack.removeLastOrNull() },
                                         onOpenVideo = ::openVideo,
-                                        onPlayDownload = { stack.add(OfflineWatchRoute(it)) },
-                                        onOpenPlaylist = { stack.add(LocalPlaylistRoute(it)) },
+                                        onPlayDownload = { stack.pushUnique(OfflineWatchRoute(it)) },
+                                        onOpenPlaylist = { stack.pushUnique(LocalPlaylistRoute(it)) },
                                     )
                                 }
                                 entry<StatsRoute> { StatsScreen(onBack = { stack.removeLastOrNull() }) }
@@ -230,14 +229,14 @@ fun YouTubelyApp(
                                         onOpenVideo = ::openVideo,
                                         onPlayAll = { id, key ->
                                             val queue = LocalQueue.playlist(route.playlistId)
-                                            stack.add(WatchRoute(id.value, key, queue))
+                                            stack.pushUnique(WatchRoute(id.value, key, queue))
                                         },
                                     )
                                 }
                                 entry<TransferRoute> { TransferScreen(onBack = { stack.removeLastOrNull() }) }
                                 entry<DownloadsRoute> {
                                     DownloadsScreen(
-                                        onPlay = { stack.add(OfflineWatchRoute(it)) },
+                                        onPlay = { stack.pushUnique(OfflineWatchRoute(it)) },
                                         onOpenOnline = { openVideo(it, "downloads-${it.value}") },
                                     )
                                 }
@@ -259,7 +258,7 @@ fun YouTubelyApp(
                                             key,
                                             playlist,
                                             ->
-                                            stack.add(WatchRoute(id.value, key, playlist.value))
+                                            stack.pushUnique(WatchRoute(id.value, key, playlist.value))
                                         },
                                         onOpenChannel = ::openChannel,
                                     )
@@ -268,7 +267,7 @@ fun YouTubelyApp(
                                 entry<SettingsRoute> {
                                     SettingsScreen(
                                         versionName = versionName,
-                                        onOpenTransfer = { stack.add(TransferRoute) },
+                                        onOpenTransfer = { stack.pushUnique(TransferRoute) },
                                     )
                                 }
                                 entry<WatchRoute> { route ->
@@ -324,6 +323,20 @@ fun YouTubelyApp(
 }
 
 /**
+ * Opens [key] on top, unless an equal one is on the stack already: two equal keys would share one
+ * saved state and one ViewModel store, and closing the upper would break the lower. Then the stack
+ * goes back to that entry instead (a double tap does nothing, A → B → A → B ends on the first B).
+ */
+internal fun NavBackStack<NavKey>.pushUnique(key: NavKey) {
+    val existing = indexOfLast { it == key }
+    if (existing >= 0) {
+        while (size > existing + 1) removeLastOrNull()
+    } else {
+        add(key)
+    }
+}
+
+/**
  * Shows the screen of what the mini player plays. When that screen is still deeper in this back
  * stack it is brought back instead of opened twice (two equal keys would share their state).
  */
@@ -340,13 +353,13 @@ private fun NavBackStack<NavKey>.reopen(playing: NowPlaying) {
     if (existing >= 0) {
         while (size > existing + 1) removeLastOrNull()
     } else {
-        add(playing.downloadId?.let(::OfflineWatchRoute) ?: WatchRoute(id, "mini-$id"))
+        pushUnique(playing.downloadId?.let(::OfflineWatchRoute) ?: WatchRoute(id, "mini-$id"))
     }
 }
 
 /** Opens what a YouTube link points at on top of this back stack. */
 private fun NavBackStack<NavKey>.show(link: YouTubeLink) {
-    add(
+    pushUnique(
         when (link) {
             is YouTubeLink.Video -> WatchRoute(link.id.value, "link-${link.id.value}", link.playlist?.value)
             is YouTubeLink.Playlist -> PlaylistRoute(link.id.value)

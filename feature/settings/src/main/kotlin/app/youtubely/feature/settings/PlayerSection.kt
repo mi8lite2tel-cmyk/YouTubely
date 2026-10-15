@@ -6,6 +6,8 @@ package app.youtubely.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -116,7 +119,7 @@ internal fun SponsorBlockSettingsSection(
             onDismissRequest = { picking = false },
             title = { Text(stringResource(R.string.settings_sponsorblock_categories)) },
             text = {
-                Column {
+                Column(Modifier.verticalScroll(rememberScrollState())) {
                     SponsorBlockSettings.ALL_CATEGORIES.forEach { category ->
                         val checked = category in settings.categories
                         ListItem(
@@ -138,20 +141,33 @@ internal fun SponsorBlockSettingsSection(
     }
     if (editingServer) {
         var text by remember { mutableStateOf(settings.serverUrl) }
+        val normalized = SponsorBlockSettings.normalizeServer(text)
         AlertDialog(
             onDismissRequest = { editingServer = false },
             title = { Text(stringResource(R.string.settings_sponsorblock_server)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = text, onValueChange = { text = it }, singleLine = true)
+                    OutlinedTextField(
+                        value = text,
+                        onValueChange = { text = it },
+                        singleLine = true,
+                        isError = normalized == null,
+                        supportingText =
+                            if (normalized == null) {
+                                { Text(stringResource(R.string.settings_sponsorblock_server_invalid)) }
+                            } else {
+                                null
+                            },
+                    )
                     Text(stringResource(R.string.settings_sponsorblock_server_hint))
                 }
             },
             confirmButton = {
                 TextButton(
+                    enabled = normalized != null,
                     onClick = {
                         editingServer = false
-                        onChange { setServerUrl(text.takeIf { it.startsWith("https://") }.orEmpty()) }
+                        normalized?.let { server -> onChange { setServerUrl(server) } }
                     },
                 ) { Text(stringResource(R.string.settings_done)) }
             },

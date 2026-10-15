@@ -76,7 +76,8 @@
     <string name="settings_sponsorblock_categories">Що пропускати</string>
     <string name="settings_sponsorblock_categories_count">Видів частин: %d</string>
     <string name="settings_sponsorblock_server">Сервер</string>
-    <string name="settings_sponsorblock_server_hint">Вкажіть власний сервер SponsorBlock, якщо він у вас є. Порожня чи хибна адреса поверне стандартну. Адреса має починатися з https://</string>
+    <string name="settings_sponsorblock_server_hint">Вкажіть власний сервер SponsorBlock, якщо він у вас є. Порожнє поле — стандартний сервер. Адреса має починатися з https://</string>
+    <string name="settings_sponsorblock_server_invalid">Це не адреса виду https://</string>
     <string name="settings_done">Готово</string>
     <string name="settings_cancel">Скасувати</string>
     <string name="settings_sb_sponsor">Реклама спонсора</string>

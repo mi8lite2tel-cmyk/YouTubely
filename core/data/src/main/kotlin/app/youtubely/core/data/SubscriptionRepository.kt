@@ -56,6 +56,16 @@ class SubscriptionRepository
             if (added == -1L) dao.updateProfile(channel.id.value, channel.name, avatar, channel.isVerified)
         }
 
+        /** Follows the channel again with the settings it had (an undone unsubscribe). */
+        suspend fun restore(subscription: Subscription) {
+            val id = subscription.channel.id
+            subscribe(subscription.channel)
+            setGroup(id, subscription.group)
+            setNotify(id, subscription.notify)
+            setAutoDownloadRule(id, subscription.autoRule)
+            setAutoDownload(id, subscription.autoDownload)
+        }
+
         suspend fun unsubscribe(id: ChannelId) {
             dao.delete(id.value)
             feed.deleteChannel(id.value)

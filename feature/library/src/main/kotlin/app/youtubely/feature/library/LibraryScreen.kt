@@ -216,7 +216,7 @@ fun LibraryScreen(
                             onUnsubscribe = { subscription ->
                                 viewModel.unsubscribe(subscription.channel)
                                 offerUndo(unsubscribedMessage.format(subscription.channel.name)) {
-                                    viewModel.resubscribe(subscription.channel)
+                                    viewModel.resubscribe(subscription)
                                 }
                             },
                         )

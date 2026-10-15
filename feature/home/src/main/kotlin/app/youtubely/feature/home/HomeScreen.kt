@@ -369,7 +369,7 @@ private fun SubscriptionsTab(
                                 label = stringResource(R.string.home_group_all),
                             )
                         }
-                        items(feed.groups, key = { it }) { name ->
+                        items(feed.groups, key = { "group-$it" }) { name ->
                             ExpressiveFilterChip(
                                 selected = feed.group == name,
                                 onClick = { onSelectGroup(name) },
@@ -417,7 +417,7 @@ private fun ExploreTab(
         }
 
         is ExploreUiState.Content -> {
-            val items = state.items(kind)
+            val items = remember(state, kind) { state.items(kind).distinctBy { it.id } }
             Refreshable(refreshing = state.refreshing, onRefresh = onRefresh) {
                 VideoGrid(bottomPadding) {
                     if (items.size > HERO_COUNT) {

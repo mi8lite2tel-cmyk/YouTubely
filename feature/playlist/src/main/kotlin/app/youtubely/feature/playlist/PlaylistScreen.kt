@@ -57,6 +57,7 @@ import app.youtubely.core.model.bestFor
 import app.youtubely.core.ui.DownloadAllButton
 import app.youtubely.core.ui.ErrorState
 import app.youtubely.core.ui.LoadMoreEffect
+import app.youtubely.core.ui.LoadMoreRetry
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.StateTransition
 import app.youtubely.core.ui.VideoRow
@@ -169,6 +170,9 @@ fun PlaylistScreen(
                                             LoadingIndicator()
                                         }
                                     }
+                                }
+                                if (state.loadMoreFailed) {
+                                    item(key = "load-more-retry") { LoadMoreRetry(viewModel::retryLoadMore) }
                                 }
                             }
                         }

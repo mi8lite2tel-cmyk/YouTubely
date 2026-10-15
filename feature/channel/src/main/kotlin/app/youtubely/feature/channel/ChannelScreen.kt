@@ -65,6 +65,7 @@ import app.youtubely.core.ui.ChannelAvatar
 import app.youtubely.core.ui.ChannelListItem
 import app.youtubely.core.ui.ErrorState
 import app.youtubely.core.ui.LoadMoreEffect
+import app.youtubely.core.ui.LoadMoreRetry
 import app.youtubely.core.ui.LoadingState
 import app.youtubely.core.ui.PlaylistListItem
 import app.youtubely.core.ui.StateTransition
@@ -147,6 +148,7 @@ fun ChannelScreen(
                                         onToggleSubscription = viewModel::toggleSubscription,
                                         onRetry = viewModel::retry,
                                         onLoadMore = viewModel::loadMore,
+                                        onRetryLoadMore = viewModel::retryLoadMore,
                                         navigation = ChannelNavigation(onOpenVideo, onOpenChannel, onOpenPlaylist),
                                     ),
                             )
@@ -165,6 +167,7 @@ private class ChannelActions(
     val onToggleSubscription: () -> Unit,
     val onRetry: () -> Unit,
     val onLoadMore: () -> Unit,
+    val onRetryLoadMore: () -> Unit,
     val navigation: ChannelNavigation,
 )
 
@@ -245,6 +248,11 @@ private fun LazyGridScope.tabContent(
             }
             if (content.loadingMore) {
                 item(key = "loading-more", span = { GridItemSpan(maxLineSpan) }) { CenteredLoading() }
+            }
+            if (content.loadMoreFailed) {
+                item(key = "load-more-retry", span = { GridItemSpan(maxLineSpan) }) {
+                    LoadMoreRetry(actions.onRetryLoadMore)
+                }
             }
         }
     }

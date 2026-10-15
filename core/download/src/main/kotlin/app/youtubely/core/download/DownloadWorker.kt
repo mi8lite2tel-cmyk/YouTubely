@@ -64,7 +64,15 @@ internal class DownloadWorker
                 // stopped us (e.g. Wi-Fi lost) and WorkManager resumes the download later.
                 // The job is cancelled already, so the write has to survive that.
                 withContext(NonCancellable) {
-                    store.update(id) { if (it.state == DownloadState.Paused) it else it.copy(state = DownloadState.Queued) }
+                    store.update(id) {
+                        if (it.state ==
+                            DownloadState.Paused
+                        ) {
+                            it
+                        } else {
+                            it.copy(state = DownloadState.Queued)
+                        }
+                    }
                 }
                 throw e
             } catch (e: IOException) {

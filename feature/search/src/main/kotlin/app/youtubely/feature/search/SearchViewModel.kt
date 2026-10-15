@@ -81,7 +81,10 @@ class SearchViewModel
                         when (result) {
                             is Outcome.Success -> {
                                 current.copy(
-                                    items = result.value.items.toImmutableList(),
+                                    items =
+                                        result.value.items
+                                            .distinctBy(::itemKey)
+                                            .toImmutableList(),
                                     nextPage = result.value.nextPage,
                                     loading = false,
                                 )
