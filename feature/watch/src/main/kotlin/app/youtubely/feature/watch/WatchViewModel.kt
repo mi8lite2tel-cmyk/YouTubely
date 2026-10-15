@@ -83,7 +83,7 @@ class WatchViewModel
     @AssistedInject
     constructor(
         @Assisted("video") videoId: String,
-        @Assisted("playlist") playlistId: String?,
+        @Assisted("playlist") private val playlistId: String?,
         private val provider: StreamProvider,
         private val playback: PlaybackManager,
         private val downloadManager: DownloadManager,
@@ -256,15 +256,32 @@ class WatchViewModel
                 return
             }
             viewModelScope.launch {
-                val page = outcomeOf { provider.playlist(playlistId, null) } as? Outcome.Success ?: return@launch
-                val items = page.value.items.items
-                _queue.value =
-                    PlaylistQueue(
-                        playlist = page.value.playlist,
-                        items = items,
-                        index = items.indexOfFirst { it.id == id }.coerceAtLeast(0),
-                    )
+                val queue = readQueue(playlistId) ?: return@launch
+                _queue.value = queue
             }
+        }
+
+        /**
+         * The playlist with its videos. A link can point deep into a long playlist, so pages are read
+         * on until the current video turns up (at most [MAX_QUEUE_PAGES]).
+         */
+        private suspend fun readQueue(playlistId: PlaylistId): PlaylistQueue? {
+            var page = outcomeOf { provider.playlist(playlistId, null) } as? Outcome.Success ?: return null
+            val items =
+                page.value.items.items
+                    .toMutableList()
+            var pages = 1
+            var next = page.value.items.nextPage
+            while (items.none { it.id == id } && next != null && pages < MAX_QUEUE_PAGES) {
+                val more = outcomeOf { provider.playlist(playlistId, next) } as? Outcome.Success
+                next = more?.value?.items?.nextPage
+                if (more != null) {
+                    page = more
+                    items += more.value.items.items
+                }
+                pages++
+            }
+            return PlaylistQueue(page.value.playlist, items, items.indexOfFirst { it.id == id }.coerceAtLeast(0))
         }
 
         /** "Watch later" or a playlist of this device, as it is when playback starts. */
@@ -332,6 +349,7 @@ class WatchViewModel
                     savedPositionMs = start
                     _state.value =
                         if (playback.play(info, start)) {
+                            playback.setPlaylist(playlistId)
                             loadSegments(requested)
                             WatchUiState.Content(info)
                         } else {
@@ -348,6 +366,7 @@ class WatchViewModel
 
         private companion object {
             const val STOP_TIMEOUT_MS = 5_000L
+            const val MAX_QUEUE_PAGES = 10
         }
 
         @AssistedFactory

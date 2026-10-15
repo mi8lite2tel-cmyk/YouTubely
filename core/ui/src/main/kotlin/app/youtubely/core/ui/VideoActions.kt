@@ -32,4 +32,4 @@ fun VideoMoreButton(
     }
 }
 
-private val MORE_BUTTON_SIZE = 40.dp
+private val MORE_BUTTON_SIZE = 48.dp

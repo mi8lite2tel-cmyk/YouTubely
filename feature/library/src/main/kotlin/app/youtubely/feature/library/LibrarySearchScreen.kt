@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
@@ -136,7 +137,8 @@ fun LibrarySearchScreen(
     val query by viewModel.query.collectAsStateWithLifecycle()
     val results by viewModel.results.collectAsStateWithLifecycle()
     val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focus.requestFocus() }
+    // Back from a result keeps the query and the results; the keyboard only opens for a fresh search.
+    LaunchedEffect(Unit) { if (query.isEmpty()) focus.requestFocus() }
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -184,9 +186,9 @@ fun LibrarySearchScreen(
                     start = 8.dp,
                     end = 8.dp,
                     top = padding.calculateTopPadding(),
-                    bottom = 24.dp,
+                    bottom = padding.calculateBottomPadding() + 24.dp,
                 ),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().imePadding(),
         ) {
             section(R.string.library_search_downloads, results.downloads, { "d-${it.id}" }) { download ->
                 VideoRow(

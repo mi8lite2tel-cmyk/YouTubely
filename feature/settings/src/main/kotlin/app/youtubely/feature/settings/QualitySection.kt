@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -44,6 +45,8 @@ import app.youtubely.core.model.DataSaverMode
 import app.youtubely.core.model.PlaybackSettings
 import app.youtubely.core.model.TrafficKind
 import app.youtubely.core.model.TrafficSummary
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 private const val BYTES_PER_MB = 1024L * 1024
 private const val MB_PER_GB = 1024
@@ -276,7 +279,9 @@ private fun DayBars(
     val wifi = MaterialTheme.colorScheme.tertiary
     val track = MaterialTheme.colorScheme.surfaceContainerHighest
     val context = LocalContext.current
-    val description = summary.days.joinToString { "${it.date}: ${Formatter.formatShortFileSize(context, it.total)}" }
+    val dates = remember { DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM) }
+    val description =
+        summary.days.joinToString { "${it.date.format(dates)}: ${Formatter.formatShortFileSize(context, it.total)}" }
     Canvas(modifier.semantics { contentDescription = description }) {
         val days = summary.days
         if (days.isEmpty()) return@Canvas

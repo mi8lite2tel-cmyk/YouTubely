@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -48,6 +49,7 @@ import androidx.lifecycle.viewModelScope
 import app.youtubely.core.data.HistoryRepository
 import app.youtubely.core.data.TrafficMeter
 import app.youtubely.core.designsystem.icon.YouTubelyIcons
+import app.youtubely.core.model.ChannelId
 import app.youtubely.core.model.TrafficSummary
 import app.youtubely.core.model.WatchStats
 import app.youtubely.core.ui.ChannelAvatar
@@ -61,12 +63,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.Instant
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import javax.inject.Inject
 
 /** Watching habits from the local history: counts, time, days, favourite channels and traffic. */
 @Composable
 fun StatsScreen(
     onBack: () -> Unit,
+    onOpenChannel: (ChannelId) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: StatsViewModel = hiltViewModel(),
 ) {
@@ -100,6 +105,7 @@ fun StatsScreen(
                 bottom =
                     padding.calculateBottomPadding() + 24.dp,
             ),
+            onOpenChannel,
         )
     }
 }
@@ -109,6 +115,7 @@ internal fun StatsContent(
     stats: WatchStats,
     traffic: TrafficSummary,
     padding: PaddingValues,
+    onOpenChannel: (ChannelId) -> Unit = {},
 ) {
     val context = LocalContext.current
     LazyColumn(
@@ -166,7 +173,7 @@ internal fun StatsContent(
                 ) {
                     stats.topChannels.forEachIndexed { index, stat ->
                         SegmentedListItem(
-                            onClick = {},
+                            onClick = { onOpenChannel(stat.channel.id) },
                             shapes = groupedListItemShapes(index, stats.topChannels.size),
                             colors = groupedListItemColors(),
                             leadingContent = {
@@ -244,7 +251,8 @@ private fun DayBars(
 ) {
     val bar = MaterialTheme.colorScheme.primary
     val track = MaterialTheme.colorScheme.surfaceContainerHighest
-    val description = stats.days.joinToString { (day, count) -> "$day: $count" }
+    val dates = remember { DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM) }
+    val description = stats.days.joinToString { (day, count) -> "${day.format(dates)}: $count" }
     Canvas(modifier.semantics { contentDescription = description }) {
         val max =
             stats.days
