@@ -23,7 +23,9 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -77,18 +79,25 @@ internal class DownloadWorker
 
         private suspend fun fail(e: Exception): Result {
             store.update(id) {
-                it.copy(state = DownloadState.Failed, error = e.message ?: e::class.java.simpleName)
+                it.copy(state = DownloadState.Failed, error = DownloadError.of(e))
             }
             return Result.failure()
         }
 
         private suspend fun run(download: Download) {
+            // Only a few downloads load at once; the rest wait their turn as "queued", not stuck.
+            slots.withPermit { load(download) }
+        }
+
+        private suspend fun load(download: Download) {
             setState(download, DownloadState.Downloading, download.progress)
             val info = provider.streamInfo(download.videoId)
             val streams =
                 StreamSelection.select(info, download.format, DeviceDecoders::canPlay)
                     ?: throw ProviderError.ExtractorOutdated()
             val dir = File(downloadsRoot(applicationContext), download.id).apply { mkdirs() }
+            discardPartsOfOtherStreams(dir, streams)
+            ensureSpace(dir, streams)
 
             val thumbnail = File(dir, "thumbnail.jpg")
             if (!thumbnail.exists()) {
@@ -108,10 +117,16 @@ internal class DownloadWorker
                     setState(download, DownloadState.Merging, 1f, total)
                     File(dir, "$name.mp4").also { merge(videoPart, audioPart, it) }
                 } else {
-                    File(dir, "$name.m4a").also { audioPart.renameTo(it) }
+                    File(dir, "$name.m4a").also { check(audioPart.renameTo(it)) { "Could not finish the audio file" } }
                 }
+            // A merge that "succeeded" with an empty file must not turn into a download that cannot play.
+            if (output.length() < MIN_OUTPUT_BYTES) {
+                output.delete()
+                throw IOException(DownloadError.EMPTY_OUTPUT)
+            }
             videoPart.delete()
             audioPart.delete()
+            File(dir, FINGERPRINT_FILE).delete()
 
             store.update(id) {
                 it.copy(
@@ -123,6 +138,33 @@ internal class DownloadWorker
                     error = null,
                 )
             }
+        }
+
+        /** Parts of an earlier attempt belong to the streams it chose; other streams start from zero. */
+        private fun discardPartsOfOtherStreams(
+            dir: File,
+            streams: SelectedStreams,
+        ) {
+            val marker = File(dir, FINGERPRINT_FILE)
+            val current = StreamFingerprint.of(streams)
+            if (!StreamFingerprint.matches(marker.takeIf(File::exists)?.readText(), current)) {
+                dir
+                    .listFiles { file -> file.name.endsWith(".part") || file.name.endsWith(".chunks") }
+                    ?.forEach(File::delete)
+            }
+            marker.writeText(current)
+        }
+
+        /** Fails early and clearly instead of filling the phone up and breaking other apps. */
+        private fun ensureSpace(
+            dir: File,
+            streams: SelectedStreams,
+        ) {
+            val needed = (streams.video?.contentLength ?: 0L) + (streams.audio.contentLength ?: 0L)
+            val onDisk = dir.listFiles { file -> file.name.endsWith(".part") }.orEmpty().sumOf(File::length)
+            // Merging writes a second copy next to the parts, hence the factor.
+            val missing = (needed * MERGE_FACTOR - onDisk).coerceAtLeast(0)
+            if (needed > 0 && dir.usableSpace < missing + SPACE_MARGIN_BYTES) throw StorageFullException()
         }
 
         /** Copies the samples into one MP4 first (instant, lossless); Media3 Transformer is the fallback. */
@@ -231,6 +273,14 @@ internal class DownloadWorker
 
         companion object {
             const val KEY_ID = "download_id"
+            private const val MAX_PARALLEL = 2
+            private const val MIN_OUTPUT_BYTES = 1_024L
+            private const val MERGE_FACTOR = 2L
+            private const val SPACE_MARGIN_BYTES = 100L * 1024 * 1024
+            private const val FINGERPRINT_FILE = "streams.txt"
+
+            /** Shared by all downloads of the process: how many load at the same time. */
+            private val slots = Semaphore(MAX_PARALLEL)
             private const val MAX_ATTEMPTS = 3
             private const val PERCENT = 100
             private const val THUMBNAIL_WIDTH = 720
