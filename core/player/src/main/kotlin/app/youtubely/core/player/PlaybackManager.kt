@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
@@ -332,6 +333,11 @@ class PlaybackManager
             connectSession()
         }
 
+        /** Remembers the playlist that is being played from (or `null`) for the mini player. */
+        fun setPlaylist(playlistId: String?) {
+            _nowPlaying.update { it?.copy(playlistId = playlistId) }
+        }
+
         /** Applies one change to the stored playback settings; the player follows through the settings flow. */
         fun updateSettings(change: suspend PlaybackSettingsRepository.() -> Unit) {
             scope.launch { settingsRepository.change() }
@@ -582,6 +588,8 @@ private const val ARTWORK_WIDTH = 720
 data class NowPlaying(
     val item: StreamItem,
     val downloadId: String?,
+    /** The playlist the video is played from, so the mini player reopens it with its queue. */
+    val playlistId: String? = null,
 )
 
 /** The sleep timer: off, after a time, or when the current video ends. */

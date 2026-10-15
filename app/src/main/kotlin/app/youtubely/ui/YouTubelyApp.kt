@@ -15,7 +15,14 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -117,6 +125,7 @@ fun YouTubelyApp(
             DownloadsRoute to rememberNavBackStack(DownloadsRoute),
             SettingsRoute to rememberNavBackStack(SettingsRoute),
         )
+    val tabState = rememberSaveableStateHolder()
     var currentName by rememberSaveable { mutableStateOf(HomeRoute.toString()) }
     val current = TopLevelItems.first { it.route.toString() == currentName }.route
     val backStack = stacks.getValue(current)
@@ -165,123 +174,133 @@ fun YouTubelyApp(
                         .togetherWith(fadeOut(motion.fastEffectsSpec()))
                 }) { tab ->
                     val stack = stacks.getValue(tab)
-                    NavDisplay(
-                        backStack = stack,
-                        onBack = { stack.removeLastOrNull() },
-                        entryDecorators =
-                            listOf(
-                                rememberSaveableStateHolderNavEntryDecorator(),
-                                rememberViewModelStoreNavEntryDecorator(),
-                            ),
-                        sharedTransitionScope = this@SharedTransitionLayout,
-                        transitionSpec = {
-                            (
-                                slideInHorizontally(motion.defaultSpatialSpec()) { it / 4 } +
-                                    fadeIn(motion.defaultEffectsSpec())
-                            ).togetherWith(fadeOut(motion.fastEffectsSpec()))
-                        },
-                        popTransitionSpec = {
-                            fadeIn(motion.defaultEffectsSpec())
-                                .togetherWith(
-                                    slideOutHorizontally(motion.defaultSpatialSpec()) { it / 4 } +
-                                        fadeOut(motion.fastEffectsSpec()),
-                                )
-                        },
-                        entryProvider =
-                            entryProvider {
-                                entry<HomeRoute> { HomeScreen(onOpenVideo = ::openVideo) }
-                                entry<SearchRoute> {
-                                    SearchScreen(
-                                        onOpenVideo = ::openVideo,
-                                        onOpenChannel = ::openChannel,
-                                        onOpenPlaylist = ::openPlaylist,
-                                    )
-                                }
-                                entry<LibraryRoute> {
-                                    LibraryScreen(
-                                        onOpenVideo = ::openVideo,
-                                        onOpenChannel = ::openChannel,
-                                        onOpenPlaylist = { stack.pushUnique(LocalPlaylistRoute(it)) },
-                                        onPlayAllLater = {
-                                            id,
-                                            key,
-                                            ->
-                                            stack.pushUnique(WatchRoute(id.value, key, LocalQueue.WATCH_LATER))
-                                        },
-                                        onOpenTransfer = { stack.pushUnique(TransferRoute) },
-                                        onOpenStats = { stack.pushUnique(StatsRoute) },
-                                        onOpenSearch = { stack.pushUnique(LibrarySearchRoute) },
-                                    )
-                                }
-                                entry<LibrarySearchRoute> {
-                                    LibrarySearchScreen(
-                                        onBack = { stack.removeLastOrNull() },
-                                        onOpenVideo = ::openVideo,
-                                        onPlayDownload = { stack.pushUnique(OfflineWatchRoute(it)) },
-                                        onOpenPlaylist = { stack.pushUnique(LocalPlaylistRoute(it)) },
-                                    )
-                                }
-                                entry<StatsRoute> { StatsScreen(onBack = { stack.removeLastOrNull() }) }
-                                entry<LocalPlaylistRoute> { route ->
-                                    LocalPlaylistScreen(
-                                        playlistId = route.playlistId,
-                                        onBack = { stack.removeLastOrNull() },
-                                        onOpenVideo = ::openVideo,
-                                        onPlayAll = { id, key ->
-                                            val queue = LocalQueue.playlist(route.playlistId)
-                                            stack.pushUnique(WatchRoute(id.value, key, queue))
-                                        },
-                                    )
-                                }
-                                entry<TransferRoute> { TransferScreen(onBack = { stack.removeLastOrNull() }) }
-                                entry<DownloadsRoute> {
-                                    DownloadsScreen(
-                                        onPlay = { stack.pushUnique(OfflineWatchRoute(it)) },
-                                        onOpenOnline = { openVideo(it, "downloads-${it.value}") },
-                                    )
-                                }
-                                entry<ChannelRoute> { route ->
-                                    ChannelScreen(
-                                        channelId = ChannelId(route.channelId),
-                                        onBack = { stack.removeLastOrNull() },
-                                        onOpenVideo = ::openVideo,
-                                        onOpenChannel = ::openChannel,
-                                        onOpenPlaylist = ::openPlaylist,
-                                    )
-                                }
-                                entry<PlaylistRoute> { route ->
-                                    PlaylistScreen(
-                                        playlistId = PlaylistId(route.playlistId),
-                                        onBack = { stack.removeLastOrNull() },
-                                        onPlay = {
-                                            id,
-                                            key,
-                                            playlist,
-                                            ->
-                                            stack.pushUnique(WatchRoute(id.value, key, playlist.value))
-                                        },
-                                        onOpenChannel = ::openChannel,
-                                    )
-                                }
-                                entry<OfflineWatchRoute> { route -> OfflineWatchScreen(downloadId = route.downloadId) }
-                                entry<SettingsRoute> {
-                                    SettingsScreen(
-                                        versionName = versionName,
-                                        onOpenTransfer = { stack.pushUnique(TransferRoute) },
-                                    )
-                                }
-                                entry<WatchRoute> { route ->
-                                    WatchScreen(
-                                        videoId = VideoId(route.videoId),
-                                        sharedKey = route.sharedKey,
-                                        playlistId = route.playlistId?.let(::PlaylistId),
-                                        onOpenVideo = ::openVideo,
-                                        onOpenChannel = ::openChannel,
-                                        onCollapse = { stack.removeLastOrNull() },
-                                    )
-                                }
+                    // A tab that is left leaves composition; this keeps its saved state (search text, scroll).
+                    tabState.SaveableStateProvider(tab.toString()) {
+                        NavDisplay(
+                            backStack = stack,
+                            onBack = { stack.removeLastOrNull() },
+                            entryDecorators =
+                                listOf(
+                                    rememberSaveableStateHolderNavEntryDecorator(),
+                                    rememberViewModelStoreNavEntryDecorator(),
+                                ),
+                            sharedTransitionScope = this@SharedTransitionLayout,
+                            transitionSpec = {
+                                (
+                                    slideInHorizontally(motion.defaultSpatialSpec()) { it / 4 } +
+                                        fadeIn(motion.defaultEffectsSpec())
+                                ).togetherWith(fadeOut(motion.fastEffectsSpec()))
                             },
-                    )
+                            popTransitionSpec = {
+                                fadeIn(motion.defaultEffectsSpec())
+                                    .togetherWith(
+                                        slideOutHorizontally(motion.defaultSpatialSpec()) { it / 4 } +
+                                            fadeOut(motion.fastEffectsSpec()),
+                                    )
+                            },
+                            entryProvider =
+                                entryProvider {
+                                    entry<HomeRoute> { HomeScreen(onOpenVideo = ::openVideo) }
+                                    entry<SearchRoute> {
+                                        SearchScreen(
+                                            onOpenVideo = ::openVideo,
+                                            onOpenChannel = ::openChannel,
+                                            onOpenPlaylist = ::openPlaylist,
+                                        )
+                                    }
+                                    entry<LibraryRoute> {
+                                        LibraryScreen(
+                                            onOpenVideo = ::openVideo,
+                                            onOpenChannel = ::openChannel,
+                                            onOpenPlaylist = { stack.pushUnique(LocalPlaylistRoute(it)) },
+                                            onPlayAllLater = {
+                                                id,
+                                                key,
+                                                ->
+                                                stack.pushUnique(WatchRoute(id.value, key, LocalQueue.WATCH_LATER))
+                                            },
+                                            onOpenTransfer = { stack.pushUnique(TransferRoute) },
+                                            onOpenStats = { stack.pushUnique(StatsRoute) },
+                                            onOpenSearch = { stack.pushUnique(LibrarySearchRoute) },
+                                        )
+                                    }
+                                    entry<LibrarySearchRoute> {
+                                        LibrarySearchScreen(
+                                            onBack = { stack.removeLastOrNull() },
+                                            onOpenVideo = ::openVideo,
+                                            onPlayDownload = { stack.pushUnique(OfflineWatchRoute(it)) },
+                                            onOpenPlaylist = { stack.pushUnique(LocalPlaylistRoute(it)) },
+                                        )
+                                    }
+                                    entry<StatsRoute> {
+                                        StatsScreen(
+                                            onBack = { stack.removeLastOrNull() },
+                                            onOpenChannel = ::openChannel,
+                                        )
+                                    }
+                                    entry<LocalPlaylistRoute> { route ->
+                                        LocalPlaylistScreen(
+                                            playlistId = route.playlistId,
+                                            onBack = { stack.removeLastOrNull() },
+                                            onOpenVideo = ::openVideo,
+                                            onPlayAll = { id, key ->
+                                                val queue = LocalQueue.playlist(route.playlistId)
+                                                stack.pushUnique(WatchRoute(id.value, key, queue))
+                                            },
+                                        )
+                                    }
+                                    entry<TransferRoute> { TransferScreen(onBack = { stack.removeLastOrNull() }) }
+                                    entry<DownloadsRoute> {
+                                        DownloadsScreen(
+                                            onPlay = { stack.pushUnique(OfflineWatchRoute(it)) },
+                                            onOpenOnline = { openVideo(it, "downloads-${it.value}") },
+                                        )
+                                    }
+                                    entry<ChannelRoute> { route ->
+                                        ChannelScreen(
+                                            channelId = ChannelId(route.channelId),
+                                            onBack = { stack.removeLastOrNull() },
+                                            onOpenVideo = ::openVideo,
+                                            onOpenChannel = ::openChannel,
+                                            onOpenPlaylist = ::openPlaylist,
+                                        )
+                                    }
+                                    entry<PlaylistRoute> { route ->
+                                        PlaylistScreen(
+                                            playlistId = PlaylistId(route.playlistId),
+                                            onBack = { stack.removeLastOrNull() },
+                                            onPlay = {
+                                                id,
+                                                key,
+                                                playlist,
+                                                ->
+                                                stack.pushUnique(WatchRoute(id.value, key, playlist.value))
+                                            },
+                                            onOpenChannel = ::openChannel,
+                                        )
+                                    }
+                                    entry<OfflineWatchRoute> { route ->
+                                        OfflineWatchScreen(downloadId = route.downloadId)
+                                    }
+                                    entry<SettingsRoute> {
+                                        SettingsScreen(
+                                            versionName = versionName,
+                                            onOpenTransfer = { stack.pushUnique(TransferRoute) },
+                                        )
+                                    }
+                                    entry<WatchRoute> { route ->
+                                        WatchScreen(
+                                            videoId = VideoId(route.videoId),
+                                            sharedKey = route.sharedKey,
+                                            playlistId = route.playlistId?.let(::PlaylistId),
+                                            onOpenVideo = ::openVideo,
+                                            onOpenChannel = ::openChannel,
+                                            onCollapse = { stack.removeLastOrNull() },
+                                        )
+                                    }
+                                },
+                        )
+                    }
                 }
             }
         }
@@ -309,7 +328,12 @@ fun YouTubelyApp(
             }
         },
     ) {
-        Column(Modifier.fillMaxSize()) {
+        // Content keeps clear of a camera cutout and of a navigation bar at the side (landscape).
+        val sides =
+            WindowInsets.displayCutout
+                .only(WindowInsetsSides.Horizontal)
+                .union(WindowInsets.systemBars.only(WindowInsetsSides.End))
+        Column(Modifier.fillMaxSize().windowInsetsPadding(sides)) {
             navigation(Modifier.weight(1f))
             MiniPlayer(
                 visible = !watching,
@@ -353,7 +377,7 @@ private fun NavBackStack<NavKey>.reopen(playing: NowPlaying) {
     if (existing >= 0) {
         while (size > existing + 1) removeLastOrNull()
     } else {
-        pushUnique(playing.downloadId?.let(::OfflineWatchRoute) ?: WatchRoute(id, "mini-$id"))
+        pushUnique(playing.downloadId?.let(::OfflineWatchRoute) ?: WatchRoute(id, "mini-$id", playing.playlistId))
     }
 }
 
